@@ -5,10 +5,10 @@
 
 'use client'
 
-import { Container, Title, Stack, Group, Text, Badge, Tabs, ActionIcon, Paper, Button } from '@mantine/core'
+import { Container, Title, Stack, Group, Text, Badge, Tabs, ActionIcon, Paper, Button, SimpleGrid, Image, Box, Divider } from '@mantine/core'
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
-import { IconEdit, IconArrowLeft, IconPalette, IconBox, IconDoor } from '@tabler/icons-react'
+import { IconEdit, IconArrowLeft, IconPalette, IconBox, IconDoor, IconPhoto } from '@tabler/icons-react'
 import { MoodBCard, MoodBBadge, LoadingState, ErrorState } from '@/components/ui'
 import { useAdminStyle } from '@/hooks/useStyles'
 import Link from 'next/link'
@@ -116,6 +116,49 @@ export default function AdminStyleDetailPage() {
                   ))}
                 </Group>
               </Group>
+            )}
+
+            {/* Style Images */}
+            {style.images && style.images.length > 0 && (
+              <>
+                <Divider />
+                <div>
+                  <Group gap="xs" mb="md">
+                    <IconPhoto size={16} />
+                    <Text fw={500} size="sm" c="dimmed">
+                      {t('detail.images') || 'תמונות'} ({style.images.length})
+                    </Text>
+                  </Group>
+                  <SimpleGrid cols={{ base: 2, sm: 3, md: 4 }} spacing="md">
+                    {style.images.map((imageUrl: string, index: number) => (
+                      <Paper
+                        key={index}
+                        p="xs"
+                        withBorder
+                        radius="md"
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <Box
+                          style={{
+                            aspectRatio: '1',
+                            overflow: 'hidden',
+                            borderRadius: 'var(--mantine-radius-sm)',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => window.open(imageUrl, '_blank')}
+                        >
+                          <Image
+                            src={imageUrl}
+                            alt={`${style.name.he} - Image ${index + 1}`}
+                            fit="cover"
+                            style={{ width: '100%', height: '100%' }}
+                          />
+                        </Box>
+                      </Paper>
+                    ))}
+                  </SimpleGrid>
+                </div>
+              </>
             )}
           </Stack>
         </MoodBCard>
@@ -254,6 +297,48 @@ export default function AdminStyleDetailPage() {
                               </Group>
                             ))}
                           </Stack>
+                        )}
+                        {/* Room Profile Images */}
+                        {profile.images && profile.images.length > 0 && (
+                          <>
+                            <Divider my="md" />
+                            <div>
+                              <Group gap="xs" mb="md">
+                                <IconPhoto size={16} />
+                                <Text fw={500} size="sm" c="dimmed">
+                                  {t('detail.images') || 'תמונות'} ({profile.images.length})
+                                </Text>
+                              </Group>
+                              <SimpleGrid cols={{ base: 2, sm: 3, md: 4 }} spacing="md">
+                                {profile.images.map((imageUrl: string, imgIndex: number) => (
+                                  <Paper
+                                    key={imgIndex}
+                                    p="xs"
+                                    withBorder
+                                    radius="md"
+                                    style={{ overflow: 'hidden' }}
+                                  >
+                                    <Box
+                                      style={{
+                                        aspectRatio: '1',
+                                        overflow: 'hidden',
+                                        borderRadius: 'var(--mantine-radius-sm)',
+                                        cursor: 'pointer',
+                                      }}
+                                      onClick={() => window.open(imageUrl, '_blank')}
+                                    >
+                                      <Image
+                                        src={imageUrl}
+                                        alt={`${profile.roomType} - Image ${imgIndex + 1}`}
+                                        fit="cover"
+                                        style={{ width: '100%', height: '100%' }}
+                                      />
+                                    </Box>
+                                  </Paper>
+                                ))}
+                              </SimpleGrid>
+                            </div>
+                          </>
                         )}
                       </Paper>
                     ))}

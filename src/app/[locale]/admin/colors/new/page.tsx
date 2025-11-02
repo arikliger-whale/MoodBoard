@@ -20,6 +20,7 @@ export default function AdminColorNewPage() {
   const t = useTranslations('admin.colors.create')
   const tCommon = useTranslations('common')
   const tCategories = useTranslations('admin.colors.categories')
+  const tRoles = useTranslations('admin.colors.roles')
   const params = useParams()
   const router = useRouter()
   const locale = params.locale as string
@@ -64,11 +65,11 @@ export default function AdminColorNewPage() {
   ]
 
   const roleOptions = [
-    { value: 'primary', label: 'Primary' },
-    { value: 'secondary', label: 'Secondary' },
-    { value: 'success', label: 'Success' },
-    { value: 'warning', label: 'Warning' },
-    { value: 'error', label: 'Error' },
+    { value: 'primary', label: tRoles('primary') },
+    { value: 'secondary', label: tRoles('secondary') },
+    { value: 'success', label: tRoles('success') },
+    { value: 'warning', label: tRoles('warning') },
+    { value: 'error', label: tRoles('error') },
   ]
 
   // Normalize hex value to ensure it's valid
@@ -152,7 +153,7 @@ export default function AdminColorNewPage() {
             >
               {createMutation.error instanceof Error
                 ? createMutation.error.message
-                : 'Failed to create color'}
+                : t('errorMessage')}
             </Alert>
           )}
 
@@ -193,7 +194,7 @@ export default function AdminColorNewPage() {
                         {...register('description.he')}
                         error={errors.description?.he?.message}
                         minRows={3}
-                        description={descriptionHe ? `${descriptionHe.length} תווים` : undefined}
+                        description={descriptionHe ? `${descriptionHe.length} ${t('characters')}` : undefined}
                       />
                       <Textarea
                         label={t('descriptionEn')}
@@ -201,7 +202,7 @@ export default function AdminColorNewPage() {
                         {...register('description.en')}
                         error={errors.description?.en?.message}
                         minRows={3}
-                        description={descriptionEn ? `${descriptionEn.length} characters` : undefined}
+                        description={descriptionEn ? `${descriptionEn.length} ${t('characters')}` : undefined}
                       />
                     </SimpleGrid>
                   </Stack>
@@ -336,7 +337,7 @@ export default function AdminColorNewPage() {
                       {...field}
                       error={errors.category?.message}
                       required
-                      description="צבעים לסגנונות עיצוב - בחר קטגוריה המתאימה לשימוש בצבע"
+                      description={t('categoryDescription')}
                     />
                   )}
                 />

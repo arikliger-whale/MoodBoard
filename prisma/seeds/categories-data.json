@@ -1,0 +1,26 @@
+{
+  "categories": [
+    {
+      "he": "היסטוריים",
+      "en": "Historical",
+      "slug": "historical",
+      "descriptionHe": "סגנונות עיצוב המבוססים על תקופות היסטוריות ותנועות אמנות קדומות, המעבירים את הקלאסיקה וההדר של עידנים שונים לחללים עכשוויים.",
+      "descriptionEn": "Design styles based on historical periods and ancient art movements, bringing classicism and grandeur into contemporary spaces.",
+      "order": 1,
+      "subcategories": [
+        {"he": "מצרי עתיק", "en": "Ancient Egyptian", "slug": "ancient-egyptian", "order": 1},
+        {"he": "יווני קלאסי", "en": "Greek Classical", "slug": "greek-classical", "order": 2},
+        {"he": "רומי קלאסי", "en": "Classical Roman", "slug": "classical-roman", "order": 3},
+        {"he": "ביזנטי", "en": "Byzantine", "slug": "byzantine", "order": 4},
+        {"he": "רומנסקי", "en": "Romanesque", "slug": "romanesque", "order": 5},
+        {"he": "גוטי", "en": "Gothic", "slug": "gothic", "order": 6},
+        {"he": "רנסנס", "en": "Renaissance", "slug": "renaissance", "order": 7},
+        {"he": "בארוק", "en": "Baroque", "slug": "baroque", "order": 8},
+        {"he": "רוקוקו", "en": "Rococo", "slug": "rococo", "order": 9},
+        {"he": "לואי ה-14", "en": "Louis XIV", "slug": "louis-xiv", "order": 10},
+        {"he": "לואי ה-15", "en": "Louis XV", "slug": "louis-xv", "order": 11},
+        {"he": "לואי ה-16", "en": "Louis XVI", "slug": "louis-xvi", "order": 12}
+      ]
+    }
+  ]
+}

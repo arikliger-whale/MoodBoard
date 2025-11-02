@@ -1,6 +1,6 @@
+import { prisma } from "@/lib/db/prisma"
 import { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import { prisma } from "@/lib/db/prisma"
 
 export const authOptions: NextAuthOptions = {
   // No adapter - using JWT sessions only

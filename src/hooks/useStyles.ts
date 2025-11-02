@@ -39,17 +39,18 @@ export interface Style {
     }
     slug: string
   }
-  palette: {
-    neutrals: Array<{ name: string; hex: string; pantone?: string }>
-    accents: Array<{ name: string; hex: string; pantone?: string }>
-    semantic?: {
-      primary: string
-      secondary?: string
-      success?: string
-      warning?: string
-      error?: string
+  colorId: string
+  color?: {
+    id: string
+    name: {
+      he: string
+      en: string
     }
+    hex: string
+    pantone?: string | null
+    category: string
   }
+  images?: string[]
   materialSet: {
     defaults: Array<{
       materialId: string
@@ -64,8 +65,8 @@ export interface Style {
   }
   roomProfiles: Array<{
     roomType: string
-    colorProportions?: Array<{ colorRole: string; percentage: number }>
     materials?: string[]
+    images?: string[]
     constraints?: {
       waterResistance?: boolean
       durability?: number
@@ -421,6 +422,51 @@ export function useCreateAdminStyle() {
         }
         const error = await response.json()
         throw new Error(error.error || 'Failed to create global style')
+      }
+
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_STYLES_QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: [STYLES_QUERY_KEY] })
+    },
+    onError: (error: any) => {
+      if (error?.message?.includes('Admin access') || error?.status === 403) {
+        const locale = window.location.pathname.split('/')[1] || 'he'
+        router.push(`/${locale}/dashboard`)
+      }
+    },
+  })
+}
+
+/**
+ * Hook to update admin global style
+ * Protected: Only works for admin users
+ */
+export function useUpdateAdminStyle() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const router = useRouter()
+  const isAdmin = session?.user?.role === 'admin'
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateStyle }) => {
+      if (!isAdmin) {
+        throw new Error('Admin access required')
+      }
+
+      const response = await fetch(`/api/admin/styles/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Admin access required')
+        }
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update global style')
       }
 
       return response.json()

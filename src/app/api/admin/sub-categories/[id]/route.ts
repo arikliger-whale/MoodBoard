@@ -15,9 +15,10 @@ import { handleError, validateRequest } from '@/lib/api/middleware'
 export const GET = withAdmin(async (
   req: NextRequest,
   _auth,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) => {
   try {
+    const params = await context.params
     const subCategory = await prisma.subCategory.findUnique({
       where: { id: params.id },
       include: {
@@ -52,11 +53,11 @@ export const GET = withAdmin(async (
 export const PATCH = withAdmin(async (
   req: NextRequest,
   _auth,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) => {
   try {
-    const body = await req.json()
-    const data = validateRequest(updateSubCategorySchema, body)
+    const params = await context.params
+    const data = await validateRequest(req, updateSubCategorySchema)
 
     // Check if sub-category exists
     const existing = await prisma.subCategory.findUnique({
@@ -86,12 +87,28 @@ export const PATCH = withAdmin(async (
       }
     }
 
+    // Check if description HTML has actual text content
+    const hasHtmlText = (html: string | undefined): boolean => {
+      if (!html) return false
+      const textOnly = html.replace(/<[^>]*>/g, '').trim()
+      return textOnly.length > 0
+    }
+    
+    const hasDescription = data.description && (
+      hasHtmlText(data.description.he) || 
+      hasHtmlText(data.description.en)
+    )
+    
     const subCategory = await prisma.subCategory.update({
       where: { id: params.id },
       data: {
         ...(data.name && { name: data.name }),
+        ...(data.description !== undefined && {
+          description: hasDescription ? data.description : null,
+        }),
         ...(data.slug && { slug: data.slug }),
         ...(data.order !== undefined && { order: data.order }),
+        ...(data.images !== undefined && { images: data.images }),
         updatedAt: new Date(),
       },
       include: {
@@ -122,9 +139,10 @@ export const PATCH = withAdmin(async (
 export const DELETE = withAdmin(async (
   req: NextRequest,
   _auth,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) => {
   try {
+    const params = await context.params
     const subCategory = await prisma.subCategory.findUnique({
       where: { id: params.id },
       include: {

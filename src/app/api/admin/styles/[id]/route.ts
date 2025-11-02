@@ -153,6 +153,7 @@ export const PATCH = withAdmin(async (req: NextRequest, auth) => {
         ...(body.categoryId && { categoryId: body.categoryId }),
         ...(body.subCategoryId && { subCategoryId: body.subCategoryId }),
         ...(body.slug && { slug: body.slug }),
+        ...(body.images !== undefined && { images: body.images }),
         ...(body.palette && { palette: body.palette as any }),
         ...(body.materialSet && { materialSet: body.materialSet as any }),
         ...(body.roomProfiles && { roomProfiles: body.roomProfiles as any }),

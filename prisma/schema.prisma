@@ -286,6 +286,7 @@ type Room {
   type           String // Living, Kitchen, Bedroom, Bath, etc.
   dimensions     Dimensions?
   notes          String?
+  images         String[]            @default([]) // Array of R2 image URLs
   styleOverrides StyleOverride?
   materials      MaterialReference[]
   products       ProductReference[]
@@ -404,6 +405,8 @@ model Color {
 
   usage Int @default(0) // How many styles use this color
 
+  styles Style[] // Styles that use this color
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
@@ -418,13 +421,15 @@ model Color {
 // ============================================
 
 model Category {
-  id   String @id @default(auto()) @map("_id") @db.ObjectId
-  name LocalizedString
-  slug String @unique
-  order Int    @default(0) // For sorting
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  name        LocalizedString
+  description LocalizedString? // Optional description for the category
+  slug        String            @unique
+  order       Int               @default(0) // For sorting
+  images      String[]          @default([]) // Array of R2 image URLs
 
   subCategories SubCategory[]
-  styles         Style[]
+  styles        Style[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
@@ -438,9 +443,11 @@ model SubCategory {
   categoryId String   @db.ObjectId
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  name LocalizedString
-  slug String
-  order Int    @default(0) // For sorting within category
+  name        LocalizedString
+  description LocalizedString? // Optional description for the subcategory
+  slug        String
+  order       Int              @default(0) // For sorting within category
+  images      String[]         @default([]) // Array of R2 image URLs
 
   styles Style[]
 
@@ -470,7 +477,11 @@ model Style {
   subCategoryId String    @db.ObjectId
   subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
 
-  palette      Palette
+  colorId String  @db.ObjectId
+  color   Color   @relation(fields: [colorId], references: [id])
+
+  images String[] @default([]) // Array of R2 image URLs
+
   materialSet  MaterialSet
   roomProfiles RoomProfile[]
 
@@ -483,26 +494,13 @@ model Style {
   @@index([categoryId])
   @@index([subCategoryId])
   @@index([categoryId, subCategoryId])
+  @@index([colorId])
   @@map("styles")
 }
 
 type LocalizedString {
   he String
   en String
-}
-
-type Palette {
-  neutrals String[] @db.ObjectId // References to Color IDs
-  accents  String[] @db.ObjectId // References to Color IDs
-  semantic SemanticColors?
-}
-
-type SemanticColors {
-  primary   String? @db.ObjectId // Reference to Color ID
-  secondary String? @db.ObjectId // Reference to Color ID
-  success   String? @db.ObjectId // Reference to Color ID
-  warning   String? @db.ObjectId // Reference to Color ID
-  error     String? @db.ObjectId // Reference to Color ID
 }
 
 type MaterialSet {
@@ -523,16 +521,10 @@ type MaterialAlternative {
 }
 
 type RoomProfile {
-  roomType         String
-  colorProportions ColorProportion[]
-  materials        String[]          @db.ObjectId
-  constraints      RoomConstraint?
-}
-
-type ColorProportion {
-  colorId    String @db.ObjectId // Reference to Color ID
-  colorRole  String // neutral, accent, etc.
-  percentage Float
+  roomType    String
+  materials   String[]          @db.ObjectId // References to Material IDs
+  images      String[]          @default([]) // Array of R2 image URLs for this room profile
+  constraints RoomConstraint?
 }
 
 type RoomConstraint {
@@ -557,14 +549,52 @@ type StyleMetadata {
 // Material & Product Catalog
 // ============================================
 
+model MaterialCategory {
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  name        LocalizedString
+  description LocalizedString?
+  slug        String            @unique
+  order       Int               @default(0)
+  icon        String?           // Icon name or URL
+
+  types MaterialType[]
+  materials Material[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@index([order, slug])
+  @@map("material_categories")
+}
+
+model MaterialType {
+  id               String            @id @default(auto()) @map("_id") @db.ObjectId
+  categoryId        String            @db.ObjectId
+  category          MaterialCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  name        LocalizedString
+  description LocalizedString?
+  slug        String
+  order       Int               @default(0)
+  icon        String?           // Icon name or URL
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@unique([categoryId, slug])
+  @@index([categoryId, order])
+  @@map("material_types")
+}
+
 model Material {
   id             String        @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String?       @db.ObjectId
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String         @db.ObjectId
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   sku      String          @unique
   name     LocalizedString
-  category String
+  categoryId String        @db.ObjectId
+  category MaterialCategory @relation(fields: [categoryId], references: [id])
 
   properties   MaterialProperties
   pricing      Pricing
@@ -574,25 +604,21 @@ model Material {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
+  @@unique([organizationId, sku])
   @@index([organizationId])
-  @@index([organizationId, category])
+  @@index([organizationId, categoryId])
+  @@index([categoryId])
   @@map("materials")
 }
 
 type MaterialProperties {
-  type       String // wood, stone, fabric, metal, glass, ceramic, composite
-  subType    String
-  finish     String[]
-  texture    String
-  color      ColorInfo
+  typeId    String   // Reference to MaterialType ID
+  subType   String   // Free text sub-type (e.g., "Oak", "Marble")
+  finish    String[]
+  texture   String
+  colorIds  String[]  @db.ObjectId // Array of Color IDs
   dimensions MaterialDimensions?
-  technical  TechnicalSpecs
-}
-
-type ColorInfo {
-  hex     String
-  name    String
-  pantone String?
+  technical TechnicalSpecs
 }
 
 type MaterialDimensions {

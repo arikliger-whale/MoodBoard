@@ -90,6 +90,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       translationKey: 'materials',
     },
     {
+      label: t('navigation.materialSettings'),
+      icon: IconBox,
+      href: `/${locale}/admin/materials/settings`,
+      translationKey: 'materialSettings',
+    },
+    {
       label: t('navigation.organizations'),
       icon: IconBuilding,
       href: `/${locale}/admin/organizations`,

@@ -5,16 +5,20 @@
 
 'use client'
 
-import { useState } from 'react'
-import { Container, Title, Stack, Group, ActionIcon, Text, Button, Alert, Tabs, ScrollArea } from '@mantine/core'
+import { useState, useEffect, useMemo } from 'react'
+import { Container, Title, Stack, Group, ActionIcon, Text, Button, Alert, Tabs, ScrollArea, Paper, Badge } from '@mantine/core'
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
 import { useForm, Controller, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { IconArrowLeft, IconAlertCircle, IconPlus, IconX, IconPalette, IconBox } from '@tabler/icons-react'
-import { MoodBButton, MoodBCard, FormSection } from '@/components/ui'
+import { IconArrowLeft, IconAlertCircle, IconPlus, IconX, IconPalette, IconBox, IconHome } from '@tabler/icons-react'
+import { MoodBButton, MoodBCard, FormSection, ImageUpload } from '@/components/ui'
 import { createStyleSchema, type CreateStyle } from '@/lib/validations/style'
-import { useCreateAdminStyle } from '@/hooks/useStyles'
+import { useCreateAdminStyle, useUpdateAdminStyle } from '@/hooks/useStyles'
+import { useCategories, useSubCategories } from '@/hooks/useCategories'
+import { useColors } from '@/hooks/useColors'
+import { ROOM_TYPES } from '@/lib/validations/room'
+import { useImageUpload } from '@/hooks/useImageUpload'
 import {
   TextInput,
   Select,
@@ -24,13 +28,25 @@ import {
 export default function AdminStyleNewPage() {
   const t = useTranslations('admin.styles.create')
   const tCommon = useTranslations('common')
-  const tCategories = useTranslations('admin.styles.categories')
+  const tRoomTypes = useTranslations('projects.form.roomTypes')
   const params = useParams()
   const router = useRouter()
   const locale = params.locale as string
 
   const createMutation = useCreateAdminStyle()
+  const updateMutation = useUpdateAdminStyle()
+  const { uploadImage } = useImageUpload()
   const [activeTab, setActiveTab] = useState<string | null>('basic')
+  const [pendingStyleFiles, setPendingStyleFiles] = useState<File[]>([])
+  const [pendingRoomProfileFiles, setPendingRoomProfileFiles] = useState<Record<number, File[]>>({})
+
+  // Fetch categories and sub-categories
+  const { data: categoriesData } = useCategories()
+  const categories = categoriesData?.data || []
+  
+  // Fetch colors
+  const { data: colorsData } = useColors({ limit: 100 })
+  const colors = colorsData?.data || []
 
   const {
     register,
@@ -38,6 +54,7 @@ export default function AdminStyleNewPage() {
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<CreateStyle>({
     // @ts-expect-error - zodResolver type issue with nested schemas
     resolver: zodResolver(createStyleSchema),
@@ -46,16 +63,15 @@ export default function AdminStyleNewPage() {
         he: '',
         en: '',
       },
-      category: 'scandinavian',
+      categoryId: '',
+      subCategoryId: '',
       slug: '',
-      palette: {
-        neutrals: [{ name: '', hex: '#ffffff' }],
-        accents: [{ name: '', hex: '#df2538' }],
-      },
+      colorId: '',
       materialSet: {
-        defaults: [{ materialId: '', usageArea: '' }],
+        defaults: [],
         alternatives: [],
       },
+      images: [],
       roomProfiles: [],
       metadata: {
         tags: [],
@@ -63,23 +79,53 @@ export default function AdminStyleNewPage() {
     },
   })
 
-  const {
-    fields: neutralFields,
-    append: appendNeutral,
-    remove: removeNeutral,
-  } = useFieldArray({
-    control,
-    name: 'palette.neutrals',
-  })
+  const categoryId = watch('categoryId')
+  const subCategoryId = watch('subCategoryId')
+  const roomProfiles = watch('roomProfiles')
 
-  const {
-    fields: accentFields,
-    append: appendAccent,
-    remove: removeAccent,
-  } = useFieldArray({
-    control,
-    name: 'palette.accents',
-  })
+  // Fetch sub-categories when category is selected
+  const { data: subCategoriesData } = useSubCategories(categoryId || undefined)
+  const subCategories = subCategoriesData?.data || []
+
+  // Category options
+  const categoryOptions = useMemo(() => {
+    return categories.map((cat) => ({
+      value: cat.id,
+      label: locale === 'he' ? cat.name.he : cat.name.en,
+    }))
+  }, [categories, locale])
+
+  // Sub-category options
+  const subCategoryOptions = useMemo(() => {
+    return subCategories.map((subCat) => ({
+      value: subCat.id,
+      label: locale === 'he' ? subCat.name.he : subCat.name.en,
+    }))
+  }, [subCategories, locale])
+
+  // Color options
+  const colorOptions = useMemo(() => {
+    return colors.map((color) => ({
+      value: color.id,
+      label: `${locale === 'he' ? color.name.he : color.name.en} (${color.hex})`,
+      color: color.hex,
+    }))
+  }, [colors, locale])
+
+  // Room type options
+  const roomTypeOptions = useMemo(() => {
+    return ROOM_TYPES.map((type) => ({
+      value: type,
+      label: tRoomTypes(type),
+    }))
+  }, [tRoomTypes])
+
+  // Reset sub-category when category changes
+  useEffect(() => {
+    if (categoryId) {
+      setValue('subCategoryId', '')
+    }
+  }, [categoryId, setValue])
 
   const {
     fields: defaultMaterialFields,
@@ -90,22 +136,93 @@ export default function AdminStyleNewPage() {
     name: 'materialSet.defaults',
   })
 
-  const categoryOptions = [
-    { value: 'scandinavian', label: tCategories('scandinavian') },
-    { value: 'japandi', label: tCategories('japandi') },
-    { value: 'industrial', label: tCategories('industrial') },
-    { value: 'minimal', label: tCategories('minimal') },
-    { value: 'mediterranean', label: tCategories('mediterranean') },
-    { value: 'rustic', label: tCategories('rustic') },
-    { value: 'classic', label: tCategories('classic') },
-  ]
+  const {
+    fields: roomProfileFields,
+    append: appendRoomProfile,
+    remove: removeRoomProfile,
+  } = useFieldArray({
+    control,
+    name: 'roomProfiles',
+  })
+
+  // Get available room types (not already added)
+  const availableRoomTypes = useMemo(() => {
+    const usedTypes = new Set(roomProfiles?.map((rp) => rp.roomType) || [])
+    return roomTypeOptions.filter((opt) => !usedTypes.has(opt.value))
+  }, [roomTypeOptions, roomProfiles])
 
   const onSubmit = async (data: CreateStyle) => {
     try {
-      await createMutation.mutateAsync(data)
-      router.push(`/${locale}/admin/styles`)
+      // Create style first
+      const createdStyle = await createMutation.mutateAsync(data)
+      
+      // Upload pending style images
+      const uploadedStyleImages: string[] = []
+      for (const file of pendingStyleFiles) {
+        try {
+          const url = await uploadImage({
+            file,
+            entityType: 'style',
+            entityId: createdStyle.id,
+          })
+          uploadedStyleImages.push(url)
+        } catch (err) {
+          console.error('Failed to upload style image:', err)
+        }
+      }
+      
+      // Upload pending room profile images
+      const updatedRoomProfiles = [...(data.roomProfiles || [])]
+      for (let i = 0; i < updatedRoomProfiles.length; i++) {
+        const roomFiles = pendingRoomProfileFiles[i] || []
+        const uploadedRoomImages: string[] = []
+        
+        for (const file of roomFiles) {
+          try {
+            const url = await uploadImage({
+              file,
+              entityType: 'style',
+              entityId: createdStyle.id,
+              roomType: updatedRoomProfiles[i].roomType,
+            })
+            uploadedRoomImages.push(url)
+          } catch (err) {
+            console.error('Failed to upload room profile image:', err)
+          }
+        }
+        
+        if (uploadedRoomImages.length > 0) {
+          updatedRoomProfiles[i] = {
+            ...updatedRoomProfiles[i],
+            images: [...(updatedRoomProfiles[i].images || []), ...uploadedRoomImages],
+          }
+        }
+      }
+      
+      // Update style with uploaded images if any
+      if (uploadedStyleImages.length > 0 || updatedRoomProfiles.some(rp => rp.images && rp.images.length > 0)) {
+        await updateMutation.mutateAsync({
+          id: createdStyle.id,
+          data: {
+            images: [...(data.images || []), ...uploadedStyleImages],
+            roomProfiles: updatedRoomProfiles,
+          },
+        })
+      }
+      
+      // Redirect to detail page
+      router.push(`/${locale}/admin/styles/${createdStyle.id}`)
     } catch (error) {
       console.error('Error creating style:', error)
+    }
+  }
+
+  const handleAddRoomProfile = () => {
+    if (availableRoomTypes.length > 0) {
+      appendRoomProfile({
+        roomType: availableRoomTypes[0].value,
+        materials: [],
+      })
     }
   }
 
@@ -145,11 +262,14 @@ export default function AdminStyleNewPage() {
               <Tabs.Tab value="basic" leftSection={<IconPalette size={16} />}>
                 {t('basicInfo')}
               </Tabs.Tab>
-              <Tabs.Tab value="palette" leftSection={<IconPalette size={16} />}>
-                {t('palette')}
+              <Tabs.Tab value="color" leftSection={<IconPalette size={16} />}>
+                {t('color')}
               </Tabs.Tab>
               <Tabs.Tab value="materials" leftSection={<IconBox size={16} />}>
                 {t('materials')}
+              </Tabs.Tab>
+              <Tabs.Tab value="rooms" leftSection={<IconHome size={16} />}>
+                {t('rooms')}
               </Tabs.Tab>
             </Tabs.List>
 
@@ -176,7 +296,7 @@ export default function AdminStyleNewPage() {
                     </SimpleGrid>
 
                     <Controller
-                      name="category"
+                      name="categoryId"
                       control={control}
                       render={({ field }) => (
                         <Select
@@ -184,8 +304,26 @@ export default function AdminStyleNewPage() {
                           placeholder={t('categoryPlaceholder')}
                           data={categoryOptions}
                           {...field}
-                          error={errors.category?.message}
+                          error={errors.categoryId?.message}
                           required
+                          searchable
+                        />
+                      )}
+                    />
+
+                    <Controller
+                      name="subCategoryId"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          label={t('subCategory')}
+                          placeholder={t('subCategoryPlaceholder')}
+                          data={subCategoryOptions}
+                          {...field}
+                          error={errors.subCategoryId?.message}
+                          required
+                          disabled={!categoryId}
+                          searchable
                         />
                       )}
                     />
@@ -197,113 +335,158 @@ export default function AdminStyleNewPage() {
                       error={errors.slug?.message}
                       description={t('slugInvalid')}
                     />
+
+                    {/* Style Images */}
+                    <Paper p="md" withBorder>
+                      <Text fw={500} size="sm" mb="md">
+                        {t('images') || 'Images'}
+                      </Text>
+                      <Controller
+                        name="images"
+                        control={control}
+                        render={({ field }) => (
+                          <ImageUpload
+                            value={field.value || []}
+                            onChange={(images) => {
+                              field.onChange(images)
+                              setValue('images', images)
+                            }}
+                            onPendingFilesChange={(files) => {
+                              setPendingStyleFiles(files)
+                            }}
+                            entityType="style"
+                            entityId="" // Empty during creation - will upload after creation
+                            maxImages={20}
+                            multiple
+                            error={errors.images?.message}
+                          />
+                        )}
+                      />
+                    </Paper>
                   </FormSection>
                 </Stack>
               </MoodBCard>
             </Tabs.Panel>
 
-            {/* Palette Tab */}
-            <Tabs.Panel value="palette" pt="lg">
+            {/* Color Tab */}
+            <Tabs.Panel value="color" pt="lg">
+              <MoodBCard>
+                <Stack gap="md">
+                  <FormSection title={t('selectColor')}>
+                    <Controller
+                      name="colorId"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          label={t('color')}
+                          placeholder={t('colorPlaceholder')}
+                          data={colorOptions}
+                          {...field}
+                          error={errors.colorId?.message}
+                          required
+                          searchable
+                          renderOption={({ option }) => (
+                            <Group gap="xs">
+                              <div
+                                style={{
+                                  width: 20,
+                                  height: 20,
+                                  backgroundColor: option.color,
+                                  borderRadius: 4,
+                                  border: '1px solid #ddd',
+                                }}
+                              />
+                              <Text>{option.label}</Text>
+                            </Group>
+                          )}
+                        />
+                      )}
+                    />
+                    {watch('colorId') && (
+                      <Paper p="sm" withBorder>
+                        <Group gap="xs">
+                          <Text size="sm" fw={500}>{t('selectedColor')}:</Text>
+                          {(() => {
+                            const selectedColor = colors.find((c) => c.id === watch('colorId'))
+                            return selectedColor ? (
+                              <Group gap="xs">
+                                <div
+                                  style={{
+                                    width: 24,
+                                    height: 24,
+                                    backgroundColor: selectedColor.hex,
+                                    borderRadius: 4,
+                                    border: '1px solid #ddd',
+                                  }}
+                                />
+                                <Text size="sm">
+                                  {locale === 'he' ? selectedColor.name.he : selectedColor.name.en}
+                                </Text>
+                                <Badge size="sm" variant="light">{selectedColor.hex}</Badge>
+                              </Group>
+                            ) : null
+                          })()}
+                        </Group>
+                      </Paper>
+                    )}
+                  </FormSection>
+                </Stack>
+              </MoodBCard>
+            </Tabs.Panel>
+
+            {/* Materials Tab */}
+            <Tabs.Panel value="materials" pt="lg">
               <ScrollArea h={600}>
                 <Stack gap="md">
-                  {/* Neutral Colors */}
+                  {/* General Materials */}
                   <MoodBCard>
                     <Group justify="space-between" mb="md">
-                      <Text fw={500}>{t('neutrals')}</Text>
+                      <div>
+                        <Text fw={500}>{t('generalMaterials')}</Text>
+                        <Text size="sm" c="dimmed">{t('generalMaterialsDescription')}</Text>
+                      </div>
                       <Button
                         size="xs"
                         variant="light"
                         leftSection={<IconPlus size={14} />}
-                        onClick={() => appendNeutral({ name: '', hex: '#ffffff' })}
+                        onClick={() => appendDefaultMaterial({ materialId: '', usageArea: '' })}
                       >
-                        {t('addColor')}
+                        {t('addDefaultMaterial')}
                       </Button>
                     </Group>
                     <Stack gap="sm">
-                      {neutralFields.map((field, index) => (
-                        <Group key={field.id} align="flex-start">
-                          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm" style={{ flex: 1 }}>
-                            <TextInput
-                              placeholder={t('colorName')}
-                              {...register(`palette.neutrals.${index}.name`)}
-                              error={errors.palette?.neutrals?.[index]?.name?.message}
-                            />
-                            <TextInput
-                              placeholder="#ffffff"
-                              {...register(`palette.neutrals.${index}.hex`)}
-                              error={errors.palette?.neutrals?.[index]?.hex?.message}
-                            />
-                            <TextInput
-                              placeholder={t('colorPantone')}
-                              {...register(`palette.neutrals.${index}.pantone`)}
-                            />
-                          </SimpleGrid>
-                          {neutralFields.length > 1 && (
+                      {defaultMaterialFields.length === 0 ? (
+                        <Text size="sm" c="dimmed" ta="center" py="md">
+                          {t('noGeneralMaterials')}
+                        </Text>
+                      ) : (
+                        defaultMaterialFields.map((field, index) => (
+                          <Group key={field.id} align="flex-start">
+                            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm" style={{ flex: 1 }}>
+                              <TextInput
+                                placeholder={t('materialId')}
+                                {...register(`materialSet.defaults.${index}.materialId`)}
+                                error={errors.materialSet?.defaults?.[index]?.materialId?.message}
+                              />
+                              <TextInput
+                                placeholder={t('usageArea')}
+                                {...register(`materialSet.defaults.${index}.usageArea`)}
+                                error={errors.materialSet?.defaults?.[index]?.usageArea?.message}
+                              />
+                              <TextInput
+                                placeholder={t('finish')}
+                                {...register(`materialSet.defaults.${index}.defaultFinish`)}
+                              />
+                            </SimpleGrid>
                             <ActionIcon
                               color="red"
                               variant="subtle"
-                              onClick={() => removeNeutral(index)}
+                              onClick={() => removeDefaultMaterial(index)}
                             >
                               <IconX size={16} />
                             </ActionIcon>
-                          )}
-                        </Group>
-                      ))}
-                      {errors.palette?.neutrals && (
-                        <Text size="sm" c="red">
-                          {errors.palette.neutrals.message}
-                        </Text>
-                      )}
-                    </Stack>
-                  </MoodBCard>
-
-                  {/* Accent Colors */}
-                  <MoodBCard>
-                    <Group justify="space-between" mb="md">
-                      <Text fw={500}>{t('accents')}</Text>
-                      <Button
-                        size="xs"
-                        variant="light"
-                        leftSection={<IconPlus size={14} />}
-                        onClick={() => appendAccent({ name: '', hex: '#df2538' })}
-                      >
-                        {t('addColor')}
-                      </Button>
-                    </Group>
-                    <Stack gap="sm">
-                      {accentFields.map((field, index) => (
-                        <Group key={field.id} align="flex-start">
-                          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm" style={{ flex: 1 }}>
-                            <TextInput
-                              placeholder={t('colorName')}
-                              {...register(`palette.accents.${index}.name`)}
-                              error={errors.palette?.accents?.[index]?.name?.message}
-                            />
-                            <TextInput
-                              placeholder="#df2538"
-                              {...register(`palette.accents.${index}.hex`)}
-                              error={errors.palette?.accents?.[index]?.hex?.message}
-                            />
-                            <TextInput
-                              placeholder={t('colorPantone')}
-                              {...register(`palette.accents.${index}.pantone`)}
-                            />
-                          </SimpleGrid>
-                          {accentFields.length > 1 && (
-                            <ActionIcon
-                              color="red"
-                              variant="subtle"
-                              onClick={() => removeAccent(index)}
-                            >
-                              <IconX size={16} />
-                            </ActionIcon>
-                          )}
-                        </Group>
-                      ))}
-                      {errors.palette?.accents && (
-                        <Text size="sm" c="red">
-                          {errors.palette.accents.message}
-                        </Text>
+                          </Group>
+                        ))
                       )}
                     </Stack>
                   </MoodBCard>
@@ -311,58 +494,129 @@ export default function AdminStyleNewPage() {
               </ScrollArea>
             </Tabs.Panel>
 
-            {/* Materials Tab */}
-            <Tabs.Panel value="materials" pt="lg">
+            {/* Rooms Tab */}
+            <Tabs.Panel value="rooms" pt="lg">
               <ScrollArea h={600}>
-                <MoodBCard>
-                  <Group justify="space-between" mb="md">
-                    <Text fw={500}>{t('defaultMaterials')}</Text>
-                    <Button
-                      size="xs"
-                      variant="light"
-                      leftSection={<IconPlus size={14} />}
-                      onClick={() => appendDefaultMaterial({ materialId: '', usageArea: '' })}
-                    >
-                      {t('addDefaultMaterial')}
-                    </Button>
-                  </Group>
-                  <Stack gap="sm">
-                    {defaultMaterialFields.map((field, index) => (
-                      <Group key={field.id} align="flex-start">
-                        <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm" style={{ flex: 1 }}>
-                          <TextInput
-                            placeholder={t('materialId')}
-                            {...register(`materialSet.defaults.${index}.materialId`)}
-                            error={errors.materialSet?.defaults?.[index]?.materialId?.message}
-                          />
-                          <TextInput
-                            placeholder={t('usageArea')}
-                            {...register(`materialSet.defaults.${index}.usageArea`)}
-                            error={errors.materialSet?.defaults?.[index]?.usageArea?.message}
-                          />
-                          <TextInput
-                            placeholder={t('finish')}
-                            {...register(`materialSet.defaults.${index}.defaultFinish`)}
-                          />
-                        </SimpleGrid>
-                        {defaultMaterialFields.length > 1 && (
-                          <ActionIcon
-                            color="red"
-                            variant="subtle"
-                            onClick={() => removeDefaultMaterial(index)}
-                          >
-                            <IconX size={16} />
-                          </ActionIcon>
-                        )}
-                      </Group>
-                    ))}
-                    {errors.materialSet?.defaults && (
-                      <Text size="sm" c="red">
-                        {errors.materialSet.defaults.message}
+                <Stack gap="md">
+                  <MoodBCard>
+                    <Group justify="space-between" mb="md">
+                      <div>
+                        <Text fw={500}>{t('roomProfiles')}</Text>
+                        <Text size="sm" c="dimmed">{t('roomProfilesDescription')}</Text>
+                      </div>
+                      <Button
+                        size="xs"
+                        variant="light"
+                        leftSection={<IconPlus size={14} />}
+                        onClick={handleAddRoomProfile}
+                        disabled={availableRoomTypes.length === 0}
+                      >
+                        {t('addRoomProfile')}
+                      </Button>
+                    </Group>
+
+                    {roomProfileFields.length === 0 ? (
+                      <Text size="sm" c="dimmed" ta="center" py="md">
+                        {t('noRoomProfiles')}
                       </Text>
+                    ) : (
+                      <Stack gap="md">
+                        {roomProfileFields.map((field, index) => {
+                          const roomProfile = roomProfiles?.[index]
+                          const roomMaterials = roomProfile?.materials || []
+                          
+                          return (
+                            <Paper key={field.id} p="md" withBorder>
+                              <Stack gap="sm">
+                                <Group justify="space-between">
+                                  <Text fw={500}>
+                                    {tRoomTypes(roomProfile?.roomType || '')}
+                                  </Text>
+                                  <ActionIcon
+                                    color="red"
+                                    variant="subtle"
+                                    onClick={() => removeRoomProfile(index)}
+                                  >
+                                    <IconX size={16} />
+                                  </ActionIcon>
+                                </Group>
+
+                                <Controller
+                                  name={`roomProfiles.${index}.roomType`}
+                                  control={control}
+                                  render={({ field: roomTypeField }) => (
+                                    <Select
+                                      label={t('roomType')}
+                                      data={roomTypeOptions.filter(
+                                        (opt) => opt.value === roomProfile?.roomType || !roomProfiles?.some((rp, i) => i !== index && rp.roomType === opt.value)
+                                      )}
+                                      {...roomTypeField}
+                                      error={errors.roomProfiles?.[index]?.roomType?.message}
+                                    />
+                                  )}
+                                />
+
+                                <div>
+                                  <Text size="sm" fw={500} mb="xs">
+                                    {t('roomSpecificMaterials')}
+                                  </Text>
+                                  <Text size="xs" c="dimmed" mb="sm">
+                                    {t('roomSpecificMaterialsDescription')}
+                                  </Text>
+                                  {/* Room-specific materials would go here - for now just showing the structure */}
+                                  <Paper p="sm" withBorder bg="gray.0">
+                                    <Text size="sm" c="dimmed">
+                                      {roomMaterials.length === 0
+                                        ? t('noRoomMaterials')
+                                        : `${roomMaterials.length} ${t('materialsAdded')}`}
+                                    </Text>
+                                  </Paper>
+                                </div>
+
+                                {/* Room Profile Images */}
+                                <Paper p="md" withBorder>
+                                  <Text fw={500} size="sm" mb="md">
+                                    {t('images') || 'Images'} ({tRoomTypes(roomProfile?.roomType || '')})
+                                  </Text>
+                                  <Controller
+                                    name={`roomProfiles.${index}.images`}
+                                    control={control}
+                                    render={({ field }) => (
+                                      <ImageUpload
+                                        value={field.value || []}
+                                        onChange={(images) => {
+                                          field.onChange(images)
+                                          const updatedProfiles = [...(roomProfiles || [])]
+                                          updatedProfiles[index] = {
+                                            ...updatedProfiles[index],
+                                            images,
+                                          }
+                                          setValue('roomProfiles', updatedProfiles)
+                                        }}
+                                        onPendingFilesChange={(files) => {
+                                          setPendingRoomProfileFiles(prev => ({
+                                            ...prev,
+                                            [index]: files,
+                                          }))
+                                        }}
+                                        entityType="style"
+                                        entityId="" // Empty during creation - will upload after creation
+                                        roomType={roomProfile?.roomType}
+                                        maxImages={20}
+                                        multiple
+                                        error={errors.roomProfiles?.[index]?.images?.message}
+                                      />
+                                    )}
+                                  />
+                                </Paper>
+                              </Stack>
+                            </Paper>
+                          )
+                        })}
+                      </Stack>
                     )}
-                  </Stack>
-                </MoodBCard>
+                  </MoodBCard>
+                </Stack>
               </ScrollArea>
             </Tabs.Panel>
           </Tabs>

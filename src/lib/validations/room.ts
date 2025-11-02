@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod'
+import { imagesSchema } from './upload'
 
 /**
  * Room types (11 predefined types)
@@ -51,6 +52,7 @@ export const createRoomSchema = z.object({
   type: z.enum(ROOM_TYPES),
   dimensions: roomDimensionsSchema.optional(),
   notes: z.string().max(1000, 'Notes are too long').optional(),
+  images: imagesSchema.optional(),
 })
 
 export type CreateRoom = z.infer<typeof createRoomSchema>
@@ -64,6 +66,7 @@ export const updateRoomSchema = z.object({
   type: z.enum(ROOM_TYPES).optional(),
   dimensions: roomDimensionsSchema.optional().nullable(),
   notes: z.string().max(1000, 'Notes are too long').optional().nullable(),
+  images: imagesSchema.optional(),
 })
 
 export type UpdateRoom = z.infer<typeof updateRoomSchema>

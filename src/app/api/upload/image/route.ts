@@ -1,0 +1,190 @@
+/**
+ * Image Upload API
+ * POST /api/upload/image - Upload image to R2
+ * DELETE /api/upload/image - Delete image from R2
+ */
+
+import { handleError, requirePermission, withAuth } from '@/lib/api/middleware'
+import { prisma } from '@/lib/db'
+import { deleteImageFromR2, uploadImageToR2, type EntityType } from '@/lib/storage/r2'
+import { imageDeleteSchema, imageUploadSchema, validateImageFile } from '@/lib/validations/upload'
+import { NextRequest, NextResponse } from 'next/server'
+
+/**
+ * POST /api/upload/image - Upload image to R2
+ */
+export const POST = withAuth(async (req: NextRequest, auth) => {
+  try {
+    requirePermission(auth, 'project:write')
+
+    const formData = await req.formData()
+    const file = formData.get('file') as File | null
+    const entityType = formData.get('entityType') as string
+    const entityId = formData.get('entityId') as string
+    const projectId = formData.get('projectId') as string | null
+    const roomId = formData.get('roomId') as string | null
+    const roomType = formData.get('roomType') as string | null
+    const organizationId = formData.get('organizationId') as string | null
+
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    }
+
+    // Validate request data
+    const validatedData = imageUploadSchema.parse({
+      entityType,
+      entityId,
+      projectId: projectId || undefined,
+      roomId: roomId || undefined,
+      roomType: roomType || undefined,
+    })
+
+    // Validate file
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
+    // Verify entity exists and user has access
+    if (validatedData.entityType === 'category' || validatedData.entityType === 'subcategory') {
+      // For categories/subcategories, admin only
+      if (auth.role !== 'admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      }
+    } else if (validatedData.entityType === 'style') {
+      // For styles, verify it exists and is a global style (admin only)
+      if (auth.role !== 'admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      }
+
+      const style = await prisma.style.findUnique({
+        where: { id: validatedData.entityId },
+      })
+
+      if (!style) {
+        return NextResponse.json({ error: 'Style not found' }, { status: 404 })
+      }
+
+      // Verify it's a global style (organizationId = null)
+      if (style.organizationId !== null) {
+        return NextResponse.json(
+          { error: 'Only global styles can be edited by admin' },
+          { status: 403 }
+        )
+      }
+    } else if (validatedData.entityType === 'room') {
+      // For rooms, verify project exists and user has access
+      if (!projectId) {
+        return NextResponse.json({ error: 'Project ID is required for room images' }, { status: 400 })
+      }
+
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+      })
+
+      if (!project) {
+        return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+      }
+
+      // Verify organization access
+      if (project.organizationId !== auth.organizationId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      }
+    } else if (validatedData.entityType === 'material') {
+      // For materials in creation mode (empty entityId), allow upload using auth.organizationId
+      if (!validatedData.entityId || validatedData.entityId === '') {
+        // Creation mode - use auth.organizationId
+        // This is allowed since we're creating a new material
+      } else {
+        // Edit mode - verify material exists and user has access
+        const material = await prisma.material.findUnique({
+          where: { id: validatedData.entityId },
+        })
+
+        if (!material) {
+          return NextResponse.json({ error: 'Material not found' }, { status: 404 })
+        }
+
+        // Verify organization access
+        if (material.organizationId !== auth.organizationId) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+        }
+      }
+    }
+
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    // Get organizationId for material uploads
+    let orgId: string | undefined
+    if (validatedData.entityType === 'material') {
+      if (organizationId) {
+        orgId = organizationId
+      } else if (!validatedData.entityId || validatedData.entityId === '') {
+        // Creation mode - use auth.organizationId
+        orgId = auth.organizationId
+      } else {
+        // Fetch from material if not provided
+        const material = await prisma.material.findUnique({
+          where: { id: validatedData.entityId },
+          select: { organizationId: true },
+        })
+        if (material) {
+          orgId = material.organizationId
+        }
+      }
+    }
+
+    // Upload to R2
+    const imageUrl = await uploadImageToR2(
+      buffer,
+      file.type,
+      validatedData.entityType as EntityType,
+      validatedData.entityId,
+      file.name,
+      {
+        projectId: validatedData.projectId,
+        roomId: validatedData.roomId,
+        roomType: validatedData.roomType,
+        organizationId: orgId,
+      }
+    )
+
+    return NextResponse.json(
+      {
+        url: imageUrl,
+        success: true,
+      },
+      { status: 201 }
+    )
+  } catch (error) {
+    return handleError(error)
+  }
+})
+
+/**
+ * DELETE /api/upload/image - Delete image from R2
+ */
+export const DELETE = withAuth(async (req: NextRequest, auth) => {
+  try {
+    requirePermission(auth, 'project:write')
+
+    const body = await req.json()
+    const validatedData = imageDeleteSchema.parse(body)
+
+    // Extract key from URL to verify it's a valid R2 URL
+    const url = new URL(validatedData.url)
+    if (!url.hostname.includes('r2.cloudflarestorage.com') && !url.hostname.includes('assets.moodb.com')) {
+      return NextResponse.json({ error: 'Invalid image URL' }, { status: 400 })
+    }
+
+    // Delete from R2
+    await deleteImageFromR2(validatedData.url)
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return handleError(error)
+  }
+})
+

@@ -9,12 +9,16 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  })
+// Check if Prisma client needs to be regenerated (models added/removed)
+const prismaClientOptions = {
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+}
 
-if (process.env.NODE_ENV !== 'production') {
+// Always reuse global instance to prevent multiple connections
+// The Prisma client will be regenerated when schema changes (via prisma generate)
+export const prisma =
+  globalForPrisma.prisma ?? new PrismaClient(prismaClientOptions)
+
+if (!globalForPrisma.prisma) {
   globalForPrisma.prisma = prisma
 }

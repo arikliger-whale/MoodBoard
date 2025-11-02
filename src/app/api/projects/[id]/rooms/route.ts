@@ -54,6 +54,7 @@ export const POST = withAuth(async (req, auth) => {
       type: data.type,
       dimensions: data.dimensions || null,
       notes: data.notes || null,
+      images: data.images || [],
     }
 
     // Add room to existing rooms array

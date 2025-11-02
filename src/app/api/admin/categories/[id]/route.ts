@@ -13,13 +13,13 @@ import { handleError, validateRequest } from '@/lib/api/middleware'
 /**
  * GET /api/admin/categories/[id] - Get single category
  */
-// @ts-expect-error - Next.js route handler type checking
 export const GET = withAdmin(async (
   req: NextRequest,
   _auth,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) => {
   try {
+    const params = await context.params
     const category = await prisma.category.findUnique({
       where: { id: params.id },
       include: {
@@ -48,13 +48,13 @@ export const GET = withAdmin(async (
 /**
  * PATCH /api/admin/categories/[id] - Update category
  */
-// @ts-expect-error - Next.js route handler type checking
 export const PATCH = withAdmin(async (
   req: NextRequest,
   _auth,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) => {
   try {
+    const params = await context.params
     const data = await validateRequest(req, updateCategorySchema)
 
     // Check if category exists
@@ -80,12 +80,28 @@ export const PATCH = withAdmin(async (
       }
     }
 
+    // Check if description HTML has actual text content
+    const hasHtmlText = (html: string | undefined): boolean => {
+      if (!html) return false
+      const textOnly = html.replace(/<[^>]*>/g, '').trim()
+      return textOnly.length > 0
+    }
+    
+    const hasDescription = data.description && (
+      hasHtmlText(data.description.he) || 
+      hasHtmlText(data.description.en)
+    )
+    
     const category = await prisma.category.update({
       where: { id: params.id },
       data: {
         ...(data.name && { name: data.name }),
+        ...(data.description !== undefined && {
+          description: hasDescription ? data.description : null,
+        }),
         ...(data.slug && { slug: data.slug }),
         ...(data.order !== undefined && { order: data.order }),
+        ...(data.images !== undefined && { images: data.images }),
         updatedAt: new Date(),
       },
       include: {
@@ -110,13 +126,13 @@ export const PATCH = withAdmin(async (
 /**
  * DELETE /api/admin/categories/[id] - Delete category
  */
-// @ts-expect-error - Next.js route handler type checking
 export const DELETE = withAdmin(async (
   req: NextRequest,
   _auth,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) => {
   try {
+    const params = await context.params
     const category = await prisma.category.findUnique({
       where: { id: params.id },
       include: {

@@ -18,8 +18,13 @@ export interface Category {
     he: string
     en: string
   }
+  description?: {
+    he?: string
+    en?: string
+  }
   slug: string
   order: number
+  images?: string[]
   subCategories?: SubCategory[]
   _count?: {
     styles: number
@@ -36,8 +41,13 @@ export interface SubCategory {
     he: string
     en: string
   }
+  description?: {
+    he?: string
+    en?: string
+  }
   slug: string
   order: number
+  images?: string[]
   category?: {
     id: string
     name: {
@@ -103,8 +113,20 @@ export const useCreateCategory = () => {
         body: JSON.stringify(data),
       })
       if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Failed to create category')
+        let errorMessage = 'Failed to create category'
+        try {
+          const contentType = res.headers.get('content-type')
+          if (contentType?.includes('application/json')) {
+            const error = await res.json()
+            errorMessage = error.error || error.message || errorMessage
+          } else {
+            const text = await res.text()
+            errorMessage = text || errorMessage
+          }
+        } catch (e) {
+          errorMessage = `HTTP ${res.status}: ${res.statusText}`
+        }
+        throw new Error(errorMessage)
       }
       return res.json()
     },

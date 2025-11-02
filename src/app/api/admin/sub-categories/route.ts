@@ -3,11 +3,11 @@
  * CRUD operations for style sub-categories (admin only)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
 import { withAdmin } from '@/lib/api/admin-middleware'
-import { prisma } from '@/lib/db'
-import { createSubCategorySchema, updateSubCategorySchema } from '@/lib/validations/category'
 import { handleError, validateRequest } from '@/lib/api/middleware'
+import { prisma } from '@/lib/db'
+import { createSubCategorySchema } from '@/lib/validations/category'
+import { NextRequest, NextResponse } from 'next/server'
 
 /**
  * GET /api/admin/sub-categories - List all sub-categories
@@ -24,9 +24,9 @@ export const GET = withAdmin(async (req: NextRequest) => {
         ...(search
           ? {
               OR: [
-                { 'name.he': { contains: search, mode: 'insensitive' } },
-                { 'name.en': { contains: search, mode: 'insensitive' } },
-                { slug: { contains: search, mode: 'insensitive' } },
+                { 'name.he': { contains: search } },
+                { 'name.en': { contains: search } },
+                { slug: { contains: search } },
               ],
             }
           : {}),
@@ -93,12 +93,28 @@ export const POST = withAdmin(async (req: NextRequest) => {
       )
     }
 
+    // Only include description if HTML actually has text content
+    const hasHtmlText = (html: string | undefined): boolean => {
+      if (!html) return false
+      const textOnly = html.replace(/<[^>]*>/g, '').trim()
+      return textOnly.length > 0
+    }
+    
+    const hasDescription = data.description && (
+      hasHtmlText(data.description.he) || 
+      hasHtmlText(data.description.en)
+    )
+    
     const subCategory = await prisma.subCategory.create({
       data: {
         categoryId: data.categoryId,
         name: data.name,
+        ...(hasDescription && {
+          description: data.description,
+        }),
         slug: data.slug,
         order: data.order,
+        ...(data.images && { images: data.images }),
       },
       include: {
         category: {

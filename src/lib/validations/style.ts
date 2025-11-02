@@ -4,54 +4,35 @@
  */
 
 import { z } from 'zod'
+import { ROOM_TYPES } from './room'
+import { imagesSchema } from './upload'
 
-// Color Token Schema
-export const colorTokenSchema = z.object({
-  name: z.string().min(1, 'Color name is required'),
-  hex: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color format'),
-  pantone: z.string().optional(),
-})
+// MongoDB ObjectID validation helper
+const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ObjectID format')
 
-// Semantic Colors Schema
-export const semanticColorsSchema = z.object({
-  primary: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color format'),
-  secondary: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color format').optional(),
-  success: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color format').optional(),
-  warning: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color format').optional(),
-  error: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color format').optional(),
-})
-
-// Palette Schema
-export const paletteSchema = z.object({
-  neutrals: z.array(colorTokenSchema).min(1, 'At least one neutral color is required'),
-  accents: z.array(colorTokenSchema).min(1, 'At least one accent color is required'),
-  semantic: semanticColorsSchema.optional(),
-})
-
-// Material Default Schema
+// Material Default Schema (General materials - apply to all rooms)
 export const materialDefaultSchema = z.object({
-  materialId: z.string().min(1, 'Material ID is required'),
+  materialId: objectIdSchema,
   usageArea: z.string().min(1, 'Usage area is required'),
   defaultFinish: z.string().optional(),
-  supplierId: z.string().optional(),
+  supplierId: z.union([
+    objectIdSchema,
+    z.literal(''),
+  ]).optional(),
 })
 
 // Material Alternative Schema
 export const materialAlternativeSchema = z.object({
   usageArea: z.string().min(1, 'Usage area is required'),
-  alternatives: z.array(z.string()).min(1, 'At least one alternative is required'),
+  alternatives: z.array(objectIdSchema).min(1, 'At least one alternative is required'),
 })
 
 // Material Set Schema
+// defaults: General materials that apply to all rooms
+// Room-specific materials go in roomProfiles[].materials
 export const materialSetSchema = z.object({
-  defaults: z.array(materialDefaultSchema).min(1, 'At least one default material is required'),
+  defaults: z.array(materialDefaultSchema).optional().default([]),
   alternatives: z.array(materialAlternativeSchema).optional(),
-})
-
-// Color Proportion Schema
-export const colorProportionSchema = z.object({
-  colorRole: z.enum(['neutral', 'accent', 'primary', 'secondary']),
-  percentage: z.number().min(0).max(100),
 })
 
 // Room Constraint Schema
@@ -62,10 +43,13 @@ export const roomConstraintSchema = z.object({
 })
 
 // Room Profile Schema
+// Room-specific materials are stored in the materials array
 export const roomProfileSchema = z.object({
-  roomType: z.string().min(1, 'Room type is required'),
-  colorProportions: z.array(colorProportionSchema).optional(),
-  materials: z.array(z.string()).optional(),
+  roomType: z.enum(ROOM_TYPES, {
+    errorMap: () => ({ message: 'Invalid room type' }),
+  }),
+  materials: z.array(objectIdSchema).optional().default([]),
+  images: imagesSchema.optional(),
   constraints: roomConstraintSchema.optional(),
 })
 
@@ -91,12 +75,13 @@ export const styleMetadataSchema = z.object({
 // Create Style Schema
 export const createStyleSchema = z.object({
   name: localizedStringSchema,
-  categoryId: z.string().min(1, 'Category ID is required'),
-  subCategoryId: z.string().min(1, 'Sub-category ID is required'),
+  categoryId: objectIdSchema,
+  subCategoryId: objectIdSchema,
   slug: z.string().regex(/^[a-z0-9-]+$/, 'Invalid slug format').optional(),
-  palette: paletteSchema,
+  colorId: objectIdSchema,
+  images: imagesSchema.optional(),
   materialSet: materialSetSchema,
-  roomProfiles: z.array(roomProfileSchema).optional(),
+  roomProfiles: z.array(roomProfileSchema).optional().default([]),
   metadata: styleMetadataSchema.optional(),
 })
 
@@ -122,13 +107,9 @@ export const approveStyleSchema = z.object({
 })
 
 // Export types
-export type ColorToken = z.infer<typeof colorTokenSchema>
-export type SemanticColors = z.infer<typeof semanticColorsSchema>
-export type Palette = z.infer<typeof paletteSchema>
 export type MaterialDefault = z.infer<typeof materialDefaultSchema>
 export type MaterialAlternative = z.infer<typeof materialAlternativeSchema>
 export type MaterialSet = z.infer<typeof materialSetSchema>
-export type ColorProportion = z.infer<typeof colorProportionSchema>
 export type RoomConstraint = z.infer<typeof roomConstraintSchema>
 export type RoomProfile = z.infer<typeof roomProfileSchema>
 export type LocalizedString = z.infer<typeof localizedStringSchema>

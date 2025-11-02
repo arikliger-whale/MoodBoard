@@ -22,14 +22,16 @@ export const GET = withAdmin(async (req: NextRequest) => {
     
     if (search) {
       where.OR = [
-        { 'name.he': { contains: search, mode: 'insensitive' } },
-        { 'name.en': { contains: search, mode: 'insensitive' } },
-        { slug: { contains: search, mode: 'insensitive' } },
+        { 'name.he': { contains: search } },
+        { 'name.en': { contains: search } },
+        { 'description.he': { contains: search } },
+        { 'description.en': { contains: search } },
+        { slug: { contains: search } },
       ]
     }
 
     const categories = await prisma.category.findMany({
-      where: Object.keys(where).length > 0 ? where : undefined,
+      where: Object.keys(where).length > 0 ? where : {},
       include: {
         subCategories: {
           orderBy: { order: 'asc' },
@@ -86,11 +88,29 @@ export const POST = withAdmin(async (req: NextRequest) => {
       )
     }
 
+    // Only include description if HTML actually has text content
+    // Strip HTML tags and check for meaningful text
+    const hasHtmlText = (html: string | undefined): boolean => {
+      if (!html) return false
+      // Remove HTML tags and check if there's actual text
+      const textOnly = html.replace(/<[^>]*>/g, '').trim()
+      return textOnly.length > 0
+    }
+    
+    const hasDescription = data.description && (
+      hasHtmlText(data.description.he) || 
+      hasHtmlText(data.description.en)
+    )
+
     const category = await prisma.category.create({
       data: {
         name: data.name,
+        ...(hasDescription && {
+          description: data.description,
+        }),
         slug: data.slug,
         order: data.order,
+        ...(data.images && { images: data.images }),
       },
       include: {
         _count: {
@@ -103,7 +123,28 @@ export const POST = withAdmin(async (req: NextRequest) => {
     })
 
     return NextResponse.json(category, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Category creation error:', error)
+    
+    // Check for Prisma validation errors specifically
+    if (error?.name === 'PrismaClientValidationError' || error?.message?.includes('Unknown argument')) {
+      console.error('Prisma validation error details:', {
+        message: error.message,
+        code: error.code,
+        meta: error.meta,
+      })
+      
+      return NextResponse.json(
+        {
+          error: 'Database schema error',
+          message: 'The description field may not be recognized. Please ensure Prisma Client is regenerated.',
+          details: error.message,
+          code: 'PRISMA_VALIDATION_ERROR',
+        },
+        { status: 500 }
+      )
+    }
+    
     return handleError(error)
   }
 })

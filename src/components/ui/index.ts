@@ -28,3 +28,12 @@ export { ConfirmDialog } from './ConfirmDialog'
 // Form Components
 export { FormField, FormSection, FormActions } from './Form'
 
+// Rich Text Editor
+export { RichTextEditor } from './RichTextEditor'
+
+// Image Upload
+export { ImageUpload } from './ImageUpload'
+
+// Icon Selector
+export { IconSelector } from './IconSelector'
+

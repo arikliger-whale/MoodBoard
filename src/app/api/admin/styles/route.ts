@@ -4,11 +4,10 @@
  * POST /api/admin/styles - Create global style (admin only)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { handleError, validateRequest, withAdmin } from '@/lib/api/admin-middleware'
 import { prisma } from '@/lib/db'
-import { withAdmin, handleError, validateRequest } from '@/lib/api/admin-middleware'
 import { createStyleSchema, styleFiltersSchema } from '@/lib/validations/style'
-import { z } from 'zod'
+import { NextRequest, NextResponse } from 'next/server'
 
 /**
  * GET /api/admin/styles - List all global styles (organizationId = null)
@@ -67,6 +66,15 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
             slug: true,
           },
         },
+        color: {
+          select: {
+            id: true,
+            name: true,
+            hex: true,
+            pantone: true,
+            category: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       skip: (filters.page - 1) * filters.limit,
@@ -120,6 +128,15 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
       )
     }
 
+    // Verify color exists
+    const color = await prisma.color.findUnique({
+      where: { id: body.colorId },
+    })
+
+    if (!color) {
+      return NextResponse.json({ error: 'Color not found' }, { status: 404 })
+    }
+
     // Generate slug if not provided
     const slug =
       body.slug ||
@@ -140,6 +157,27 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
       )
     }
 
+    // Filter out invalid material IDs (must be valid ObjectIDs)
+    const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id)
+    
+    const filteredMaterialSet = {
+      defaults: (body.materialSet?.defaults || []).filter((d: any) => 
+        d.materialId && isValidObjectId(d.materialId)
+      ).map((d: any) => ({
+        ...d,
+        supplierId: d.supplierId && isValidObjectId(d.supplierId) ? d.supplierId : undefined,
+      })),
+      alternatives: (body.materialSet?.alternatives || []).map((alt: any) => ({
+        ...alt,
+        alternatives: (alt.alternatives || []).filter((id: string) => isValidObjectId(id)),
+      })),
+    }
+
+    const filteredRoomProfiles = (body.roomProfiles || []).map((profile: any) => ({
+      ...profile,
+      materials: (profile.materials || []).filter((id: string) => isValidObjectId(id)),
+    }))
+
     // Create global style (organizationId = null)
     const style = await prisma.style.create({
       data: {
@@ -148,9 +186,10 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
         name: body.name,
         categoryId: body.categoryId,
         subCategoryId: body.subCategoryId,
-        palette: body.palette as any,
-        materialSet: body.materialSet as any,
-        roomProfiles: (body.roomProfiles || []) as any,
+        colorId: body.colorId,
+        images: body.images || [], // Array of R2 image URLs
+        materialSet: filteredMaterialSet as any,
+        roomProfiles: filteredRoomProfiles as any,
         metadata: {
           version: body.metadata?.version || '1.0.0',
           isPublic: true, // Global styles are always public
@@ -173,6 +212,15 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
             id: true,
             name: true,
             slug: true,
+          },
+        },
+        color: {
+          select: {
+            id: true,
+            name: true,
+            hex: true,
+            pantone: true,
+            category: true,
           },
         },
       },

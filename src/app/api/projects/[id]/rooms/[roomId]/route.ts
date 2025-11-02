@@ -66,6 +66,7 @@ export const PATCH = withAuth(async (req, auth) => {
       ...(data.type && { type: data.type }),
       ...(data.dimensions !== undefined && { dimensions: data.dimensions }),
       ...(data.notes !== undefined && { notes: data.notes }),
+      ...(data.images !== undefined && { images: data.images }),
     }
 
     // Replace room in array

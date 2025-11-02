@@ -28,6 +28,20 @@ export const GET = withAuth(async (req: NextRequest, auth) => {
     const style = await prisma.style.findUnique({
       where: { id: styleId },
       include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        subCategory: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         organization: {
           select: {
             id: true,
