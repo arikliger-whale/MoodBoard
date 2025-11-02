@@ -7,6 +7,7 @@ USE HEBREW RTL as first language
 
 alwys prioretise reuse of exsting compoents structure and manage a clear lib of pages or components structure that we can reuse. 
 
+
 ### Brand Identity
 **MoodB Brand Colors:**
 - **Primary Background**: `#f7f7ed` (Light cream/beige)
