@@ -11,9 +11,6 @@ const nextConfig = {
     optimizePackageImports: ['@mantine/core', '@mantine/hooks'],
   },
   
-  // Turbopack configuration (Next.js 16 default)
-  turbopack: {},
-  
   // Images
   images: {
     remotePatterns: [

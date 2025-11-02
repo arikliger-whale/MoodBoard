@@ -70,7 +70,12 @@
 
 ## 4) ספריית סגנונות–צבעים–חומרים (Style Engine)
 
-* **טקסונומיה**: `Style` ←→ `Palette` ←→ `MaterialSet` ←→ `RoomProfile`.
+* **טקסונומיה**: `Category` → `SubCategory` → `Style` ←→ `Palette` ←→ `MaterialSet` ←→ `RoomProfile`.
+* **מערכת קטגוריות דו-שכבתית**:
+  * **קטגוריה ראשית** (Category): לדוגמה "Modern", "Classic", "Scandinavian"
+  * **תת-קטגוריה** (SubCategory): לדוגמה "Minimalistic", "Contemporary", "Rustic"
+  * כל סגנון שייך לקטגוריה ראשית ותת-קטגוריה
+  * ניהול קטגוריות ותת-קטגוריות דרך דף מנהל נפרד
 * **שכבות התאמה**:
 
   * ברירת מחדל של סגנון (גלובלי).
@@ -128,8 +133,10 @@ Project {
 }
 RoomRef { _id, name, type, styleOverrideId?, paletteOverrideId?, materialSetOverrideId? }
 
-// Style / Palette / MaterialSet
-Style { _id, orgId?, slug, name, description, defaultPaletteId, defaultMaterialSetId, tags[], versions[] }
+// Category / SubCategory / Style / Palette / MaterialSet
+Category { _id, name: LocalizedString, slug, order, createdAt }
+SubCategory { _id, categoryId, name: LocalizedString, slug, order, createdAt }
+Style { _id, orgId?, categoryId, subCategoryId, slug, name, description, defaultPaletteId, defaultMaterialSetId, tags[], versions[] }
 Palette { _id, name, tokens: ColorToken[], neutrals: ColorToken[], accents: ColorToken[] }
 MaterialSet { _id, name, materials: MaterialRef[] }
 MaterialRef { materialId, usageArea, defaultFinish, defaultSupplierId? }
@@ -358,8 +365,49 @@ AuditLog { _id, orgId, actorId, action, entity, before?, after?, at }
 **Phase 6 – AI Foundations (אופציונלי לשלב הבא)**
 
 * Color extraction מתמונות השראה → Palette Suggest.
-* Material suggestions ע”פ סגנון/חדר/תקציב.
+* Material suggestions ע"פ סגנון/חדר/תקציב.
 * Auto-room presets (Layout/Proportions) – בסיס.
+
+---
+
+# עדכונים אחרונים (דצמבר 2024)
+
+## ✅ אזור מנהל עם הגנות מקיפות
+
+**הגנות רב-שכבתיות:**
+- Middleware של Next.js להגנה על `/admin/*`
+- הגנה ברמת Layout בצד השרת
+- הגנה ברמת Component בצד הלקוח (`useAdminGuard`)
+- הגנה על API endpoints (`withAdmin` wrapper)
+- הגנה על React Query hooks
+
+**דפי מנהל:**
+- Dashboard עם סטטיסטיקות
+- ניהול סגנונות גלובליים
+- אישור סגנונות (approve/reject)
+- דפי פרטי סגנון עם טאבים
+- דפי placeholder (חומרים, ארגונים, משתמשים)
+
+**כלים:**
+- `scripts/set-admin.ts` - הגדרת משתמש כמנהל
+- `pnpm admin:set <email>` - פקודת npm
+- `docs/ADMIN_ACCESS.md` - תיעוד מלא
+
+## ✅ ניהול סגנונות (40% הושלם)
+
+**APIs:**
+- Admin Styles API - CRUD מלא + אישורים
+- User Styles API - יצירה, עיון, סינון
+- Approval workflow - אישור/דחיית סגנונות ציבוריים
+
+**UI:**
+- דפי מנהל סגנונות (מלא)
+- דפי משתמש (ממתין)
+
+**מסד נתונים:**
+- Prisma במקום Mongoose (החלטה ארכיטקטונית)
+- אין צורך ב-migrations עם MongoDB
+- `db push` בלבד
 
 ---
 
@@ -370,4 +418,4 @@ AuditLog { _id, orgId, actorId, action, entity, before?, after?, at }
 * מנוע סגנונות–צבעים–חומרים גמיש עם Overrides.
 * תקצוב ראשוני עם BOM וגרסאות.
 * פורטל לקוח לאישורים—תיעוד היסטוריה.
-* בסיס איתן לפריצ’רים גנרטיביים (השראה→פלטה→חומרים→BOM→הדמיה בהמשך).
+* בסיס איתן לפריצ'רים גנרטיביים (השראה→פלטה→חומרים→BOM→הדמיה בהמשך).

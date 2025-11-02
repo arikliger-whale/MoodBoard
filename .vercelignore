@@ -1,0 +1,60 @@
+# Development files
+.env.local
+.env*.local
+
+# Testing
+tests/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+playwright.config.ts
+vitest.config.ts
+
+# Documentation
+docs/
+Memory/
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build artifacts (already in .gitignore, but adding for safety)
+.next/
+out/
+dist/
+build/
+
+# Database
+*.db
+*.sqlite
+
+# Scripts (not needed in production)
+scripts/
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+

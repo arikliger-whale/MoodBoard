@@ -20,7 +20,10 @@
     "confirm": "אישור",
     "noData": "אין נתונים להצגה",
     "stats": "סטטיסטיקות",
-    "optional": "אופציונלי"
+    "optional": "אופציונלי",
+    "viewAll": "הצג הכל",
+    "room": "חדר",
+    "rooms": "חדרים"
   },
   "navigation": {
     "dashboard": "דשבורד",
@@ -58,6 +61,226 @@
       "activeProjects": "פרויקטים פעילים",
       "totalClients": "סה\"כ לקוחות",
       "totalBudget": "סה\"כ תקציב"
+    }
+  },
+  "admin": {
+    "navigation": {
+      "dashboard": "דשבורד",
+      "categories": "קטגוריות",
+      "subCategories": "תת-קטגוריות",
+      "styles": "סגנונות",
+      "approvals": "אישורים",
+      "colors": "צבעים",
+      "materials": "חומרים",
+      "organizations": "ארגונים",
+      "users": "משתמשים",
+      "backToDashboard": "חזור לדשבורד"
+    },
+    "dashboard": {
+      "title": "דשבורד מנהל",
+      "description": "ניהול תוכן גלובלי ואישורים",
+      "quickActions": "פעולות מהירות",
+      "comingSoon": "בקרוב",
+      "stats": {
+        "totalStyles": "סה\"כ סגנונות",
+        "pendingApprovals": "אישורים ממתינים",
+        "totalOrganizations": "סה\"כ ארגונים",
+        "totalUsers": "סה\"כ משתמשים"
+      }
+    },
+    "styles": {
+      "title": "ניהול סגנונות גלובליים",
+      "createStyle": "צור סגנון חדש",
+      "searchPlaceholder": "חפש סגנונות...",
+      "filterByCategory": "סנן לפי קטגוריה",
+      "filterBySubCategory": "סנן לפי תת-קטגוריה",
+      "noStyles": "אין סגנונות",
+      "noStylesDescription": "צור את הסגנון הגלובלי הראשון",
+      "deleteStyle": "מחק סגנון",
+      "deleteStyleMessage": "האם אתה בטוח שברצונך למחוק סגנון זה? פעולה זו אינה ניתנת לביטול.",
+      "table": {
+        "name": "שם",
+        "category": "קטגוריה",
+        "version": "גרסה",
+        "usage": "שימוש",
+        "createdAt": "נוצר ב",
+        "actions": "פעולות"
+      },
+      "categories": {
+        "scandinavian": "סקנדינבי",
+        "japandi": "ג'פנדי",
+        "industrial": "תעשייתי",
+        "minimal": "מינימליסטי",
+        "mediterranean": "ים תיכוני",
+        "rustic": "כפרי",
+        "classic": "קלאסי"
+      },
+      "detail": {
+        "category": "קטגוריה",
+        "version": "גרסה",
+        "usage": "שימוש",
+        "createdAt": "נוצר ב",
+        "tags": "תגיות",
+        "tabs": {
+          "palette": "פלטת צבעים",
+          "materials": "חומרים",
+          "rooms": "חדרים"
+        },
+        "palette": {
+          "neutrals": "צבעים נייטרליים",
+          "accents": "צבעי דגש"
+        },
+        "materials": {
+          "defaults": "חומרים ברירת מחדל",
+          "noDefaults": "אין חומרים מוגדרים",
+          "finish": "גימור"
+        },
+        "rooms": {
+          "noProfiles": "אין פרופילי חדרים מוגדרים"
+        }
+      },
+      "edit": {
+        "title": "ערוך סגנון",
+        "comingSoon": "בקרוב",
+        "comingSoonDescription": "טופס עריכה יושם בקרוב"
+      },
+      "create": {
+        "title": "צור סגנון חדש",
+        "comingSoon": "בקרוב",
+        "comingSoonDescription": "טופס יצירה יושם בקרוב",
+        "basicInfo": "מידע בסיסי",
+        "name": "שם",
+        "nameHe": "שם בעברית",
+        "nameEn": "שם באנגלית",
+        "nameHeRequired": "שם בעברית הוא שדה חובה",
+        "nameEnRequired": "שם באנגלית הוא שדה חובה",
+        "category": "קטגוריה",
+        "categoryRequired": "קטגוריה היא שדה חובה",
+        "categoryPlaceholder": "בחר קטגוריה",
+        "slug": "סלאג",
+        "slugPlaceholder": "style-name",
+        "slugInvalid": "סלאג יכול להכיל רק אותיות קטנות, מספרים ומקפים",
+        "palette": "פלטת צבעים",
+        "neutrals": "צבעים נייטרליים",
+        "neutralsRequired": "נדרש לפחות צבע נייטרלי אחד",
+        "accents": "צבעי דגש",
+        "accentsRequired": "נדרש לפחות צבע דגש אחד",
+        "addColor": "הוסף צבע",
+        "colorName": "שם צבע",
+        "colorHex": "קוד צבע (HEX)",
+        "colorPantone": "Pantone (אופציונלי)",
+        "removeColor": "הסר צבע",
+        "materials": "חומרים",
+        "defaultMaterials": "חומרים ברירת מחדל",
+        "defaultMaterialsRequired": "נדרש לפחות חומר ברירת מחדל אחד",
+        "addDefaultMaterial": "הוסף חומר ברירת מחדל",
+        "materialId": "מזהה חומר",
+        "usageArea": "אזור שימוש",
+        "finish": "גימור",
+        "alternatives": "חלופות",
+        "addAlternative": "הוסף חלופה",
+        "roomProfiles": "פרופילי חדרים",
+        "addRoomProfile": "הוסף פרופיל חדר",
+        "roomType": "סוג חדר",
+        "tags": "תגיות",
+        "addTag": "הוסף תגית",
+        "submit": "צור סגנון",
+        "cancel": "בטל"
+      }
+    },
+    "approvals": {
+      "title": "אישור סגנונות",
+      "noApprovals": "אין אישורים ממתינים",
+      "noApprovalsDescription": "כל הסגנונות נבדקו",
+      "approveStyle": "אישור/דחיית סגנון",
+      "approveStyleMessage": "מה ברצונך לעשות עם הסגנון \"{name}\"?",
+      "rejectStyle": "דחיית סגנון",
+      "rejectStyleMessage": "האם אתה בטוח שברצונך לדחות את הסגנון \"{name}\"?",
+      "rejectionReason": "סיבת דחייה",
+      "rejectionReasonPlaceholder": "הסבר מדוע הסגנון נדחה...",
+      "approve": "אשר",
+      "reject": "דחה",
+      "status": {
+        "pending": "ממתין",
+        "approved": "אושר",
+        "rejected": "נדחה"
+      },
+      "table": {
+        "styleName": "שם סגנון",
+        "organization": "ארגון",
+        "category": "קטגוריה",
+        "status": "סטטוס",
+        "submittedAt": "נשלח ב",
+        "actions": "פעולות"
+      }
+    },
+    "materials": {
+      "title": "ניהול חומרים גלובליים",
+      "description": "נהל את קטלוג החומרים הגלובלי",
+      "comingSoon": "בקרוב",
+      "comingSoonDescription": "תכונה זו תהיה זמינה בקרוב"
+    },
+    "colors": {
+      "title": "ניהול צבעים",
+      "createColor": "צור צבע חדש",
+      "searchPlaceholder": "חפש צבעים...",
+      "filterByCategory": "סנן לפי קטגוריה",
+      "noColors": "אין צבעים",
+      "noColorsDescription": "צור את הצבע הראשון",
+      "deleteColor": "מחק צבע",
+      "deleteColorMessage": "האם אתה בטוח שברצונך למחוק צבע זה? פעולה זו אינה ניתנת לביטול.",
+      "table": {
+        "name": "שם",
+        "hex": "קוד צבע",
+        "category": "קטגוריה",
+        "usage": "שימוש",
+        "createdAt": "נוצר ב",
+        "actions": "פעולות"
+      },
+      "categories": {
+        "neutral": "נייטרלי",
+        "accent": "דגש",
+        "semantic": "סמנטי"
+      },
+      "create": {
+        "title": "צור צבע חדש",
+        "basicInfo": "מידע בסיסי",
+        "nameHe": "שם בעברית",
+        "nameEn": "שם באנגלית",
+        "nameHeRequired": "שם בעברית הוא שדה חובה",
+        "nameEnRequired": "שם באנגלית הוא שדה חובה",
+        "description": "תיאור",
+        "descriptionHe": "תיאור בעברית",
+        "descriptionEn": "תיאור באנגלית",
+        "descriptionPlaceholder": "למה משתמשים בצבע זה, איפה הוא מתאים...",
+        "hex": "קוד צבע (HEX)",
+        "hexRequired": "קוד צבע הוא שדה חובה",
+        "hexInvalid": "קוד צבע חייב להיות בפורמט HEX (#RRGGBB)",
+        "hexPlaceholder": "#ffffff",
+        "pickColor": "בחר צבע",
+        "pantone": "Pantone",
+        "pantonePlaceholder": "PMS 123",
+        "category": "קטגוריה",
+        "categoryRequired": "קטגוריה היא שדה חובה",
+        "categoryPlaceholder": "בחר קטגוריה",
+        "role": "תפקיד (לצבעים סמנטיים)",
+        "rolePlaceholder": "בחר תפקיד",
+        "preview": "תצוגה מקדימה",
+        "submit": "צור צבע",
+        "cancel": "בטל"
+      }
+    },
+    "organizations": {
+      "title": "ניהול ארגונים",
+      "description": "נהל את כל הארגונים בפלטפורמה",
+      "comingSoon": "בקרוב",
+      "comingSoonDescription": "תכונה זו תהיה זמינה בקרוב"
+    },
+    "users": {
+      "title": "ניהול משתמשים",
+      "description": "נהל את כל המשתמשים בפלטפורמה",
+      "comingSoon": "בקרוב",
+      "comingSoonDescription": "תכונה זו תהיה זמינה בקרוב"
     }
   },
   "clients": {
@@ -290,6 +513,43 @@
       "clickAddRoomToStart": "לחץ על 'הוסף חדר' כדי ליצור את החדר הראשון שלך",
       "deleteRoomTitle": "מחיקת חדר",
       "deleteRoomMessage": "האם אתה בטוח שברצונך למחוק חדר זה? פעולה זו אינה ניתנת לביטול."
+    },
+    "categories": {
+      "title": "ניהול קטגוריות",
+      "createCategory": "צור קטגוריה חדשה",
+      "searchPlaceholder": "חפש קטגוריות...",
+      "noCategories": "אין קטגוריות",
+      "noCategoriesDescription": "צור את הקטגוריה הראשונה",
+      "deleteCategory": "מחק קטגוריה",
+      "deleteCategoryMessage": "האם אתה בטוח שברצונך למחוק קטגוריה זו? פעולה זו אינה ניתנת לביטול.",
+      "table": {
+        "name": "שם",
+        "slug": "סלאג",
+        "subCategories": "תת-קטגוריות",
+        "styles": "סגנונות",
+        "order": "סדר",
+        "createdAt": "נוצר ב",
+        "actions": "פעולות"
+      }
+    },
+    "subCategories": {
+      "title": "ניהול תת-קטגוריות",
+      "createSubCategory": "צור תת-קטגוריה חדשה",
+      "searchPlaceholder": "חפש תת-קטגוריות...",
+      "filterByCategory": "סנן לפי קטגוריה",
+      "noSubCategories": "אין תת-קטגוריות",
+      "noSubCategoriesDescription": "צור את התת-קטגוריה הראשונה",
+      "deleteSubCategory": "מחק תת-קטגוריה",
+      "deleteSubCategoryMessage": "האם אתה בטוח שברצונך למחוק תת-קטגוריה זו? פעולה זו אינה ניתנת לביטול.",
+      "table": {
+        "category": "קטגוריה",
+        "name": "שם",
+        "slug": "סלאג",
+        "styles": "סגנונות",
+        "order": "סדר",
+        "createdAt": "נוצר ב",
+        "actions": "פעולות"
+      }
     }
   }
 }

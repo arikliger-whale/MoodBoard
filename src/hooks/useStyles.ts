@@ -1,0 +1,486 @@
+/**
+ * React Query hooks for Style Management
+ * Provides real-time-like updates with auto-refetch
+ */
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import type {
+  CreateStyle,
+  UpdateStyle,
+  StyleFilters,
+  ApproveStyle,
+} from '@/lib/validations/style'
+
+export interface Style {
+  id: string
+  organizationId: string | null
+  slug: string
+  name: {
+    he: string
+    en: string
+  }
+  categoryId: string
+  category?: {
+    id: string
+    name: {
+      he: string
+      en: string
+    }
+    slug: string
+  }
+  subCategoryId: string
+  subCategory?: {
+    id: string
+    name: {
+      he: string
+      en: string
+    }
+    slug: string
+  }
+  palette: {
+    neutrals: Array<{ name: string; hex: string; pantone?: string }>
+    accents: Array<{ name: string; hex: string; pantone?: string }>
+    semantic?: {
+      primary: string
+      secondary?: string
+      success?: string
+      warning?: string
+      error?: string
+    }
+  }
+  materialSet: {
+    defaults: Array<{
+      materialId: string
+      usageArea: string
+      defaultFinish?: string
+      supplierId?: string
+    }>
+    alternatives?: Array<{
+      usageArea: string
+      alternatives: string[]
+    }>
+  }
+  roomProfiles: Array<{
+    roomType: string
+    colorProportions?: Array<{ colorRole: string; percentage: number }>
+    materials?: string[]
+    constraints?: {
+      waterResistance?: boolean
+      durability?: number
+      maintenance?: number
+    }
+  }>
+  metadata: {
+    version: string
+    isPublic: boolean
+    approvalStatus?: 'pending' | 'approved' | 'rejected' | null
+    approvedBy?: string | null
+    approvedAt?: Date | null
+    rejectionReason?: string | null
+    tags: string[]
+    usage: number
+    rating?: number
+  }
+  organization?: {
+    id: string
+    name: string
+    slug: string
+  }
+  createdAt: Date | string
+  updatedAt: Date | string
+}
+
+interface StylesResponse {
+  data: Style[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+
+const STYLES_QUERY_KEY = 'styles'
+const ADMIN_STYLES_QUERY_KEY = 'admin-styles'
+const ADMIN_APPROVALS_QUERY_KEY = 'admin-approvals'
+
+/**
+ * Fetch styles with filters (user-facing)
+ */
+async function fetchStyles(filters: StyleFilters): Promise<StylesResponse> {
+  const params = new URLSearchParams()
+
+  if (filters.search) params.append('search', filters.search)
+  if (filters.categoryId) params.append('categoryId', filters.categoryId)
+  if (filters.subCategoryId) params.append('subCategoryId', filters.subCategoryId)
+  if (filters.scope) params.append('scope', filters.scope)
+  if (filters.tags?.length) params.append('tags', filters.tags.join(','))
+  if (filters.page) params.append('page', filters.page.toString())
+  if (filters.limit) params.append('limit', filters.limit.toString())
+
+  const url = `/api/styles?${params.toString()}`
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch styles')
+  }
+
+  return response.json()
+}
+
+/**
+ * Fetch admin styles (global styles only)
+ */
+async function fetchAdminStyles(filters: StyleFilters): Promise<StylesResponse> {
+  const params = new URLSearchParams()
+
+  if (filters.search) params.append('search', filters.search)
+  if (filters.categoryId) params.append('categoryId', filters.categoryId)
+  if (filters.subCategoryId) params.append('subCategoryId', filters.subCategoryId)
+  if (filters.page) params.append('page', filters.page.toString())
+  if (filters.limit) params.append('limit', filters.limit.toString())
+
+  const url = `/api/admin/styles?${params.toString()}`
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch admin styles')
+  }
+
+  return response.json()
+}
+
+/**
+ * Fetch pending style approvals (admin only)
+ */
+async function fetchStyleApprovals(status: string = 'pending', page: number = 1, limit: number = 20): Promise<StylesResponse> {
+  const params = new URLSearchParams()
+  params.append('status', status)
+  params.append('page', page.toString())
+  params.append('limit', limit.toString())
+
+  const url = `/api/admin/styles/approvals?${params.toString()}`
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch style approvals')
+  }
+
+  return response.json()
+}
+
+/**
+ * Hook to fetch styles list (user-facing)
+ */
+export function useStyles(filters: StyleFilters = {}) {
+  const { data: session } = useSession()
+
+  return useQuery({
+    queryKey: [STYLES_QUERY_KEY, filters],
+    queryFn: () => fetchStyles(filters),
+    enabled: !!session,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
+    staleTime: 10000,
+  })
+}
+
+/**
+ * Hook to fetch admin styles (global styles)
+ * Protected: Only works for admin users
+ */
+export function useAdminStyles(filters: StyleFilters = {}) {
+  const { data: session } = useSession()
+  const router = useRouter()
+  const isAdmin = session?.user?.role === 'admin'
+
+  return useQuery({
+    queryKey: [ADMIN_STYLES_QUERY_KEY, filters],
+    queryFn: async () => {
+      if (!isAdmin) {
+        throw new Error('Admin access required')
+      }
+      return fetchAdminStyles(filters)
+    },
+    enabled: !!session && isAdmin,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
+    staleTime: 10000,
+    retry: false,
+    onError: (error: any) => {
+      if (error?.message?.includes('Admin access') || error?.status === 403) {
+        const locale = window.location.pathname.split('/')[1] || 'he'
+        router.push(`/${locale}/dashboard`)
+      }
+    },
+  })
+}
+
+/**
+ * Hook to fetch style approvals (admin only)
+ * Protected: Only works for admin users
+ */
+export function useStyleApprovals(status: string = 'pending', page: number = 1, limit: number = 20) {
+  const { data: session } = useSession()
+  const router = useRouter()
+  const isAdmin = session?.user?.role === 'admin'
+
+  return useQuery({
+    queryKey: [ADMIN_APPROVALS_QUERY_KEY, status, page, limit],
+    queryFn: async () => {
+      if (!isAdmin) {
+        throw new Error('Admin access required')
+      }
+      return fetchStyleApprovals(status, page, limit)
+    },
+    enabled: !!session && isAdmin,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
+    staleTime: 10000,
+    retry: false,
+    onError: (error: any) => {
+      if (error?.message?.includes('Admin access') || error?.status === 403) {
+        const locale = window.location.pathname.split('/')[1] || 'he'
+        router.push(`/${locale}/dashboard`)
+      }
+    },
+  })
+}
+
+/**
+ * Hook to fetch a single style (user-facing)
+ */
+export function useStyle(styleId: string) {
+  const { data: session } = useSession()
+
+  return useQuery({
+    queryKey: [STYLES_QUERY_KEY, styleId],
+    queryFn: async () => {
+      const response = await fetch(`/api/styles/${styleId}`)
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch style')
+      }
+
+      return response.json()
+    },
+    enabled: !!session && !!styleId,
+    refetchOnWindowFocus: true,
+    staleTime: 10000,
+  })
+}
+
+/**
+ * Hook to fetch a single admin style (admin-only)
+ * Protected: Only works for admin users
+ */
+export function useAdminStyle(styleId: string) {
+  const { data: session } = useSession()
+  const router = useRouter()
+  const isAdmin = session?.user?.role === 'admin'
+
+  return useQuery({
+    queryKey: [ADMIN_STYLES_QUERY_KEY, styleId],
+    queryFn: async () => {
+      if (!isAdmin) {
+        throw new Error('Admin access required')
+      }
+      
+      const response = await fetch(`/api/admin/styles/${styleId}`)
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Admin access required')
+        }
+        throw new Error('Failed to fetch admin style')
+      }
+
+      return response.json()
+    },
+    enabled: !!session && !!styleId && isAdmin,
+    refetchOnWindowFocus: true,
+    staleTime: 10000,
+    retry: false,
+    onError: (error: any) => {
+      if (error?.message?.includes('Admin access') || error?.status === 403) {
+        const locale = window.location.pathname.split('/')[1] || 'he'
+        router.push(`/${locale}/dashboard`)
+      }
+    },
+  })
+}
+
+/**
+ * Hook to create a style
+ */
+export function useCreateStyle() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (data: CreateStyle) => {
+      const response = await fetch('/api/styles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create style')
+      }
+
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [STYLES_QUERY_KEY] })
+    },
+  })
+}
+
+/**
+ * Hook to update a style
+ */
+export function useUpdateStyle() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateStyle }) => {
+      const response = await fetch(`/api/styles/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update style')
+      }
+
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [STYLES_QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ADMIN_STYLES_QUERY_KEY] })
+    },
+  })
+}
+
+/**
+ * Hook to delete a style
+ */
+export function useDeleteStyle() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/styles/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete style')
+      }
+
+      return id
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [STYLES_QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ADMIN_STYLES_QUERY_KEY] })
+    },
+  })
+}
+
+/**
+ * Hook to create admin global style
+ * Protected: Only works for admin users
+ */
+export function useCreateAdminStyle() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const router = useRouter()
+  const isAdmin = session?.user?.role === 'admin'
+
+  return useMutation({
+    mutationFn: async (data: CreateStyle) => {
+      if (!isAdmin) {
+        throw new Error('Admin access required')
+      }
+
+      const response = await fetch('/api/admin/styles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Admin access required')
+        }
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create global style')
+      }
+
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_STYLES_QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: [STYLES_QUERY_KEY] })
+    },
+    onError: (error: any) => {
+      if (error?.message?.includes('Admin access') || error?.status === 403) {
+        const locale = window.location.pathname.split('/')[1] || 'he'
+        router.push(`/${locale}/dashboard`)
+      }
+    },
+  })
+}
+
+/**
+ * Hook to approve/reject a public style (admin only)
+ * Protected: Only works for admin users
+ */
+export function useApproveStyle() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const router = useRouter()
+  const isAdmin = session?.user?.role === 'admin'
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: ApproveStyle }) => {
+      if (!isAdmin) {
+        throw new Error('Admin access required')
+      }
+
+      const response = await fetch(`/api/admin/styles/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Admin access required')
+        }
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to approve/reject style')
+      }
+
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_APPROVALS_QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: [STYLES_QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ADMIN_STYLES_QUERY_KEY] })
+    },
+    onError: (error: any) => {
+      if (error?.message?.includes('Admin access') || error?.status === 403) {
+        const locale = window.location.pathname.split('/')[1] || 'he'
+        router.push(`/${locale}/dashboard`)
+      }
+    },
+  })
+}
+

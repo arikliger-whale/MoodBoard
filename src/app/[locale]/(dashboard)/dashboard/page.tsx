@@ -1,11 +1,15 @@
 'use client'
 
-import { Container, Title, Text, Card, Group, Stack, SimpleGrid, Paper, Badge } from '@mantine/core'
+import { Container, Title, Text, Card, Group, Stack, SimpleGrid, Paper, Badge, Loader, ActionIcon } from '@mantine/core'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/hooks/use-auth'
-import { IconFolder, IconUsers, IconPalette, IconCoins, IconTrendingUp, IconCalendar, IconCheck } from '@tabler/icons-react'
+import { useDashboardStats } from '@/hooks/useDashboardStats'
+import { useProjects } from '@/hooks/useProjects'
+import { IconFolder, IconUsers, IconPalette, IconCoins, IconTrendingUp, IconCalendar, IconCheck, IconArrowRight } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { LoadingState, ErrorState } from '@/components/ui'
+import type { MouseEvent } from 'react'
 
 export default function DashboardPage() {
   const t = useTranslations('common')
@@ -14,6 +18,15 @@ export default function DashboardPage() {
   const { user, organization } = useAuth()
   const pathname = usePathname()
   const locale = pathname?.split('/')[1] || 'he'
+
+  // Fetch dashboard statistics
+  const { data: statsData, isLoading: statsLoading, error: statsError } = useDashboardStats()
+
+  // Fetch recent projects (last 5)
+  const { data: projectsData, isLoading: projectsLoading } = useProjects({
+    page: 1,
+    limit: 5,
+  })
 
   const quickActions = [
     {
@@ -46,32 +59,74 @@ export default function DashboardPage() {
     },
   ]
 
-  const stats = [
-    {
-      label: tDashboard('stats.totalProjects'),
-      value: '0',
-      icon: IconFolder,
-      trend: '+0%',
-    },
-    {
-      label: tDashboard('stats.activeProjects'),
-      value: '0',
-      icon: IconCheck,
-      trend: '0',
-    },
-    {
-      label: tDashboard('stats.totalClients'),
-      value: '0',
-      icon: IconUsers,
-      trend: '+0',
-    },
-    {
-      label: tDashboard('stats.totalBudget'),
-      value: '₪0',
-      icon: IconCoins,
-      trend: '+0%',
-    },
-  ]
+  // Format budget value
+  const formatBudget = (amount: number, currencySymbol: string) => {
+    if (amount === 0) return `${currencySymbol}0`
+    // Format large numbers with commas
+    const formatted = new Intl.NumberFormat('he-IL', {
+      maximumFractionDigits: 0,
+    }).format(amount)
+    return `${currencySymbol}${formatted}`
+  }
+
+  // Status badge colors
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      draft: 'gray',
+      active: 'blue',
+      review: 'yellow',
+      approved: 'green',
+      completed: 'teal',
+      archived: 'gray',
+    }
+    return colors[status] || 'gray'
+  }
+
+  const stats = statsData?.stats
+    ? [
+        {
+          label: tDashboard('stats.totalProjects'),
+          value: statsData.stats.totalProjects.toString(),
+          icon: IconFolder,
+        },
+        {
+          label: tDashboard('stats.activeProjects'),
+          value: statsData.stats.activeProjects.toString(),
+          icon: IconCheck,
+        },
+        {
+          label: tDashboard('stats.totalClients'),
+          value: statsData.stats.totalClients.toString(),
+          icon: IconUsers,
+        },
+        {
+          label: tDashboard('stats.totalBudget'),
+          value: formatBudget(statsData.stats.totalBudget, statsData.stats.currencySymbol),
+          icon: IconCoins,
+        },
+      ]
+    : [
+        {
+          label: tDashboard('stats.totalProjects'),
+          value: '0',
+          icon: IconFolder,
+        },
+        {
+          label: tDashboard('stats.activeProjects'),
+          value: '0',
+          icon: IconCheck,
+        },
+        {
+          label: tDashboard('stats.totalClients'),
+          value: '0',
+          icon: IconUsers,
+        },
+        {
+          label: tDashboard('stats.totalBudget'),
+          value: '₪0',
+          icon: IconCoins,
+        },
+      ]
 
   return (
     <Container size="xl" py="xl">
@@ -89,32 +144,51 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
-          {stats.map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Paper
-                key={index}
-                p="md"
-                radius="md"
-                withBorder
-                style={{ backgroundColor: '#ffffff' }}
-              >
+        {statsLoading ? (
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+            {[1, 2, 3, 4].map((i) => (
+              <Paper key={i} p="md" radius="md" withBorder style={{ backgroundColor: '#ffffff' }}>
                 <Group justify="space-between">
-                  <div>
-                    <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                      {stat.label}
+                  <div style={{ flex: 1 }}>
+                    <Text size="xs" c="dimmed" tt="uppercase" fw={700} mb="xs">
+                      {t('loading')}
                     </Text>
-                    <Text size="xl" fw={700} mt="xs">
-                      {stat.value}
-                    </Text>
+                    <Loader size="sm" />
                   </div>
-                  <Icon size={32} color="#df2538" />
                 </Group>
               </Paper>
-            )
-          })}
-        </SimpleGrid>
+            ))}
+          </SimpleGrid>
+        ) : statsError ? (
+          <ErrorState message={t('error')} />
+        ) : (
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+            {stats.map((stat, index) => {
+              const Icon = stat.icon
+              return (
+                <Paper
+                  key={index}
+                  p="md"
+                  radius="md"
+                  withBorder
+                  style={{ backgroundColor: '#ffffff' }}
+                >
+                  <Group justify="space-between">
+                    <div>
+                      <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                        {stat.label}
+                      </Text>
+                      <Text size="xl" fw={700} mt="xs">
+                        {stat.value}
+                      </Text>
+                    </div>
+                    <Icon size={32} color="#df2538" />
+                  </Group>
+                </Paper>
+              )
+            })}
+          </SimpleGrid>
+        )}
 
         {/* Quick Actions */}
         <div>
@@ -139,11 +213,11 @@ export default function DashboardPage() {
                     backgroundColor: '#ffffff',
                     transition: 'transform 0.2s, box-shadow 0.2s',
                   }}
-                  onMouseEnter={(e) => {
+                  onMouseEnter={(e: MouseEvent<HTMLAnchorElement>) => {
                     e.currentTarget.style.transform = 'translateY(-4px)'
                     e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.1)'
                   }}
-                  onMouseLeave={(e) => {
+                  onMouseLeave={(e: MouseEvent<HTMLAnchorElement>) => {
                     e.currentTarget.style.transform = 'translateY(0)'
                     e.currentTarget.style.boxShadow = 'none'
                   }}
@@ -175,14 +249,119 @@ export default function DashboardPage() {
           </SimpleGrid>
         </div>
 
-        {/* Recent Activity Placeholder */}
+        {/* Recent Projects */}
         <Paper p="xl" radius="md" withBorder style={{ backgroundColor: '#ffffff' }}>
-          <Title order={3} mb="md">
-            {tDashboard('recentProjects')}
-          </Title>
-          <Text c="dimmed" ta="center" py="xl">
-            {t('noData')}
-          </Text>
+          <Group justify="space-between" mb="md">
+            <Title order={3}>{tDashboard('recentProjects')}</Title>
+            {projectsData && projectsData.pagination.total > 5 && (
+              <ActionIcon
+                component={Link}
+                href={`/${locale}/projects`}
+                variant="subtle"
+                color="brand"
+              >
+                <IconArrowRight size={20} />
+              </ActionIcon>
+            )}
+          </Group>
+
+          {projectsLoading ? (
+            <LoadingState />
+          ) : !projectsData || projectsData.data.length === 0 ? (
+            <Stack align="center" gap="md" py="xl">
+              <Text c="dimmed" ta="center">
+                {t('noData')}
+              </Text>
+              <Card
+                component={Link}
+                href={`/${locale}/projects`}
+                padding="md"
+                radius="md"
+                withBorder
+                style={{
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  backgroundColor: '#fef4f5',
+                  borderColor: '#df2538',
+                }}
+              >
+                <Group gap="xs">
+                  <IconFolder size={20} color="#df2538" />
+                  <Text fw={500} c="brand">
+                    {tNav('projects')}
+                  </Text>
+                </Group>
+              </Card>
+            </Stack>
+          ) : (
+            <Stack gap="sm">
+              {projectsData.data.map((project) => (
+                <Card
+                  key={project.id}
+                  component={Link}
+                  href={`/${locale}/projects/${project.id}`}
+                  padding="md"
+                  radius="md"
+                  withBorder
+                  style={{
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    backgroundColor: '#ffffff',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                  }}
+                  onMouseEnter={(e: MouseEvent<HTMLAnchorElement>) => {
+                    e.currentTarget.style.transform = 'translateX(-4px)'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+                  }}
+                  onMouseLeave={(e: MouseEvent<HTMLAnchorElement>) => {
+                    e.currentTarget.style.transform = 'translateX(0)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
+                  <Group justify="space-between">
+                    <div style={{ flex: 1 }}>
+                      <Group gap="sm" mb="xs">
+                        <Text fw={600} size="md">
+                          {project.name}
+                        </Text>
+                        <Badge
+                          color={getStatusColor(project.status)}
+                          variant="light"
+                          size="sm"
+                        >
+                          {project.status}
+                        </Badge>
+                      </Group>
+                      {project.client && (
+                        <Text size="sm" c="dimmed">
+                          {project.client.name}
+                        </Text>
+                      )}
+                      {project.rooms && project.rooms.length > 0 && (
+                        <Text size="xs" c="dimmed" mt="xs">
+                          {project.rooms.length} {project.rooms.length === 1 ? t('room') : t('rooms')}
+                        </Text>
+                      )}
+                    </div>
+                    <IconArrowRight size={20} color="#df2538" />
+                  </Group>
+                </Card>
+              ))}
+              {projectsData.pagination.total > 5 && (
+                <Group justify="center" mt="md">
+                  <Text
+                    component={Link}
+                    href={`/${locale}/projects`}
+                    size="sm"
+                    c="brand"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    {t('viewAll')} ({projectsData.pagination.total})
+                  </Text>
+                </Group>
+              )}
+            </Stack>
+          )}
         </Paper>
       </Stack>
     </Container>

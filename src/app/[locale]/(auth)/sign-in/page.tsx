@@ -34,15 +34,12 @@ export default function SignInPage() {
     setIsSigningIn(true)
     try {
       const redirectUrl = searchParams.get('redirect_url') || `/${locale}/dashboard`
-      const result = await signIn('google', {
+      await signIn('google', {
         callbackUrl: redirectUrl,
         redirect: true,
       })
-      
-      // If redirect is false, manually redirect
-      if (result && !result.ok && !result.error) {
-        router.push(redirectUrl)
-      }
+      // When redirect: true, signIn doesn't return a value
+      // The redirect happens automatically
     } catch (error) {
       console.error('Sign in error:', error)
       setIsSigningIn(false)

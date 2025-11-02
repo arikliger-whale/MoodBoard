@@ -92,19 +92,30 @@ export const PATCH = withAuth(async (req, auth) => {
     // Validate request
     const data = await validateRequest(req, updateClientSchema)
 
-    // Update client
+    // Update client - build update data dynamically
+    const updateData: any = {
+      name: data.name,
+    }
+    
+    if (data.contact) {
+      updateData.contact = data.contact
+    }
+    if (data.tags) {
+      updateData.tags = data.tags
+    }
+    if (data.preferences) {
+      updateData.preferences = data.preferences
+    }
+    if (data.notes) {
+      updateData.notes = data.notes.map((note: any) => ({
+        ...note,
+        createdAt: new Date(),
+      }))
+    }
+    
     const client = await prisma.client.update({
       where: { id: clientId },
-      data: {
-        name: data.name,
-        contact: data.contact,
-        tags: data.tags,
-        preferences: data.preferences,
-        notes: data.notes?.map(note => ({
-          ...note,
-          createdAt: new Date(),
-        })),
-      },
+      data: updateData,
     })
 
     return NextResponse.json(client)

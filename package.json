@@ -4,13 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "prisma generate",
     "db:generate": "dotenv -e .env.local -- prisma generate",
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
+    "admin:set": "dotenv -e .env.local -- node scripts/set-admin.js",
     "test": "vitest",
     "test:e2e": "playwright test"
   },
@@ -73,6 +75,7 @@
     "prettier": "^3.6.2",
     "prisma": "5.22.0",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.6"
   }

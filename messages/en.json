@@ -20,7 +20,10 @@
     "confirm": "Confirm",
     "noData": "No data to display",
     "stats": "Statistics",
-    "optional": "Optional"
+    "optional": "Optional",
+    "viewAll": "View All",
+    "room": "room",
+    "rooms": "rooms"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -52,6 +55,226 @@
       "activeProjects": "Active Projects",
       "totalClients": "Total Clients",
       "totalBudget": "Total Budget"
+    }
+  },
+  "admin": {
+    "navigation": {
+      "dashboard": "Dashboard",
+      "categories": "Categories",
+      "subCategories": "Sub-Categories",
+      "styles": "Styles",
+      "approvals": "Approvals",
+      "colors": "Colors",
+      "materials": "Materials",
+      "organizations": "Organizations",
+      "users": "Users",
+      "backToDashboard": "Back to Dashboard"
+    },
+    "dashboard": {
+      "title": "Admin Dashboard",
+      "description": "Manage global content and approvals",
+      "quickActions": "Quick Actions",
+      "comingSoon": "Coming soon",
+      "stats": {
+        "totalStyles": "Total Styles",
+        "pendingApprovals": "Pending Approvals",
+        "totalOrganizations": "Total Organizations",
+        "totalUsers": "Total Users"
+      }
+    },
+    "styles": {
+      "title": "Global Styles Management",
+      "createStyle": "Create New Style",
+      "searchPlaceholder": "Search styles...",
+      "filterByCategory": "Filter by category",
+      "filterBySubCategory": "Filter by sub-category",
+      "noStyles": "No styles",
+      "noStylesDescription": "Create your first global style",
+      "deleteStyle": "Delete Style",
+      "deleteStyleMessage": "Are you sure you want to delete this style? This action cannot be undone.",
+      "table": {
+        "name": "Name",
+        "category": "Category",
+        "version": "Version",
+        "usage": "Usage",
+        "createdAt": "Created At",
+        "actions": "Actions"
+      },
+      "categories": {
+        "scandinavian": "Scandinavian",
+        "japandi": "Japandi",
+        "industrial": "Industrial",
+        "minimal": "Minimal",
+        "mediterranean": "Mediterranean",
+        "rustic": "Rustic",
+        "classic": "Classic"
+      },
+      "detail": {
+        "category": "Category",
+        "version": "Version",
+        "usage": "Usage",
+        "createdAt": "Created At",
+        "tags": "Tags",
+        "tabs": {
+          "palette": "Color Palette",
+          "materials": "Materials",
+          "rooms": "Room Profiles"
+        },
+        "palette": {
+          "neutrals": "Neutral Colors",
+          "accents": "Accent Colors"
+        },
+        "materials": {
+          "defaults": "Default Materials",
+          "noDefaults": "No default materials defined",
+          "finish": "Finish"
+        },
+        "rooms": {
+          "noProfiles": "No room profiles defined"
+        }
+      },
+      "edit": {
+        "title": "Edit Style",
+        "comingSoon": "Coming Soon",
+        "comingSoonDescription": "Edit form will be implemented soon"
+      },
+      "create": {
+        "title": "Create New Style",
+        "comingSoon": "Coming Soon",
+        "comingSoonDescription": "Creation form will be implemented soon",
+        "basicInfo": "Basic Information",
+        "name": "Name",
+        "nameHe": "Name (Hebrew)",
+        "nameEn": "Name (English)",
+        "nameHeRequired": "Hebrew name is required",
+        "nameEnRequired": "English name is required",
+        "category": "Category",
+        "categoryRequired": "Category is required",
+        "categoryPlaceholder": "Select category",
+        "slug": "Slug",
+        "slugPlaceholder": "style-name",
+        "slugInvalid": "Slug can only contain lowercase letters, numbers, and hyphens",
+        "palette": "Color Palette",
+        "neutrals": "Neutral Colors",
+        "neutralsRequired": "At least one neutral color is required",
+        "accents": "Accent Colors",
+        "accentsRequired": "At least one accent color is required",
+        "addColor": "Add Color",
+        "colorName": "Color Name",
+        "colorHex": "Color Code (HEX)",
+        "colorPantone": "Pantone (Optional)",
+        "removeColor": "Remove Color",
+        "materials": "Materials",
+        "defaultMaterials": "Default Materials",
+        "defaultMaterialsRequired": "At least one default material is required",
+        "addDefaultMaterial": "Add Default Material",
+        "materialId": "Material ID",
+        "usageArea": "Usage Area",
+        "finish": "Finish",
+        "alternatives": "Alternatives",
+        "addAlternative": "Add Alternative",
+        "roomProfiles": "Room Profiles",
+        "addRoomProfile": "Add Room Profile",
+        "roomType": "Room Type",
+        "tags": "Tags",
+        "addTag": "Add Tag",
+        "submit": "Create Style",
+        "cancel": "Cancel"
+      }
+    },
+    "approvals": {
+      "title": "Style Approvals",
+      "noApprovals": "No pending approvals",
+      "noApprovalsDescription": "All styles have been reviewed",
+      "approveStyle": "Approve/Reject Style",
+      "approveStyleMessage": "What would you like to do with style \"{name}\"?",
+      "rejectStyle": "Reject Style",
+      "rejectStyleMessage": "Are you sure you want to reject style \"{name}\"?",
+      "rejectionReason": "Rejection Reason",
+      "rejectionReasonPlaceholder": "Explain why the style is rejected...",
+      "approve": "Approve",
+      "reject": "Reject",
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "table": {
+        "styleName": "Style Name",
+        "organization": "Organization",
+        "category": "Category",
+        "status": "Status",
+        "submittedAt": "Submitted At",
+        "actions": "Actions"
+      }
+    },
+    "materials": {
+      "title": "Global Materials Management",
+      "description": "Manage the global materials catalog",
+      "comingSoon": "Coming Soon",
+      "comingSoonDescription": "This feature will be available soon"
+    },
+    "colors": {
+      "title": "Color Management",
+      "createColor": "Create New Color",
+      "searchPlaceholder": "Search colors...",
+      "filterByCategory": "Filter by category",
+      "noColors": "No colors",
+      "noColorsDescription": "Create your first color",
+      "deleteColor": "Delete Color",
+      "deleteColorMessage": "Are you sure you want to delete this color? This action cannot be undone.",
+      "table": {
+        "name": "Name",
+        "hex": "Hex Code",
+        "category": "Category",
+        "usage": "Usage",
+        "createdAt": "Created At",
+        "actions": "Actions"
+      },
+      "categories": {
+        "neutral": "Neutral",
+        "accent": "Accent",
+        "semantic": "Semantic"
+      },
+      "create": {
+        "title": "Create New Color",
+        "basicInfo": "Basic Information",
+        "nameHe": "Name (Hebrew)",
+        "nameEn": "Name (English)",
+        "nameHeRequired": "Hebrew name is required",
+        "nameEnRequired": "English name is required",
+        "description": "Description",
+        "descriptionHe": "Description (Hebrew)",
+        "descriptionEn": "Description (English)",
+        "descriptionPlaceholder": "What this color is used for, where it fits...",
+        "hex": "Color Code (HEX)",
+        "hexRequired": "Color code is required",
+        "hexInvalid": "Color code must be in HEX format (#RRGGBB)",
+        "hexPlaceholder": "#ffffff",
+        "pickColor": "Pick Color",
+        "pantone": "Pantone",
+        "pantonePlaceholder": "PMS 123",
+        "category": "Category",
+        "categoryRequired": "Category is required",
+        "categoryPlaceholder": "Select category",
+        "role": "Role (for semantic colors)",
+        "rolePlaceholder": "Select role",
+        "preview": "Preview",
+        "submit": "Create Color",
+        "cancel": "Cancel"
+      }
+    },
+    "organizations": {
+      "title": "Organizations Management",
+      "description": "Manage all organizations on the platform",
+      "comingSoon": "Coming Soon",
+      "comingSoonDescription": "This feature will be available soon"
+    },
+    "users": {
+      "title": "Users Management",
+      "description": "Manage all users on the platform",
+      "comingSoon": "Coming Soon",
+      "comingSoonDescription": "This feature will be available soon"
     }
   },
   "clients": {
@@ -274,6 +497,43 @@
       "clickAddRoomToStart": "Click 'Add Room' to create your first room",
       "deleteRoomTitle": "Delete Room",
       "deleteRoomMessage": "Are you sure you want to delete this room? This action cannot be undone."
+    },
+    "categories": {
+      "title": "Categories Management",
+      "createCategory": "Create New Category",
+      "searchPlaceholder": "Search categories...",
+      "noCategories": "No categories",
+      "noCategoriesDescription": "Create your first category",
+      "deleteCategory": "Delete Category",
+      "deleteCategoryMessage": "Are you sure you want to delete this category? This action cannot be undone.",
+      "table": {
+        "name": "Name",
+        "slug": "Slug",
+        "subCategories": "Sub-Categories",
+        "styles": "Styles",
+        "order": "Order",
+        "createdAt": "Created At",
+        "actions": "Actions"
+      }
+    },
+    "subCategories": {
+      "title": "Sub-Categories Management",
+      "createSubCategory": "Create New Sub-Category",
+      "searchPlaceholder": "Search sub-categories...",
+      "filterByCategory": "Filter by category",
+      "noSubCategories": "No sub-categories",
+      "noSubCategoriesDescription": "Create your first sub-category",
+      "deleteSubCategory": "Delete Sub-Category",
+      "deleteSubCategoryMessage": "Are you sure you want to delete this sub-category? This action cannot be undone.",
+      "table": {
+        "category": "Category",
+        "name": "Name",
+        "slug": "Slug",
+        "styles": "Styles",
+        "order": "Order",
+        "createdAt": "Created At",
+        "actions": "Actions"
+      }
     }
   }
 }
