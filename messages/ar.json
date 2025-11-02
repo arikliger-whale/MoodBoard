@@ -1,0 +1,51 @@
+{
+  "common": {
+    "welcome": "مرحباً بك في MoodB",
+    "loading": "جارٍ التحميل...",
+    "error": "خطأ",
+    "success": "نجاح",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "create": "إنشاء",
+    "search": "بحث",
+    "filter": "تصفية",
+    "close": "إغلاق"
+  },
+  "navigation": {
+    "dashboard": "لوحة التحكم",
+    "projects": "المشاريع",
+    "clients": "العملاء",
+    "materials": "المواد",
+    "styles": "الأنماط",
+    "budget": "الميزانية",
+    "settings": "الإعدادات"
+  },
+  "auth": {
+    "signIn": "تسجيل الدخول",
+    "signOut": "تسجيل الخروج",
+    "signUp": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور"
+  },
+  "projects": {
+    "form": {
+      "roomTypes": {
+        "living": "غرفة المعيشة",
+        "dining": "غرفة الطعام",
+        "kitchen": "مطبخ",
+        "bedroom": "غرفة نوم",
+        "bathroom": "حمام",
+        "office": "مكتب",
+        "entrance": "مدخل",
+        "hallway": "ممر",
+        "balcony": "شرفة",
+        "storage": "تخزين",
+        "other": "أخرى"
+      }
+    }
+  }
+}
+

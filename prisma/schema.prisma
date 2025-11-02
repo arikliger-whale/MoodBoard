@@ -1,0 +1,687 @@
+// MoodB Database Schema
+// MongoDB with Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Multi-tenancy & Authentication
+// ============================================
+
+model Organization {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  slug        String   @unique
+  
+  settings    OrganizationSettings?
+  subscription Subscription?
+  
+  // Relations
+  users       User[]
+  clients     Client[]
+  projects    Project[]
+  styles      Style[]
+  materials   Material[]
+  products    Product[]
+  suppliers   Supplier[]
+  auditLogs   AuditLog[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  
+  @@map("organizations")
+}
+
+type OrganizationSettings {
+  locale      String  @default("he") // he, en, ar
+  currency    String  @default("ILS") // ILS, USD, EUR
+  units       String  @default("metric") // metric, imperial
+  
+  brand       BrandSettings?
+  features    FeatureFlags?
+}
+
+type BrandSettings {
+  logo              String?
+  primaryColor      String  @default("#df2538") // MoodB Red
+  secondaryColor    String?
+  backgroundColor   String  @default("#f7f7ed") // MoodB Cream
+}
+
+type FeatureFlags {
+  aiAssist            Boolean @default(false)
+  advancedBudgeting   Boolean @default(false)
+  supplierPortal      Boolean @default(false)
+}
+
+type Subscription {
+  plan        String   // free, pro, enterprise
+  validUntil  DateTime
+  seats       Int      @default(1)
+  stripeId    String?
+}
+
+// NextAuth.js required models
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// MoodB User model (extends NextAuth User)
+model User {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String?
+  email           String   @unique
+  emailVerified   DateTime?
+  image           String?
+  
+  organizationId  String?  @db.ObjectId
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  role            String?  // designer_owner, designer_member, client, supplier, admin
+  permissions     String[]
+  
+  profile         UserProfile?
+  
+  lastActive      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  
+  // NextAuth relations
+  accounts        Account[]
+  sessions        Session[]
+  
+  // MoodB relations
+  createdProjects Project[] @relation("CreatedProjects")
+  teamMemberships TeamMember[]
+  comments        Comment[]
+  approvals       Approval[]
+  
+  @@map("users")
+}
+
+type UserProfile {
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  avatar      String?
+  preferences UserPreferences?
+}
+
+type UserPreferences {
+  language        String  @default("he")
+  notifications   NotificationSettings?
+}
+
+type NotificationSettings {
+  email     Boolean @default(true)
+  push      Boolean @default(true)
+  inApp     Boolean @default(true)
+}
+
+// ============================================
+// CRM & Client Management
+// ============================================
+
+model Client {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId  String   @db.ObjectId
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  name            String
+  contact         ContactInfo
+  tags            String[]
+  preferences     ClientPreferences?
+  notes           Note[]
+  
+  // Relations
+  projects        Project[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  
+  @@map("clients")
+}
+
+type ContactInfo {
+  email       String
+  phone       String?
+  address     String?
+  city        String?
+  country     String?
+}
+
+type ClientPreferences {
+  favoriteStyles  String[]
+  colors          String[]
+  materials       String[]
+  budgetRange     BudgetRange?
+  specialNeeds    String?
+}
+
+type BudgetRange {
+  min   Float
+  max   Float
+}
+
+type Note {
+  id          String   @default(uuid())
+  content     String
+  createdBy   String
+  createdAt   DateTime @default(now())
+}
+
+// ============================================
+// Project Management
+// ============================================
+
+model Project {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId  String   @db.ObjectId
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  clientId        String   @db.ObjectId
+  client          Client   @relation(fields: [clientId], references: [id])
+  
+  name            String
+  slug            String
+  status          String   // draft, active, review, approved, completed, archived
+  
+  styleConfig     StyleConfig?
+  rooms           Room[]
+  budget          Budget?
+  timeline        Timeline?
+  
+  team            TeamMember[]
+  approvals       Approval[]
+  comments        Comment[]
+  assets          Asset[]
+  
+  metadata        ProjectMetadata
+  
+  createdBy       String   @db.ObjectId
+  creator         User     @relation("CreatedProjects", fields: [createdBy], references: [id])
+  
+  @@map("projects")
+}
+
+type ProjectMetadata {
+  createdBy       String   @db.ObjectId
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  lastModifiedBy  String   @db.ObjectId
+}
+
+type StyleConfig {
+  baseStyleId     String   @db.ObjectId
+  customizations  StyleCustomization[]
+}
+
+type StyleCustomization {
+  roomId      String?
+  paletteId   String?
+  materialSetId String?
+}
+
+type Room {
+  id              String   @default(uuid())
+  name            String
+  type            String   // Living, Kitchen, Bedroom, Bath, etc.
+  dimensions      Dimensions?
+  notes           String?
+  styleOverrides  StyleOverride?
+  materials       MaterialReference[]
+  products        ProductReference[]
+}
+
+type Dimensions {
+  length  Float?
+  width   Float?
+  height  Float?
+  unit    String? @default("m")
+}
+
+type StyleOverride {
+  paletteId       String?
+  materialSetId   String?
+  customColors    String[]
+}
+
+type MaterialReference {
+  materialId    String   @db.ObjectId
+  usageArea     String
+  quantity      Float
+  unit          String
+  finish        String?
+}
+
+type ProductReference {
+  productId     String   @db.ObjectId
+  quantity      Int
+  variant       String?
+}
+
+type Budget {
+  currency      String
+  target        BudgetRange
+  allocated     Float    @default(0)
+  spent         Float    @default(0)
+  lines         BudgetLine[]
+  versions      BudgetVersion[]
+}
+
+type BudgetLine {
+  id            String   @default(uuid())
+  scope         LineScope
+  itemRef       ItemReference?
+  quantity      Float
+  unit          String
+  unitPrice     Float
+  wastePct      Float?   @default(0)
+  total         Float
+}
+
+type LineScope {
+  roomId        String?
+  category      String
+}
+
+type ItemReference {
+  materialId    String?  @db.ObjectId
+  productId     String?  @db.ObjectId
+}
+
+type BudgetVersion {
+  version       Int
+  createdAt     DateTime @default(now())
+  createdBy     String   @db.ObjectId
+  snapshot      Json
+}
+
+type Timeline {
+  startDate       DateTime
+  targetEndDate   DateTime
+  milestones      Milestone[]
+}
+
+type Milestone {
+  id          String   @default(uuid())
+  title       String
+  date        DateTime
+  status      String   // pending, completed
+  description String?
+}
+
+type TeamMember {
+  userId      String   @db.ObjectId
+  role        String   // lead, designer, consultant
+  permissions String[]
+  addedAt     DateTime @default(now())
+}
+
+type Asset {
+  id          String   @default(uuid())
+  type        String   // image, document, moodboard
+  url         String
+  filename    String
+  size        Int
+  uploadedBy  String   @db.ObjectId
+  uploadedAt  DateTime @default(now())
+}
+
+// ============================================
+// Style Engine
+// ============================================
+
+model Style {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId  String?  @db.ObjectId
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  slug            String   @unique
+  name            LocalizedString
+  category        String   // scandinavian, japandi, industrial, minimal, mediterranean, rustic, classic
+  
+  palette         Palette
+  materialSet     MaterialSet
+  roomProfiles    RoomProfile[]
+  
+  metadata        StyleMetadata
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  
+  @@map("styles")
+}
+
+type LocalizedString {
+  he    String
+  en    String
+}
+
+type Palette {
+  neutrals    ColorToken[]
+  accents     ColorToken[]
+  semantic    SemanticColors?
+}
+
+type ColorToken {
+  name    String
+  hex     String
+  pantone String?
+}
+
+type SemanticColors {
+  primary   String
+  secondary String
+  success   String
+  warning   String
+  error     String
+}
+
+type MaterialSet {
+  defaults      MaterialDefault[]
+  alternatives  MaterialAlternative[]
+}
+
+type MaterialDefault {
+  materialId    String   @db.ObjectId
+  usageArea     String
+  defaultFinish String?
+  supplierId    String?  @db.ObjectId
+}
+
+type MaterialAlternative {
+  usageArea     String
+  alternatives  String[] @db.ObjectId
+}
+
+type RoomProfile {
+  roomType          String
+  colorProportions  ColorProportion[]
+  materials         String[] @db.ObjectId
+  constraints       RoomConstraint?
+}
+
+type ColorProportion {
+  colorRole   String   // neutral, accent, etc.
+  percentage  Float
+}
+
+type RoomConstraint {
+  waterResistance   Boolean?
+  durability        Int?     // 1-10
+  maintenance       Int?     // 1-10
+}
+
+type StyleMetadata {
+  version     String
+  isPublic    Boolean  @default(false)
+  tags        String[]
+  usage       Int      @default(0)
+  rating      Float?
+}
+
+// ============================================
+// Material & Product Catalog
+// ============================================
+
+model Material {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId  String?  @db.ObjectId
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  
+  sku             String   @unique
+  name            LocalizedString
+  category        String
+  
+  properties      MaterialProperties
+  pricing         Pricing
+  availability    Availability
+  assets          MaterialAssets
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  
+  @@map("materials")
+}
+
+type MaterialProperties {
+  type            String   // wood, stone, fabric, metal, glass, ceramic, composite
+  subType         String
+  finish          String[]
+  texture         String
+  color           ColorInfo
+  dimensions      MaterialDimensions?
+  technical       TechnicalSpecs
+}
+
+type ColorInfo {
+  hex       String
+  name      String
+  pantone   String?
+}
+
+type MaterialDimensions {
+  width     Float?
+  height    Float?
+  thickness Float?
+  unit      String @default("mm")
+}
+
+type TechnicalSpecs {
+  durability      Int      // 1-10
+  maintenance     Int      // 1-10
+  sustainability  Int      // 1-10
+  fireRating      String?
+  waterResistance Boolean?
+}
+
+type Pricing {
+  cost        Float
+  retail      Float
+  unit        String   // sqm, unit, linear_m
+  currency    String
+  bulkDiscounts DiscountTier[]
+}
+
+type DiscountTier {
+  minQuantity Int
+  discount    Float
+}
+
+type Availability {
+  inStock     Boolean
+  leadTime    Int      // days
+  minOrder    Float
+  supplierId  String?  @db.ObjectId
+}
+
+type MaterialAssets {
+  thumbnail       String
+  images          String[]
+  texture         String?
+  technicalSheet  String?
+}
+
+model Product {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId  String?  @db.ObjectId
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  
+  sku             String   @unique
+  category        String
+  name            LocalizedString
+  
+  variants        ProductVariant[]
+  dimensions      ProductDimensions
+  pricing         Pricing
+  availability    Availability
+  assets          ProductAssets
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  
+  @@map("products")
+}
+
+type ProductVariant {
+  id          String   @default(uuid())
+  name        String
+  sku         String
+  color       String?
+  material    String?
+  priceAdjustment Float @default(0)
+}
+
+type ProductDimensions {
+  length  Float
+  width   Float
+  height  Float
+  weight  Float?
+  unit    String @default("cm")
+}
+
+type ProductAssets {
+  thumbnail   String
+  images      String[]
+  model3D     String?
+  manual      String?
+}
+
+model Supplier {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId  String?  @db.ObjectId
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  
+  name            String
+  contact         SupplierContact
+  leadTimes       Int      // average days
+  discounts       DiscountTier[]
+  catalogUrls     String[]
+  rating          Float?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  
+  @@map("suppliers")
+}
+
+type SupplierContact {
+  email       String
+  phone       String?
+  website     String?
+  address     String?
+}
+
+// ============================================
+// Collaboration & Approvals
+// ============================================
+
+model Approval {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId       String   @db.ObjectId
+  project         Project  @relation(fields: [projectId], references: [id])
+  
+  scope           String   // style, budget, materials, final
+  versionRef      String
+  status          String   // pending, approved, rejected
+  
+  approvedBy      String   @db.ObjectId
+  approver        User     @relation(fields: [approvedBy], references: [id])
+  
+  comments        String?
+  approvedAt      DateTime?
+  
+  createdAt       DateTime @default(now())
+  
+  @@map("approvals")
+}
+
+model Comment {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId       String   @db.ObjectId
+  project         Project  @relation(fields: [projectId], references: [id])
+  roomId          String?
+  
+  content         String
+  attachments     String[]
+  
+  authorId        String   @db.ObjectId
+  author          User     @relation(fields: [authorId], references: [id])
+  
+  parentId        String?  @db.ObjectId
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  
+  @@map("comments")
+}
+
+// ============================================
+// Audit & Logging
+// ============================================
+
+model AuditLog {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId  String   @db.ObjectId
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  
+  actorId         String   @db.ObjectId
+  action          String   // created, updated, deleted, approved, etc.
+  entity          String   // project, client, style, etc.
+  entityId        String   @db.ObjectId
+  
+  before          Json?
+  after           Json?
+  
+  ipAddress       String?
+  userAgent       String?
+  
+  createdAt       DateTime @default(now())
+  
+  @@map("audit_logs")
+}
+

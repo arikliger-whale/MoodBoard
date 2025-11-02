@@ -1,26 +1,85 @@
-@import "tailwindcss";
+/* Mantine CSS - Imported via MantineProvider, not here to avoid Tailwind conflicts */
+@import "../styles/tokens.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f7ed; /* MoodB brand background */
+  --foreground: #000000; /* MoodB brand text */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* MoodB Brand Colors */
+:root {
+  --moodb-background: #f7f7ed;
+  --moodb-brand: #df2538;
+  --moodb-text: #000000;
+  --moodb-text-inverse: #ffffff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #f7f7ed !important; /* MoodB brand background - force override */
+  color: #000000 !important; /* MoodB brand text */
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Hebrew font support */
+[dir="rtl"],
+[lang="he"] {
+  font-family: "Heebo", "Assistant", var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Override Mantine default background */
+[data-mantine-color-scheme="light"] {
+  background-color: #f7f7ed !important;
+}
+
+[data-mantine-color-scheme="dark"] {
+  background-color: #f7f7ed !important; /* Keep light background even in dark mode for MoodB brand */
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="ltr"] {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--moodb-brand);
+  outline-offset: 2px;
+}
+
+/* Mantine component overrides */
+.mantine-Paper-root {
+  background-color: #ffffff !important;
+}
+
+.mantine-Button-root {
+  font-weight: 500;
+  transition: all 200ms ease;
+}
+
+.mantine-Button-root:hover {
+  transform: translateY(-1px);
+}
+
+/* Ensure Hebrew text renders correctly */
+[dir="rtl"] * {
+  unicode-bidi: embed;
+}
+
+[dir="rtl"] bidi-override {
+  unicode-bidi: bidi-override;
+}
+
