@@ -1,6 +1,6 @@
 # MoodB Technical Implementation Plan
 
-**Last Updated:** January 2025
+**Last Updated:** January 29, 2025
 
 ## Recent Updates (December 2024)
 
@@ -55,7 +55,7 @@
 - Complete translations (Hebrew + English)
 - Fixed Prisma client caching in development mode
 
-### ✅ Phase 2 - Admin Area & Style Management - IN PROGRESS (60% Complete)
+### ✅ Phase 2 - Admin Area & Style Management - IN PROGRESS (65% Complete)
 
 **1. Admin Area & Protection System**
 - Multi-layer admin protection:
@@ -79,14 +79,50 @@
 - Admin Styles Management (list, search, filter, delete)
 - Admin Style Approvals (approve/reject workflow)
 - Admin Style Detail (palette, materials, rooms tabs)
+- Admin Style Create Page (full multi-tab form wizard) ✅ COMPLETE (January 2025)
+- Admin Style Edit Page (full multi-tab form with all features) ✅ COMPLETE (January 2025)
 - Admin Colors Management (list, create, edit, delete) ✅ NEW
 - Admin Categories Management (list, create, edit, delete) ✅ NEW
 - Admin Sub-Categories Management (list, create, edit, delete) ✅ NEW
-- Admin Materials Management (list, create, edit, delete) ✅ NEW
+- Admin Materials Management (list, create, edit, delete) ✅ COMPLETE (January 2025)
+- Admin Materials Settings (Categories/Types tabs with full CRUD) ✅ COMPLETE (January 2025)
 - Admin Users Management (list, detail, search, filter) ✅ NEW
 - Placeholder page (organizations)
 
-**4. Database Decision**
+**4. Style Form Architecture** ✅ COMPLETE (January 2025)
+- **StyleForm Component** (`src/components/features/style-engine/StyleForm.tsx`):
+  - Multi-tab form wizard (Basic Info, Color, Materials, Rooms)
+  - React Hook Form + Zod validation
+  - Creation mode: Deferred image upload (blob URLs → R2 after creation)
+  - Edit mode: Immediate image upload to R2
+  - Room profile management with dynamic field arrays
+  - Material selection (general defaults + room-specific)
+  - Validation error handling with auto-scroll and tab switching
+- **ImageUpload Component** (`src/components/ui/ImageUpload.tsx`):
+  - Drag & drop support with preview
+  - Creation mode: Local file storage with blob URLs
+  - Edit mode: Direct R2 upload
+  - Multi-image support (up to 20 images)
+  - File validation (type, size - 10MB max)
+- **useImageUpload Hook** (`src/hooks/useImageUpload.ts`):
+  - Upload/delete mutations with TanStack Query
+  - File cloning to prevent FileSystemFileHandle issues
+  - Loading and error state management
+- **Validation Schemas** (`src/lib/validations/style.ts`):
+  - Complete Zod schemas for create/update operations
+  - Material sets, room profiles, localized strings
+  - ObjectID validation for MongoDB
+- **Page Components**:
+  - Create page: Uses StyleForm in "create" mode
+  - Edit page: Uses StyleForm in "edit" mode with data loading
+- **Key Features**:
+  - Form state persistence across tab switches
+  - RTL support and internationalization
+  - Comprehensive error handling
+  - Image upload with deferred creation mode
+  - Room type uniqueness enforcement
+
+**5. Database Decision**
 - **Prisma over Mongoose** - Optimal for TypeScript strict mode
 - No migrations needed with MongoDB (`db push` only)
 - Type-safe queries throughout codebase

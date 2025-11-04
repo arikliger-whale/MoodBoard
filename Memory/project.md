@@ -423,7 +423,10 @@ AuditLog { _id, orgId, actorId, action, entity, before?, after?, at }
 - מודל Material עם מאפיינים מלאים, תמחור, זמינות
 - CRUD מלא דרך Admin API ו-UI
 - MaterialList component לשימוש חוזר
-- קטגוריות חומרים וסוגי חומרים (API + ניהול)
+- קטגוריות חומרים וסוגי חומרים (API + ניהול מלא) ✅ הושלם (29 ינואר 2025)
+- MaterialCategoriesTab ו-MaterialTypesTab עם CRUD מלא ✅ הושלם
+- Material Settings Page עם טאבים לקטגוריות וסוגים ✅ הושלם
+- Form Drawers ליצירה/עריכה של קטגוריות וסוגים ✅ הושלם
 - React Query hooks לניהול בזמן אמת
 - תרגומים מלאים (עברית + אנגלית)
 - דפי ניהול: רשימה, יצירה, עריכה, הגדרות
@@ -436,7 +439,7 @@ AuditLog { _id, orgId, actorId, action, entity, before?, after?, at }
 - דף פרטי משתמש
 - React Query hooks לניהול משתמשים
 
-## ✅ ניהול סגנונות (60% הושלם - ינואר 2025)
+## ✅ ניהול סגנונות (65% הושלם - ינואר 2025)
 
 **APIs:**
 - Admin Styles API - CRUD מלא + אישורים ✅
@@ -444,6 +447,8 @@ AuditLog { _id, orgId, actorId, action, entity, before?, after?, at }
 
 **UI:**
 - דפי מנהל סגנונות (מלא) ✅
+- דף יצירת סגנון (form wizard מלא עם טאבים) ✅ הושלם (29 ינואר 2025)
+- דף עריכת סגנון (form מלא עם כל התכונות) ✅ הושלם (29 ינואר 2025)
 - דפי מנהל צבעים (מלא) ✅ חדש
 - דפי מנהל קטגוריות (מלא) ✅ חדש
 - דפי מנהל חומרים (מלא) ✅ חדש

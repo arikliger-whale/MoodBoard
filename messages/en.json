@@ -124,15 +124,23 @@
         },
         "palette": {
           "neutrals": "Neutral Colors",
-          "accents": "Accent Colors"
+          "accents": "Accent Colors",
+          "noPalette": "No palette defined",
+          "noAccents": "No accent colors defined"
         },
         "materials": {
           "defaults": "Default Materials",
+          "alternatives": "Alternative Materials",
           "noDefaults": "No default materials defined",
           "finish": "Finish"
         },
         "rooms": {
-          "noProfiles": "No room profiles defined"
+          "noProfiles": "No room profiles defined",
+          "materials": "Materials",
+          "constraints": "Constraints",
+          "waterResistance": "Water Resistance",
+          "durability": "Durability",
+          "maintenance": "Maintenance"
         }
       },
       "edit": {

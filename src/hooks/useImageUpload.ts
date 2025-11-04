@@ -29,8 +29,42 @@ export function useImageUpload() {
 
   const uploadMutation = useMutation({
     mutationFn: async ({ file, entityType, entityId, projectId, roomId, roomType }: UploadImageParams) => {
+      // Validate file object before creating FormData
+      if (!(file instanceof File)) {
+        throw new Error('Invalid file object provided')
+      }
+
+      if (file.size === 0) {
+        throw new Error('File is empty')
+      }
+
+      // Validate file is still readable
+      try {
+        // Check if file has a valid name and type
+        if (!file.name || file.name.trim() === '') {
+          throw new Error('File name is required')
+        }
+      } catch (err) {
+        throw new Error(`File validation failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      }
+
+      // Clone the file to prevent FileSystemFileHandle issues
+      // Read the file content and create a new File object
+      let fileToUpload: File
+      try {
+        const arrayBuffer = await file.arrayBuffer()
+        fileToUpload = new File([arrayBuffer], file.name, {
+          type: file.type,
+          lastModified: file.lastModified,
+        })
+      } catch (err) {
+        // If cloning fails, use the original file
+        // This might fail if there's a file handle issue, but we'll let the API handle it
+        fileToUpload = file
+      }
+
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', fileToUpload)
       formData.append('entityType', entityType)
       formData.append('entityId', entityId)
       if (projectId) formData.append('projectId', projectId)

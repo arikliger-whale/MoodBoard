@@ -85,30 +85,41 @@ export function ImageUpload({
     )
     
     // Revoke URLs that are no longer needed
+    // In creation mode, be more careful - only revoke if explicitly removed from value
     previewUrlsRef.current.forEach((url) => {
       if (!currentPreviewUrls.has(url)) {
-        URL.revokeObjectURL(url)
+        // Only revoke if not in creation mode, or if we're sure it's been removed
+        if (!isCreationMode) {
+          URL.revokeObjectURL(url)
+        }
         previewUrlsRef.current.delete(url)
       }
     })
     
     // Add new preview URLs to tracking set
+    // In creation mode, these URLs should persist across tab switches
     currentPreviewUrls.forEach((url) => {
       if (!previewUrlsRef.current.has(url)) {
         previewUrlsRef.current.add(url)
       }
     })
-  }, [value])
+  }, [value, isCreationMode])
 
   // Cleanup all preview URLs on unmount
+  // In creation mode, we don't revoke URLs on unmount because they're stored in form state
+  // and will be needed when the component remounts (e.g., when switching tabs)
   useEffect(() => {
     return () => {
-      previewUrlsRef.current.forEach((url) => {
-        URL.revokeObjectURL(url)
-      })
-      previewUrlsRef.current.clear()
+      // Only revoke URLs if NOT in creation mode
+      // In creation mode, URLs are managed by the form state and should persist across tab switches
+      if (!isCreationMode) {
+        previewUrlsRef.current.forEach((url) => {
+          URL.revokeObjectURL(url)
+        })
+        previewUrlsRef.current.clear()
+      }
     }
-  }, [])
+  }, [isCreationMode])
 
   const handleDrop = useCallback(
     async (files: FileWithPath[]) => {
@@ -130,19 +141,43 @@ export function ImageUpload({
         const previewUrls: string[] = []
         const errors: Record<string, string> = {}
 
-        for (const file of filesToUpload) {
-          // Validate file
-          const validation = validateImageFile(file)
-          if (!validation.valid) {
-            errors[file.name] = validation.error || 'Invalid file'
-            continue
-          }
+        for (const fileWithPath of filesToUpload) {
+          try {
+            // Extract the File object from FileWithPath
+            // FileWithPath from Mantine Dropzone is just File with optional path property
+            // Access it directly - it's already a File object
+            const file = fileWithPath instanceof File ? fileWithPath : null
 
-          validFiles.push(file)
-          // Create preview URL
-          const previewUrl = URL.createObjectURL(file)
-          previewUrls.push(previewUrl)
-          previewUrlsRef.current.add(previewUrl)
+            // Validate file is a valid File object
+            if (!file || !(file instanceof File)) {
+              errors[(fileWithPath as any).name || 'unknown'] = 'Invalid file object'
+              continue
+            }
+
+            // Validate file
+            const validation = validateImageFile(file)
+            if (!validation.valid) {
+              errors[file.name] = validation.error || 'Invalid file'
+              continue
+            }
+
+            // Store the file directly - FormData can handle File objects
+            // We'll clone it only when uploading to avoid FileSystemFileHandle issues
+            validFiles.push(file)
+            
+            // Create preview URL from the file
+            // Use try-catch to handle any blob URL creation issues
+            try {
+              const previewUrl = URL.createObjectURL(file)
+              previewUrls.push(previewUrl)
+              previewUrlsRef.current.add(previewUrl)
+            } catch (urlErr) {
+              console.warn('Failed to create preview URL:', urlErr)
+              // Continue without preview URL
+            }
+          } catch (err) {
+            errors[(fileWithPath as any).name || 'unknown'] = err instanceof Error ? err.message : 'Failed to process file'
+          }
         }
 
         if (Object.keys(errors).length > 0) {
@@ -152,7 +187,7 @@ export function ImageUpload({
         }
 
         if (validFiles.length > 0) {
-          // Store files for later upload
+          // Store files for later upload (will be cloned during upload)
           const newPendingFiles = [...pendingFiles, ...validFiles]
           setPendingFiles(newPendingFiles)
           if (onPendingFilesChange) {
@@ -169,15 +204,26 @@ export function ImageUpload({
       const newImages: string[] = []
       const errors: Record<string, string> = {}
 
-      for (const file of filesToUpload) {
-        // Validate file
-        const validation = validateImageFile(file)
-        if (!validation.valid) {
-          errors[file.name] = validation.error || 'Invalid file'
-          continue
-        }
-
+      for (const fileWithPath of filesToUpload) {
         try {
+          // Extract the File object from FileWithPath
+          // FileWithPath from Mantine Dropzone is just File with optional path property
+          const file = fileWithPath instanceof File ? fileWithPath : null
+
+          // Validate file is a valid File object
+          if (!file || !(file instanceof File)) {
+            errors[(fileWithPath as any).name || 'unknown'] = 'Invalid file object'
+            continue
+          }
+
+          // Validate file
+          const validation = validateImageFile(file)
+          if (!validation.valid) {
+            errors[file.name] = validation.error || 'Invalid file'
+            continue
+          }
+
+          // Upload directly - the upload function will handle file cloning if needed
           const url = await uploadImage({
             file,
             entityType,
@@ -188,7 +234,7 @@ export function ImageUpload({
           })
           newImages.push(url)
         } catch (err) {
-          errors[file.name] = err instanceof Error ? err.message : 'Upload failed'
+          errors[(fileWithPath as any).name || 'unknown'] = err instanceof Error ? err.message : 'Upload failed'
         }
       }
 
@@ -331,19 +377,10 @@ export function ImageUpload({
       {value.length > 0 && (
         <SimpleGrid cols={{ base: 2, sm: 3, md: 4 }} spacing="md">
           {value.map((url, index) => {
-            // Skip invalid blob URLs (they're stale and will cause errors)
-            const isValidBlobUrl = url.startsWith('blob:') 
-              ? previewUrlsRef.current.has(url) 
-              : true
-            
-            if (!isValidBlobUrl) {
-              // Silently remove invalid blob URLs
-              setTimeout(() => {
-                if (onChange) {
-                  onChange(value.filter((u) => u !== url))
-                }
-              }, 0)
-              return null
+            // Track blob URLs in the ref for cleanup purposes
+            // In creation mode, blob URLs persist across tab switches, so we need to track them
+            if (url.startsWith('blob:') && !previewUrlsRef.current.has(url)) {
+              previewUrlsRef.current.add(url)
             }
 
             return (

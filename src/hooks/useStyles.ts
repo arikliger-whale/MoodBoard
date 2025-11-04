@@ -3,15 +3,15 @@
  * Provides real-time-like updates with auto-refetch
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type {
+    ApproveStyle,
+    CreateStyle,
+    StyleFilters,
+    UpdateStyle,
+} from '@/lib/validations/style'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import type {
-  CreateStyle,
-  UpdateStyle,
-  StyleFilters,
-  ApproveStyle,
-} from '@/lib/validations/style'
 
 export interface Style {
   id: string
@@ -410,21 +410,49 @@ export function useCreateAdminStyle() {
         throw new Error('Admin access required')
       }
 
-      const response = await fetch('/api/admin/styles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
+      console.log('[CREATE STYLE HOOK] Sending request with data:', JSON.stringify({
+        name: data.name,
+        categoryId: data.categoryId,
+        subCategoryId: data.subCategoryId,
+        colorId: data.colorId,
+        images: data.images,
+        materialSet: {
+          defaultsCount: data.materialSet?.defaults?.length || 0,
+          alternativesCount: data.materialSet?.alternatives?.length || 0,
+        },
+        roomProfilesCount: data.roomProfiles?.length || 0,
+      }, null, 2))
+      
+      try {
+        const response = await fetch('/api/admin/styles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
 
-      if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error('Admin access required')
+        console.log('[CREATE STYLE HOOK] Response status:', response.status)
+        console.log('[CREATE STYLE HOOK] Response ok:', response.ok)
+
+        if (!response.ok) {
+          if (response.status === 403) {
+            throw new Error('Admin access required')
+          }
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+          console.error('[CREATE STYLE HOOK] Error response:', errorData)
+          throw new Error(errorData.error || `Failed to create style: ${response.status} ${response.statusText}`)
         }
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create global style')
-      }
 
-      return response.json()
+        const result = await response.json()
+        console.log('[CREATE STYLE HOOK] Success, created style:', result.id)
+        return result
+      } catch (error) {
+        console.error('[CREATE STYLE HOOK] Request failed:', error)
+        if (error instanceof Error) {
+          console.error('[CREATE STYLE HOOK] Error message:', error.message)
+          console.error('[CREATE STYLE HOOK] Error stack:', error.stack)
+        }
+        throw error
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_STYLES_QUERY_KEY] })

@@ -55,6 +55,15 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
             slug: true,
           },
         },
+        color: {
+          select: {
+            id: true,
+            name: true,
+            hex: true,
+            pantone: true,
+            category: true,
+          },
+        },
       },
     })
 
@@ -154,6 +163,7 @@ export const PATCH = withAdmin(async (req: NextRequest, auth) => {
         ...(body.subCategoryId && { subCategoryId: body.subCategoryId }),
         ...(body.slug && { slug: body.slug }),
         ...(body.images !== undefined && { images: body.images }),
+        ...(body.colorId && { colorId: body.colorId }),
         ...(body.palette && { palette: body.palette as any }),
         ...(body.materialSet && { materialSet: body.materialSet as any }),
         ...(body.roomProfiles && { roomProfiles: body.roomProfiles as any }),
@@ -178,6 +188,15 @@ export const PATCH = withAdmin(async (req: NextRequest, auth) => {
             id: true,
             name: true,
             slug: true,
+          },
+        },
+        color: {
+          select: {
+            id: true,
+            name: true,
+            hex: true,
+            pantone: true,
+            category: true,
           },
         },
       },

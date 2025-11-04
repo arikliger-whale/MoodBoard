@@ -23,12 +23,13 @@ export type EntityType = (typeof ENTITY_TYPES)[number]
 
 /**
  * Image upload request schema
+ * entityId can be empty string for creation mode (styles, materials)
  */
 export const imageUploadSchema = z.object({
   entityType: z.enum(ENTITY_TYPES, {
     errorMap: () => ({ message: 'Invalid entity type' }),
   }),
-  entityId: z.string().min(1, 'Entity ID is required'),
+  entityId: z.string(), // Can be empty for creation mode
   projectId: z.string().optional(), // Required for room type
   roomId: z.string().optional(), // Required for room type
   roomType: z.string().optional(), // For room profiles within styles

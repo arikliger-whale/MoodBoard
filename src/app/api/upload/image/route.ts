@@ -30,6 +30,16 @@ export const POST = withAuth(async (req: NextRequest, auth) => {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
+    // Validate file is a valid File object
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: 'Invalid file object' }, { status: 400 })
+    }
+
+    // Validate file size
+    if (file.size === 0) {
+      return NextResponse.json({ error: 'File is empty' }, { status: 400 })
+    }
+
     // Validate request data
     const validatedData = imageUploadSchema.parse({
       entityType,
@@ -52,26 +62,31 @@ export const POST = withAuth(async (req: NextRequest, auth) => {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
       }
     } else if (validatedData.entityType === 'style') {
-      // For styles, verify it exists and is a global style (admin only)
+      // For styles, admin only
       if (auth.role !== 'admin') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
       }
 
-      const style = await prisma.style.findUnique({
-        where: { id: validatedData.entityId },
-      })
+      // In creation mode (empty entityId), allow upload - will be associated with style after creation
+      if (validatedData.entityId && validatedData.entityId !== '') {
+        // Edit mode - verify style exists and is a global style
+        const style = await prisma.style.findUnique({
+          where: { id: validatedData.entityId },
+        })
 
-      if (!style) {
-        return NextResponse.json({ error: 'Style not found' }, { status: 404 })
-      }
+        if (!style) {
+          return NextResponse.json({ error: 'Style not found' }, { status: 404 })
+        }
 
-      // Verify it's a global style (organizationId = null)
-      if (style.organizationId !== null) {
-        return NextResponse.json(
-          { error: 'Only global styles can be edited by admin' },
-          { status: 403 }
-        )
+        // Verify it's a global style (organizationId = null)
+        if (style.organizationId !== null) {
+          return NextResponse.json(
+            { error: 'Only global styles can be edited by admin' },
+            { status: 403 }
+          )
+        }
       }
+      // Creation mode - no validation needed, will use temporary ID for R2 path
     } else if (validatedData.entityType === 'room') {
       // For rooms, verify project exists and user has access
       if (!projectId) {
@@ -112,8 +127,21 @@ export const POST = withAuth(async (req: NextRequest, auth) => {
       }
     }
 
-    // Convert file to buffer
-    const arrayBuffer = await file.arrayBuffer()
+    // Convert file to buffer with error handling
+    let arrayBuffer: ArrayBuffer
+    try {
+      arrayBuffer = await file.arrayBuffer()
+    } catch (err) {
+      return NextResponse.json(
+        { error: `Failed to read file: ${err instanceof Error ? err.message : 'Unknown error'}` },
+        { status: 400 }
+      )
+    }
+
+    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+      return NextResponse.json({ error: 'File data is empty' }, { status: 400 })
+    }
+
     const buffer = Buffer.from(arrayBuffer)
 
     // Get organizationId for material uploads

@@ -28,8 +28,9 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = isSignInPage || isSignUpPage
 
   // Protected routes require authentication
-  const protectedRoutes = ['/dashboard', '/projects', '/clients', '/styles', '/materials', '/budget', '/settings', '/onboarding']
+  const protectedRoutes = ['/dashboard', '/projects', '/clients', '/styles', '/materials', '/budget', '/settings', '/onboarding', '/admin']
   const isProtectedRoute = protectedRoutes.some(route => pathname.includes(route))
+  const isAdminRoute = pathname.includes('/admin')
 
   // Try to get token, with error handling
   let token = null
@@ -49,6 +50,12 @@ export async function middleware(request: NextRequest) {
     const signInUrl = new URL(`/${locale}/sign-in`, request.url)
     signInUrl.searchParams.set('redirect_url', pathname)
     return NextResponse.redirect(signInUrl)
+  }
+
+  // Check admin access
+  if (isAdminRoute && token && token.role !== 'admin') {
+    const dashboardUrl = new URL(`/${locale}/dashboard`, request.url)
+    return NextResponse.redirect(dashboardUrl)
   }
 
   // Redirect authenticated users away from auth pages to prevent loops

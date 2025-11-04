@@ -43,10 +43,32 @@ export function generateR2Key(
 
   switch (entityType) {
     case 'category':
+      if (!entityId || entityId === '') {
+        throw new Error('Category ID is required')
+      }
       return `categories/${entityId}/${uniqueFilename}`
     case 'subcategory':
+      if (!entityId || entityId === '') {
+        throw new Error('SubCategory ID is required')
+      }
       return `sub-categories/${entityId}/${uniqueFilename}`
     case 'style':
+      // In creation mode (empty entityId), images are stored as blob URLs locally
+      // They will be uploaded to R2 after style creation with the actual styleId
+      // For now, if entityId is empty, we use a temp path structure
+      if (!entityId || entityId === '') {
+        // During creation, files are stored locally as blob URLs
+        // When style is created, they'll be uploaded with the actual styleId
+        // For now, use temp path if upload happens before style creation
+        const tempId = `temp-${timestamp}-${uuidv4().substring(0, 8)}`
+        if (roomType) {
+          const sanitizedRoomType = roomType.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
+          return `styles/${tempId}/rooms/${sanitizedRoomType}/${uniqueFilename}`
+        }
+        return `styles/${tempId}/${uniqueFilename}`
+      }
+      
+      // Edit mode - use actual styleId
       // If roomType is provided, this is a room profile image within a style
       if (roomType) {
         const sanitizedRoomType = roomType.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
@@ -177,4 +199,25 @@ export function extractKeyFromUrl(url: string): string {
     return url
   }
 }
+
+/**
+ * Style Images Folder Structure in R2:
+ * 
+ * styles/
+ *   {styleId}/
+ *     {timestamp}-{uuid}-{filename}                    # Main style images
+ *     rooms/
+ *       {roomType}/
+ *         {timestamp}-{uuid}-{filename}                # Room profile images
+ * 
+ * Example:
+ *   styles/507f1f77bcf86cd799439011/main-image.jpg
+ *   styles/507f1f77bcf86cd799439011/rooms/living_room/room-image-1.jpg
+ *   styles/507f1f77bcf86cd799439011/rooms/kitchen/room-image-2.jpg
+ * 
+ * During creation mode (entityId empty):
+ *   - Images are stored as blob URLs locally
+ *   - After style creation, they're uploaded to R2 with actual styleId
+ *   - Folder structure: styles/{styleId}/ or styles/{styleId}/rooms/{roomType}/
+ */
 

@@ -1,8 +1,8 @@
 # MoodB Development Progress
 
-**Last Updated:** January 2025
+**Last Updated:** January 29, 2025
 **Current Phase:** Phase 2 - Style Engine Core
-**Status:** ✅ Phase 1 Complete - Phase 2 In Progress (60% Complete - Admin Area, Categories, Colors Complete)
+**Status:** ✅ Phase 1 Complete - Phase 2 In Progress (65% Complete - Admin Area, Categories, Colors, Materials Complete)
 
 ---
 
@@ -409,7 +409,7 @@
 - ✅ Project Management: 100% (CRUD API, list page, detail page with tabs, form drawer, budget support)
 - ✅ Room Management: 100% (CRUD API, form drawer, room cards, dimensions support) ✅ NEW (November 2, 2025)
 
-### Phase 2: Style Engine Core ✅ 60% Complete (January 2025)
+### Phase 2: Style Engine Core ✅ 65% Complete (January 2025)
 
 #### Admin Area & Protection ✅ FULLY IMPLEMENTED (January 2025)
 - [x] **Admin Layout** - Separate admin layout with navigation
@@ -459,9 +459,160 @@
 - [x] **Admin Styles Management Page** - List, search, filter, delete global styles
 - [x] **Admin Style Approvals Page** - Review and approve/reject public styles
 - [x] **Admin Style Detail Page** - View style with tabs (palette, materials, rooms)
-- [x] **Admin Style Edit Page** - Placeholder (form wizard coming next)
+- [x] **Admin Style Edit Page** - Fully implemented with multi-tab form (basic, palette, materials, rooms) ✅ COMPLETE
+- [x] **Admin Style Create Page** - Fully implemented with complete form wizard ✅ COMPLETE
 - [ ] User-facing Style Library Pages - `/styles` (browse, detail, create)
-- [ ] Style Form Components - Wizard for creating/editing styles
+- [ ] User-facing Style Form Components - Wizard for creating/editing styles
+
+#### Style Form Architecture ✅ FULLY IMPLEMENTED (January 2025)
+
+**Overview:**
+The style form system implements a comprehensive multi-tab form wizard for creating and editing global styles. It handles complex nested data structures including materials, room profiles, and image uploads with support for both creation and edit modes.
+
+**Key Components:**
+
+1. **StyleForm Component** (`src/components/features/style-engine/StyleForm.tsx`)
+   - Main form component handling both create and edit modes
+   - Uses React Hook Form with Zod validation
+   - Tabbed interface with 4 tabs:
+     - **Basic Info Tab**: Name (HE/EN), Category, SubCategory, Slug, Style Images
+     - **Color Tab**: Color selection with visual preview
+     - **Materials Tab**: General materials selection (MultiSelect with SKU display)
+     - **Rooms Tab**: Room profiles with materials and images (dynamic field array)
+   - Features:
+     - Validation error handling with scroll-to-error functionality
+     - Tab switching based on validation errors
+     - Creation mode support: stores files locally (blob URLs) before entity creation
+     - Post-creation image upload: Uploads pending files to R2 after style creation
+     - Form state management with pending files tracking
+     - Room profile management: Add/remove room profiles with unique room types
+     - Material selection: General materials (defaults) vs room-specific materials
+
+2. **ImageUpload Component** (`src/components/ui/ImageUpload.tsx`)
+   - Reusable image upload component with drag & drop support
+   - **Creation Mode** (no entityId):
+     - Stores files locally in component state
+     - Creates blob URLs for preview
+     - Tracks pending files via `onPendingFilesChange` callback
+     - Prevents premature URL revocation for form state persistence
+   - **Edit Mode** (with entityId):
+     - Uploads directly to R2 storage
+     - Immediate URL assignment
+   - Features:
+     - Multiple image support (up to 20 images)
+     - Image preview grid with delete functionality
+     - Error handling per image
+     - Loading states during upload/delete
+     - Room type support for room profile images
+     - File validation (type, size - max 10MB)
+
+3. **useImageUpload Hook** (`src/hooks/useImageUpload.ts`)
+   - Manages image upload state and operations
+   - Handles file cloning to prevent FileSystemFileHandle issues
+   - Upload mutation with FormData creation
+   - Delete mutation for image removal
+   - Returns: `uploadImage`, `deleteImage`, `uploading`, `deleting`, error states
+
+4. **Validation Schemas** (`src/lib/validations/style.ts`)
+   - Complete Zod schemas for style operations:
+     - `createStyleSchema`: Full validation for style creation
+     - `updateStyleSchema`: Partial validation for updates
+     - `materialSetSchema`: Material defaults and alternatives
+     - `roomProfileSchema`: Room-specific materials and images
+     - `localizedStringSchema`: Hebrew/English name validation
+     - `styleMetadataSchema`: Approval status, tags, usage tracking
+   - ObjectID validation helper for MongoDB IDs
+   - Image validation via `imagesSchema` (max 20 URLs)
+
+5. **API Routes** (`src/app/api/admin/styles/[id]/route.ts`)
+   - GET: Fetch single style with relations (category, subCategory, color)
+   - PATCH: Update style with validation
+   - DELETE: Delete style with authorization checks
+   - ObjectID format validation to prevent route conflicts (e.g., "new" vs ID)
+   - Admin protection via `withAdmin` wrapper
+
+6. **Page Components:**
+   - **Create Page** (`src/app/[locale]/admin/styles/new/page.tsx`):
+     - Uses StyleForm in "create" mode
+     - Handles form submission and navigation
+     - Redirects to style detail page after creation
+   - **Edit Page** (`src/app/[locale]/admin/styles/[id]/edit/page.tsx`):
+     - Uses StyleForm in "edit" mode
+     - Loads existing style data
+     - Shows loading/error states
+     - Redirects to style detail page after update
+
+**Technical Implementation Details:**
+
+- **Form State Management:**
+  - React Hook Form with `useForm` hook
+  - Field arrays for room profiles (`useFieldArray`)
+  - Watch values for dependent fields (category → subCategory)
+  - Controller components for complex inputs (Select, MultiSelect)
+
+- **Image Upload Flow (Creation Mode):**
+  1. User selects images → Files stored locally with blob URLs
+  2. Form submits → Style created with empty images array
+  3. Style ID received → Upload pending files to R2
+  4. R2 URLs returned → Update style with image URLs
+
+- **Material Selection:**
+  - General materials: Stored in `materialSet.defaults` as objects with `materialId`
+  - Room-specific materials: Stored in `roomProfiles[].materials` as array of IDs
+  - MaterialSelector component handles both formats intelligently
+
+- **Room Profiles:**
+  - Dynamic field array allows adding/removing room profiles
+  - Each profile has: roomType, materials (array), images (array), constraints (optional)
+  - Room type uniqueness enforced in UI (prevents duplicate room types)
+  - Images scoped to room type in R2 storage path
+
+- **Error Handling:**
+  - Validation errors displayed in alert at top of form
+  - Errors grouped by field with user-friendly messages
+  - Automatic scroll to first error field
+  - Tab switching to tab containing first error
+  - API errors displayed separately from validation errors
+
+- **Internationalization:**
+  - All form labels, placeholders, and error messages translated
+  - Hebrew/English support throughout
+  - Locale-aware material/category/color display
+
+**File Structure:**
+```
+src/
+├── components/
+│   ├── features/
+│   │   └── style-engine/
+│   │       ├── StyleForm.tsx          # Main form component
+│   │       └── MaterialSelector.tsx   # Material selection component
+│   └── ui/
+│       └── ImageUpload.tsx             # Image upload component
+├── hooks/
+│   └── useImageUpload.ts               # Image upload hook
+├── lib/
+│   └── validations/
+│       ├── style.ts                    # Style validation schemas
+│       └── upload.ts                   # Upload validation schemas
+└── app/
+    ├── [locale]/admin/styles/
+    │   ├── new/page.tsx                # Create page
+    │   └── [id]/edit/page.tsx          # Edit page
+    └── api/admin/styles/[id]/route.ts  # API routes
+```
+
+**Key Features:**
+- ✅ Multi-tab form wizard (Basic, Color, Materials, Rooms)
+- ✅ Creation mode with deferred image upload
+- ✅ Edit mode with immediate image upload
+- ✅ Room profile management with dynamic fields
+- ✅ Material selection (general + room-specific)
+- ✅ Comprehensive validation with error handling
+- ✅ Image upload with drag & drop
+- ✅ RTL support and internationalization
+- ✅ Loading and error states
+- ✅ Form state persistence across tab switches
 
 #### Colors Management ✅ FULLY IMPLEMENTED (January 2025)
 - [x] **Color Model** - Complete schema with neutral/accent/semantic categories
@@ -516,16 +667,21 @@
   - GET /[id] - Get single material
   - PATCH /[id] - Update material
   - DELETE /[id] - Delete material
-- [x] **Material Categories API** (`/api/admin/material-categories`) - CRUD operations
-- [x] **Material Types API** (`/api/admin/material-types`) - CRUD operations
+- [x] **Material Categories API** (`/api/admin/material-categories`) - CRUD operations ✅ COMPLETE
+- [x] **Material Types API** (`/api/admin/material-types`) - CRUD operations ✅ COMPLETE
 - [x] **Admin Materials UI**:
-  - `/admin/materials` - Materials list page with MaterialList component
-  - `/admin/materials/new` - Create material page
-  - `/admin/materials/[id]` - Material detail page
-  - `/admin/materials/settings` - Material settings page
-- [x] **React Query Hooks** - `useMaterials.ts` with full CRUD operations
-- [x] **Material Validation Schemas** - Complete Zod schemas
-- [x] **Translations** - Hebrew + English for materials management
+  - `/admin/materials` - Materials list page with MaterialList component ✅ COMPLETE
+  - `/admin/materials/new` - Create material page ✅ COMPLETE
+  - `/admin/materials/[id]` - Material detail page ✅ COMPLETE
+  - `/admin/materials/settings` - Material settings page with tabs ✅ COMPLETE
+    - MaterialCategoriesTab - Full CRUD for material categories ✅ COMPLETE
+    - MaterialTypesTab - Full CRUD for material types ✅ COMPLETE
+- [x] **Material Form Components**:
+  - MaterialCategoryFormDrawer - Create/edit material categories ✅ COMPLETE
+  - MaterialTypeFormDrawer - Create/edit material types ✅ COMPLETE
+- [x] **React Query Hooks** - `useMaterials.ts` and `useMaterialCategories.ts` with full CRUD operations ✅ COMPLETE
+- [x] **Material Validation Schemas** - Complete Zod schemas ✅ COMPLETE
+- [x] **Translations** - Hebrew + English for materials management ✅ COMPLETE
 
 #### Users Management ✅ FULLY IMPLEMENTED (January 2025)
 - [x] **Admin Users API** (`/api/admin/users`):
@@ -672,10 +828,12 @@
 
 ## 🚦 Current Status
 
-**Phase:** 2 (Style Engine Core) - 60% Complete
-**Status:** ✅ Admin Area COMPLETE ✅ Style APIs COMPLETE ✅ Colors Management COMPLETE ✅ Categories/SubCategories COMPLETE ✅ Admin UI Mostly Complete
+**Phase:** 2 (Style Engine Core) - 65% Complete
+**Status:** ✅ Admin Area COMPLETE ✅ Style APIs COMPLETE ✅ Colors Management COMPLETE ✅ Categories/SubCategories COMPLETE ✅ Materials Management COMPLETE ✅ Style Forms COMPLETE ✅ Admin UI Complete
 **Latest Completion:** 
-- Materials management system (admin API + UI + MaterialList component) (January 2025)
+- Materials management system (admin API + UI + MaterialList component + Categories/Types tabs) (January 29, 2025)
+- Material Categories and Types management (full CRUD with form drawers) (January 2025)
+- Style create/edit pages (fully implemented multi-tab forms) (January 2025)
 - Users management system (admin API + UI) (January 2025)
 - Colors management system (admin API + UI) (January 2025)
 - Categories & SubCategories management (2-layer hierarchy) (January 2025)

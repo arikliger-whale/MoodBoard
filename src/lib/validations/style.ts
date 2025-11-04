@@ -13,7 +13,7 @@ const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ObjectID f
 // Material Default Schema (General materials - apply to all rooms)
 export const materialDefaultSchema = z.object({
   materialId: objectIdSchema,
-  usageArea: z.string().min(1, 'Usage area is required'),
+  usageArea: z.string().optional(), // Optional for general materials since they apply to all rooms
   defaultFinish: z.string().optional(),
   supplierId: z.union([
     objectIdSchema,
@@ -50,7 +50,7 @@ export const roomProfileSchema = z.object({
   }),
   materials: z.array(objectIdSchema).optional().default([]),
   images: imagesSchema.optional(),
-  constraints: roomConstraintSchema.optional(),
+  constraints: roomConstraintSchema.nullable().optional(),
 })
 
 // Localized String Schema
@@ -63,13 +63,13 @@ export const localizedStringSchema = z.object({
 export const styleMetadataSchema = z.object({
   version: z.string().default('1.0.0'),
   isPublic: z.boolean().default(false),
-  approvalStatus: z.enum(['pending', 'approved', 'rejected']).optional(),
-  approvedBy: z.string().optional(),
-  approvedAt: z.date().optional(),
-  rejectionReason: z.string().optional(),
+  approvalStatus: z.enum(['pending', 'approved', 'rejected']).nullable().optional(),
+  approvedBy: z.string().nullable().optional(),
+  approvedAt: z.date().nullable().optional(),
+  rejectionReason: z.string().nullable().optional(),
   tags: z.array(z.string()).default([]),
   usage: z.number().int().default(0),
-  rating: z.number().min(0).max(5).optional(),
+  rating: z.number().min(0).max(5).nullable().optional(),
 })
 
 // Create Style Schema

@@ -6,9 +6,15 @@ const withNextIntl = createNextIntlPlugin()
 const nextConfig = {
   reactStrictMode: true,
   
+  // Performance optimizations
+  swcMinify: true,
+  compress: true,
+  
   // Experimental features
   experimental: {
-    optimizePackageImports: ['@mantine/core', '@mantine/hooks'],
+    optimizePackageImports: ['@mantine/core', '@mantine/hooks', '@tabler/icons-react'],
+    reactCompiler: false, // Disable for faster builds on Vercel
+    optimizeCss: true,
   },
   
   // Images

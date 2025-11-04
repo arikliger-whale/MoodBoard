@@ -26,7 +26,10 @@
     "room": "חדר",
     "rooms": "חדרים",
     "selectIcon": "בחר אייקון",
-    "searchIcons": "חפש אייקונים..."
+    "searchIcons": "חפש אייקונים...",
+    "inStock": "במלאי",
+    "outOfStock": "אזל מהמלאי",
+    "name": "שם"
   },
   "navigation": {
     "dashboard": "דשבורד",
@@ -132,15 +135,23 @@
         },
         "palette": {
           "neutrals": "צבעים נייטרליים",
-          "accents": "צבעי דגש"
+          "accents": "צבעי דגש",
+          "noPalette": "אין פלטת צבעים מוגדרת",
+          "noAccents": "אין צבעי דגש מוגדרים"
         },
         "materials": {
           "defaults": "חומרים ברירת מחדל",
+          "alternatives": "חומרים חלופיים",
           "noDefaults": "אין חומרים מוגדרים",
           "finish": "גימור"
         },
         "rooms": {
-          "noProfiles": "אין פרופילי חדרים מוגדרים"
+          "noProfiles": "אין פרופילי חדרים מוגדרים",
+          "materials": "חומרים",
+          "constraints": "אילוצים",
+          "waterResistance": "עמידות למים",
+          "durability": "עמידות",
+          "maintenance": "תחזוקה"
         },
         "images": "תמונות"
       },
@@ -170,9 +181,15 @@
         "generalMaterialsDescription": "חומרים החלים על כל החדרים",
         "noGeneralMaterials": "אין חומרים כלליים",
         "addDefaultMaterial": "הוסף חומר כללי",
+        "selectMaterials": "בחר חומרים",
+        "selectedMaterials": "חומרים נבחרים",
         "materialId": "מזהה חומר",
         "usageArea": "אזור שימוש",
         "finish": "גימור",
+        "type": "סוג",
+        "category": "קטגוריה",
+        "pricing": "מחיר",
+        "availability": "זמינות",
         "rooms": "חדרים",
         "roomProfiles": "פרופילי חדרים",
         "roomProfilesDescription": "הוסף חדרים ספציפיים עם חומרים מותאמים",
