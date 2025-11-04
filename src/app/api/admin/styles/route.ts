@@ -4,8 +4,9 @@
  * POST /api/admin/styles - Create global style (admin only)
  */
 
-import { handleError, validateRequest, withAdmin } from '@/lib/api/admin-middleware'
+import { handleError, withAdmin } from '@/lib/api/admin-middleware'
 import { prisma } from '@/lib/db'
+import { ValidationError } from '@/lib/errors'
 import { createStyleSchema, styleFiltersSchema } from '@/lib/validations/style'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -105,14 +106,36 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
     // Validate request body
     let body
     try {
-      body = await validateRequest(req, createStyleSchema)
+      // Read raw body first
+      const rawBody = await req.json()
+      console.log('[CREATE STYLE] Raw request body received:', JSON.stringify(rawBody, null, 2))
+      
+      // Validate using Zod directly
+      const parseResult = createStyleSchema.safeParse(rawBody)
+      
+      if (!parseResult.success) {
+        console.error('[CREATE STYLE] ========== VALIDATION ERROR ==========')
+        console.error('[CREATE STYLE] Zod validation failed')
+        console.error('[CREATE STYLE] Zod errors:', JSON.stringify(parseResult.error.errors, null, 2))
+        console.error('[CREATE STYLE] =====================================')
+        throw new ValidationError('Invalid request data', parseResult.error.errors)
+      }
+      
+      body = parseResult.data
       console.log('[CREATE STYLE] Validation passed')
     } catch (validationError) {
+      console.error('[CREATE STYLE] ========== VALIDATION ERROR ==========')
       console.error('[CREATE STYLE] Validation failed:', validationError)
       if (validationError instanceof Error) {
         console.error('[CREATE STYLE] Validation error message:', validationError.message)
         console.error('[CREATE STYLE] Validation error stack:', validationError.stack)
+        console.error('[CREATE STYLE] Validation error name:', validationError.name)
       }
+      // Check if it's a ValidationError with details
+      if (validationError && typeof validationError === 'object' && 'details' in validationError) {
+        console.error('[CREATE STYLE] Validation error details:', JSON.stringify((validationError as any).details, null, 2))
+      }
+      console.error('[CREATE STYLE] =====================================')
       throw validationError
     }
     
@@ -274,8 +297,11 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
       roomProfilesCount: filteredRoomProfiles.length,
     }, null, 2))
     
-    const style = await prisma.style.create({
-      data: styleData,
+    let style
+    try {
+      console.log('[CREATE STYLE] Calling prisma.style.create...')
+      style = await prisma.style.create({
+        data: styleData,
       include: {
         category: {
           select: {
@@ -302,6 +328,21 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
         },
       },
     })
+      console.log('[CREATE STYLE] Prisma create succeeded')
+    } catch (prismaError) {
+      console.error('[CREATE STYLE] ========== PRISMA ERROR ==========')
+      console.error('[CREATE STYLE] Prisma error:', prismaError)
+      if (prismaError instanceof Error) {
+        console.error('[CREATE STYLE] Prisma error message:', prismaError.message)
+        console.error('[CREATE STYLE] Prisma error stack:', prismaError.stack)
+      }
+      if (prismaError && typeof prismaError === 'object' && 'code' in prismaError) {
+        console.error('[CREATE STYLE] Prisma error code:', (prismaError as any).code)
+        console.error('[CREATE STYLE] Prisma error meta:', JSON.stringify((prismaError as any).meta, null, 2))
+      }
+      console.error('[CREATE STYLE] ===================================')
+      throw prismaError
+    }
 
     console.log('[CREATE STYLE] Style created successfully:', style.id)
     return NextResponse.json(style, { status: 201 })

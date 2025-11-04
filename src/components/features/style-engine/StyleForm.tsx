@@ -431,24 +431,26 @@ export function StyleForm({
           : undefined,
       }
 
-      // Ensure proper defaults and filter out blob URLs before submission
-      // In create mode, they'll be uploaded to R2 after style creation
-      // In edit mode, they should have been uploaded immediately, but filter just in case
+      // Ensure proper defaults and handle blob URLs based on mode
+      // In create mode, keep blob URLs - they'll be uploaded to R2 after style creation
+      // In edit mode, filter out blob URLs as they should have been uploaded immediately
       cleanedData = {
         ...cleanedData,
         // Ensure images is an array
-        images: (cleanedData.images || []).filter((url) => {
-          // Filter out blob URLs and invalid URLs
-          if (typeof url !== 'string') return false
-          if (url.startsWith('blob:')) return false
-          // Only keep valid HTTP/HTTPS URLs
-          try {
-            new URL(url)
-            return url.startsWith('http://') || url.startsWith('https://')
-          } catch {
-            return false
-          }
-        }),
+        images: mode === 'create' 
+          ? (cleanedData.images || []) // Keep all URLs including blobs for create
+          : (cleanedData.images || []).filter((url) => {
+              // For edit mode, filter out blob URLs
+              if (typeof url !== 'string') return false
+              if (url.startsWith('blob:')) return false
+              // Only keep valid HTTP/HTTPS URLs
+              try {
+                new URL(url)
+                return url.startsWith('http://') || url.startsWith('https://')
+              } catch {
+                return false
+              }
+            }),
         // Ensure materialSet has proper structure with valid ObjectIDs
         materialSet: {
           defaults: Array.isArray(cleanedData.materialSet?.defaults) 

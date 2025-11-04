@@ -6,9 +6,9 @@ import { locales } from '@/i18n/request'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { QueryProvider } from '@/lib/providers/QueryProvider'
 
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }))
-}
+// Force dynamic rendering for faster builds (auth-required pages don't benefit from static generation)
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
 
 export default async function LocaleLayout({
   children,

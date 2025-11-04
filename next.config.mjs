@@ -7,14 +7,16 @@ const nextConfig = {
   reactStrictMode: true,
   
   // Performance optimizations
-  swcMinify: true,
   compress: true,
+  
+  // Disable React Compiler for faster builds
+  reactCompiler: false,
   
   // Experimental features
   experimental: {
     optimizePackageImports: ['@mantine/core', '@mantine/hooks', '@tabler/icons-react'],
-    reactCompiler: false, // Disable for faster builds on Vercel
     optimizeCss: true,
+    turbo: false, // Disable Turbopack for production builds - use webpack for stability
   },
   
   // Images
@@ -75,6 +77,18 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_DEFAULT_LOCALE: process.env.NEXT_PUBLIC_DEFAULT_LOCALE || 'he',
+  },
+  
+  // Output optimization  
+  // Note: standalone mode commented out as it may cause issues with Vercel's native integration
+  // output: 'standalone',
+  
+  // Reduce bundle analysis overhead
+  productionBrowserSourceMaps: false,
+  
+  // Optimize page generation
+  generateBuildId: async () => {
+    return process.env.VERCEL_GIT_COMMIT_SHA || 'development'
   },
 }
 
