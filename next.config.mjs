@@ -3,19 +3,41 @@ import createNextIntlPlugin from 'next-intl/plugin'
 const withNextIntl = createNextIntlPlugin()
 
 /** @type {import('next').NextConfig} */
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_BUILD === '1'
+
 const nextConfig = {
   reactStrictMode: true,
   
   // Performance optimizations
   compress: true,
   
-  // Disable React Compiler for faster builds
+  // Important: keep React Compiler off (intentionally disabled for build speed)
   reactCompiler: false,
   
-  // Experimental features
   experimental: {
-    optimizePackageImports: ['@mantine/core', '@mantine/hooks', '@tabler/icons-react'],
+    // Speeds CSS handling; works well with Tailwind v4 + Mantine
     optimizeCss: true,
+    // Tree-shake big UI libs. Add only what you use.
+    optimizePackageImports: [
+      '@mantine/core',
+      '@mantine/hooks',
+      '@mantine/notifications',
+      '@mantine/modals',
+      '@mantine/form',
+      '@mantine/dropzone',
+      '@mantine/dates',
+      '@mantine/charts',
+      '@tabler/icons-react',
+      'zod',
+    ],
+  },
+  
+  // Disables uploading sourcemaps in prod builds
+  productionBrowserSourceMaps: false,
+  
+  // Greatly speeds builds on Vercel; run tsc in CI instead
+  typescript: {
+    ignoreBuildErrors: isVercel ? true : false,
   },
   
   // Images
@@ -33,11 +55,21 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
   
+  // Stable build id for multi-region deploys on Vercel
+  generateBuildId: async () => {
+    return process.env.VERCEL_GIT_COMMIT_SHA || String(Date.now())
+  },
+  
+  // Transpile packages only if needed (next-intl is ESM-ready)
+  transpilePackages: [
+    'next-intl',
+  ],
+  
   // Headers for security
   async headers() {
     return [
       {
-        source: '/:path*',
+        source: '/(.*)',
         headers: [
           {
             key: 'X-DNS-Prefetch-Control',
@@ -77,25 +109,6 @@ const nextConfig = {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_DEFAULT_LOCALE: process.env.NEXT_PUBLIC_DEFAULT_LOCALE || 'he',
   },
-  
-  // Output optimization  
-  // Note: standalone mode commented out as it may cause issues with Vercel's native integration
-  // output: 'standalone',
-  
-  // Reduce bundle analysis overhead
-  productionBrowserSourceMaps: false,
-  
-  // Optimize page generation
-  generateBuildId: async () => {
-    return process.env.VERCEL_GIT_COMMIT_SHA || 'development'
-  },
-  
-  // TypeScript optimization
-  typescript: {
-    // Don't run type checking during build (Vercel runs it separately)
-    ignoreBuildErrors: false,
-  },
-  
 }
 
 export default withNextIntl(nextConfig)

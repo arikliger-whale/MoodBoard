@@ -1,17 +1,29 @@
 {
-  "buildCommand": "pnpm build",
-  "devCommand": "pnpm dev",
-  "installCommand": "pnpm install",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
   "framework": "nextjs",
-  "regions": ["iad1"],
+  "buildCommand": "pnpm run vercel-build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "outputDirectory": ".next",
+  "regions": ["fra1", "cdg1"],
   "functions": {
-    "src/app/api/**/*.ts": {
-      "maxDuration": 30
+    "api/**": {
+      "runtime": "nodejs20.x",
+      "memory": 1536,
+      "maxDuration": 60
     }
+  },
+  "env": {
+    "NODE_ENV": "production",
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
+    "CI": "true",
+    "PRISMA_GENERATE_SKIP_AUTOINSTALL": "1"
   },
   "build": {
     "env": {
-      "NEXT_TELEMETRY_DISABLED": "1",
+      "VERCEL_BUILD": "1",
+      "NEXT_DISABLE_SOURCEMAPS": "1",
       "NODE_OPTIONS": "--max-old-space-size=6144"
     }
   },

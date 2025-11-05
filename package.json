@@ -2,12 +2,19 @@
   "name": "moodb",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
+    "postinstall": "pnpm run prisma:generate",
+    "prisma:generate": "prisma generate",
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "pnpm run prisma:generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "db:generate": "dotenv -e .env.local -- prisma generate",
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:studio": "dotenv -e .env.local -- prisma studio",
@@ -15,7 +22,7 @@
     "db:seed": "dotenv -e .env.local -- tsx prisma/seeds/seed-categories-enriched.ts",
     "db:seed:materials": "dotenv -e .env.local -- tsx prisma/seeds/seed-material-categories.ts",
     "admin:set": "dotenv -e .env.local -- node scripts/set-admin.js",
-    "test": "vitest",
+    "test": "vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
