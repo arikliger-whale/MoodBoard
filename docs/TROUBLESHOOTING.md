@@ -363,6 +363,348 @@ When documenting a new issue:
 
 ---
 
+## Case Study: next-intl "Couldn't find config file" on Vercel
+
+**Date**: November 2025
+**Severity**: Critical - Application completely broken on Vercel
+**Root Cause**: Conflicting Turbopack configuration preventing next-intl from resolving config in serverless environment
+
+### Problem Statement
+
+After deploying to Vercel, the application returned 500 errors with:
+```
+Error: Couldn't find next-intl config file.
+Please follow the instructions at https://next-intl.dev/docs/getting-started/app-router
+
+Error digest: 3601421155
+```
+
+**What Was Confusing**:
+- ✅ Local build: SUCCESS (`npm run build`)
+- ✅ Local dev: SUCCESS (`npm run dev`)
+- ❌ Vercel runtime: FAILED (500 error on all pages)
+- The build completed successfully, but runtime crashed
+
+### Initial Investigation
+
+#### Step 1: Verify Config File Location
+```bash
+# Check if config exists
+ls -la i18n.ts
+ls -la src/i18n/request.ts
+```
+
+**Finding**: Config file was at root (`i18n.ts`), but should be at `src/i18n/request.ts`
+
+**Action**: Tried specifying path in plugin:
+```javascript
+const withNextIntl = createNextIntlPlugin('./i18n.ts')
+```
+
+**Result**: ❌ Still failed - Vercel couldn't find the config at runtime
+
+#### Step 2: Move to Standard Location
+According to next-intl docs, the standard location for projects with `src` directory is `./src/i18n/request.ts`
+
+**Action**:
+1. Moved `i18n.ts` → `src/i18n/request.ts`
+2. Updated message imports: `./messages/${locale}.json` → `../../messages/${locale}.json`
+3. Updated middleware import: `./i18n` → `./src/i18n/request`
+
+**Result**: ❌ Still failed with same error!
+
+#### Step 3: Research the Error
+Searched GitHub issues and Stack Overflow for "next-intl Couldn't find config Vercel"
+
+**Key Findings**:
+- This is a known compatibility issue with Next.js 14/15 and Turbopack
+- next-intl requires a Turbopack config object to inject module aliases
+- Without it, serverless bundling fails to locate the config file
+
+**Critical Discovery**: Our `next.config.mjs` was **explicitly disabling Turbopack**:
+```javascript
+process.env.TURBOPACK = '0'
+process.env.NEXT_PRIVATE_SKIP_TURBOPACK = '1'
+```
+
+### Deep Dive: Understanding the Root Cause
+
+#### Why Build Succeeds But Runtime Fails
+
+1. **Build Time**: Webpack successfully bundles everything using file system access
+2. **Runtime**: Serverless functions need module aliases baked into the bundle
+3. **The Problem**: next-intl plugin needs Turbopack config space to inject these aliases
+4. **The Conflict**: We were disabling Turbopack while trying to use it
+
+#### The Turbopack Configuration Requirement
+
+next-intl uses the Next.js bundler plugin system to inject module aliases:
+```javascript
+// What next-intl needs to inject:
+{
+  resolve: {
+    alias: {
+      '@/i18n': '/path/to/src/i18n/request'
+    }
+  }
+}
+```
+
+For this to work in Next.js 14.2, you need:
+```javascript
+experimental: {
+  turbo: {},  // Empty object is fine - just needs to exist
+}
+```
+
+Without this object, next-intl has nowhere to inject its configuration!
+
+### Solution Attempts
+
+#### Attempt 1: Explicitly Specify Config Path (Failed)
+```javascript
+const withNextIntl = createNextIntlPlugin('./i18n.ts')
+```
+
+**Result**: ❌ Build succeeded, runtime failed
+**Why**: Path was correct but Turbopack config was missing
+
+#### Attempt 2: Move to Standard Location (Failed)
+Moved config to `src/i18n/request.ts` and used default plugin:
+```javascript
+const withNextIntl = createNextIntlPlugin()
+```
+
+**Result**: ❌ Build succeeded, runtime failed
+**Why**: Still no Turbopack config space for next-intl
+
+#### Attempt 3: Add turbopack Config (Failed)
+Added top-level turbopack config:
+```javascript
+const nextConfig = {
+  turbopack: {},  // For Next.js 15+
+}
+```
+
+**Result**: ❌ Still failed
+**Why**: Next.js 14.2 doesn't recognize `turbopack` key, needs `experimental.turbo`
+
+#### Attempt 4: Add experimental.turbo (Partial Success)
+Changed to experimental config for Next.js 14.2:
+```javascript
+const nextConfig = {
+  experimental: {
+    turbo: {},
+  },
+}
+```
+
+**Result**: ❌ Still failed!
+**Why**: The env vars were **still disabling Turbopack**, overriding the config
+
+#### Attempt 5: Remove Conflicting Env Vars (SUCCESS! ✅)
+Removed the Turbopack disable lines:
+```javascript
+// ❌ Deleted these lines:
+process.env.TURBOPACK = '0'
+process.env.NEXT_PRIVATE_SKIP_TURBOPACK = '1'
+
+// ✅ Kept this:
+const nextConfig = {
+  experimental: {
+    turbo: {},
+  },
+}
+```
+
+**Result**:
+- ✅ Build: SUCCESS
+- ✅ Runtime: SUCCESS
+- ✅ HTTP 307 redirects (correct behavior!)
+- ✅ Pages render with proper i18n
+
+### Final Solution
+
+**Complete Configuration**:
+
+1. **Config File** (`src/i18n/request.ts`):
+```typescript
+import { getRequestConfig } from 'next-intl/server'
+import { notFound } from 'next/navigation'
+
+export const locales = ['he', 'en'] as const
+export const defaultLocale = 'he' as const
+export type Locale = (typeof locales)[number]
+
+export default getRequestConfig(async ({ requestLocale }) => {
+  const locale = (await requestLocale) || defaultLocale
+  if (!locales.includes(locale as Locale)) notFound()
+
+  return {
+    locale,
+    messages: (await import(`../../messages/${locale}.json`)).default,
+    timeZone: 'Asia/Jerusalem',
+  }
+})
+```
+
+2. **Next Config** (`next.config.mjs`):
+```javascript
+import createNextIntlPlugin from 'next-intl/plugin'
+
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
+
+const nextConfig = {
+  // Required for next-intl in Next.js 14.2
+  experimental: {
+    turbo: {},
+  },
+  // ... rest of config
+}
+
+export default withNextIntl(nextConfig)
+```
+
+3. **Middleware** (`middleware.ts`):
+```typescript
+import { locales, defaultLocale } from './src/i18n/request'
+```
+
+**Files Changed**:
+- `src/i18n/request.ts` - Created (moved from root)
+- `next.config.mjs` - Added `experimental.turbo`, removed disable env vars
+- `middleware.ts` - Updated import path
+- `i18n.ts` - Deleted (consolidated)
+
+### Why This Problem Was Tricky
+
+1. **Red Herring**: Error said "config file not found" but file existed and path was correct
+2. **Build vs Runtime**: Build succeeded, masking the real problem
+3. **Version-Specific**: Next.js 14.2 uses `experimental.turbo`, 15+ uses `turbopack`
+4. **Conflicting Settings**: Env vars overrode config, but both looked "correct" in isolation
+5. **Plugin Black Box**: Hard to understand what next-intl plugin actually does
+6. **Multiple Layers**: Issue spanned Next.js config, bundler, plugin system, AND serverless runtime
+
+### Lessons Learned
+
+#### 1. Don't Fight the Framework
+- Use standard file locations: `./src/i18n/request.ts` for projects with `src` directory
+- Follow documented patterns even if they seem unnecessary
+- Standard locations have better tooling support
+
+#### 2. Understand Plugin Requirements
+next-intl isn't just importing a file—it's injecting bundler configuration:
+```
+Plugin needs → Config space → Injects aliases → Serverless can resolve modules
+```
+
+Without the config space, the chain breaks.
+
+#### 3. Check for Configuration Conflicts
+```bash
+# Look for conflicting settings
+grep -r "TURBOPACK" .
+grep -r "turbo" next.config.mjs
+grep -r "experimental" next.config.mjs
+```
+
+Two settings trying to control the same thing = conflict.
+
+#### 4. Version Matters A LOT
+
+| Next.js Version | Config Key |
+|----------------|------------|
+| 14.2 | `experimental: { turbo: {} }` |
+| 15+ | `turbopack: {}` |
+
+Wrong key = config ignored.
+
+#### 5. Build Success ≠ Runtime Success
+Especially in serverless:
+- Build uses file system directly
+- Runtime needs everything pre-bundled
+- Module resolution must be static
+
+Always test deploys, don't trust local builds alone.
+
+### Debugging Checklist for Similar Issues
+
+When facing "module not found" or "config not found" in serverless:
+
+- [ ] **Verify File Location**: Is file at documented standard location?
+- [ ] **Check Plugin Config**: Does plugin have correct path?
+- [ ] **Look for Conflicts**: Any env vars or other config fighting your settings?
+- [ ] **Verify Version Compat**: Is config correct for your framework version?
+- [ ] **Test Build Output**: Check `.next/` for what actually got bundled
+- [ ] **Check Runtime Logs**: Look for module resolution errors
+- [ ] **Compare Environments**: Does it work locally but fail on deploy?
+- [ ] **Research Known Issues**: Check GitHub issues for your error
+- [ ] **Simplify Config**: Remove everything except essentials, add back piece by piece
+- [ ] **Clean Deploy**: Clear caches, force rebuild
+
+### Quick Reference: next-intl + Vercel Setup
+
+**Correct Configuration for Next.js 14.2**:
+
+```javascript
+// next.config.mjs
+import createNextIntlPlugin from 'next-intl/plugin'
+
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
+
+export default withNextIntl({
+  experimental: { turbo: {} },
+  // your config
+})
+```
+
+**File Structure**:
+```
+src/
+├── i18n/
+│   └── request.ts      ← Config here
+├── app/
+│   └── [locale]/       ← Routes here
+└── middleware.ts       ← Imports from ./src/i18n/request
+
+messages/
+├── he.json
+└── en.json
+```
+
+**DON'T**:
+- ❌ Put config at root (`./i18n.ts`)
+- ❌ Disable Turbopack with env vars
+- ❌ Use wrong config key for your Next.js version
+- ❌ Assume build success means it will work
+
+**DO**:
+- ✅ Use standard location (`./src/i18n/request.ts`)
+- ✅ Add proper experimental/turbopack config
+- ✅ Test actual deployment, not just build
+- ✅ Check logs on deployment platform
+
+### Additional Resources
+
+- **Full Documentation**: `docs/I18N_VERCEL_DEPLOYMENT.md`
+- **Quick Reference**: `Memory/I18N_VERCEL_FIX.md`
+- **next-intl Docs**: https://next-intl.dev/docs/getting-started/app-router
+- **Related Issues**:
+  - https://github.com/amannn/next-intl/issues/639
+  - https://stackoverflow.com/questions/79631566/
+
+### Prevention
+
+To avoid this issue in future projects:
+
+1. **Use Standard Locations**: Follow documented file structure from the start
+2. **Don't Disable Bundlers**: Unless you know why and what it affects
+3. **Test Deployments Early**: Don't wait until "done" to test on deployment platform
+4. **Read Plugin Docs**: Understand what plugins actually do, not just how to use them
+5. **Document Dependencies**: Note which settings depend on which others
+
+---
+
 ## General Troubleshooting Principles
 
 ### The 3-Iteration Rule
