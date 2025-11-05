@@ -1,0 +1,17 @@
+
+> moodb@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.18
+  - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+ ⨯ ESLint: Error while loading rule '@typescript-eslint/no-misused-promises': You have used a rule which requires type information, but don't have parserOptions set to generate type information for this file. See https://typescript-eslint.io/getting-started/typed-linting for enabling linting with type information. Parser: /Users/arikliger/Documents/MoodB/node_modules/@typescript-eslint/parser/dist/index.js Occurred while linting /Users/arikliger/Documents/MoodB/src/app/[locale]/(auth)/error/page.tsx
+Failed to compile.
+
+src/app/api/auth/[...nextauth]/route.ts
+Type error: Route "src/app/api/auth/[...nextauth]/route.ts" does not match the required types of a Next.js Route.
+  "handlers" is not a valid Route export field.
+

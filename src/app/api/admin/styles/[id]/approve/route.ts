@@ -8,6 +8,10 @@ import { prisma } from '@/lib/db'
 import { withAdmin, handleError, validateRequest } from '@/lib/api/admin-middleware'
 import { approveStyleSchema } from '@/lib/validations/style'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * POST /api/admin/styles/[id]/approve - Approve or reject public style
  */

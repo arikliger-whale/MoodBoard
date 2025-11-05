@@ -6,6 +6,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAdmin } from '@/lib/api/admin-middleware'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/admin/styles/new - Get template for new style
  */

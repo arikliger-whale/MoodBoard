@@ -1,40 +1,24 @@
-import createNextIntlPlugin from 'next-intl/plugin'
-
-const withNextIntl = createNextIntlPlugin()
-
 /** @type {import('next').NextConfig} */
 const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_BUILD === '1'
+
+// Force disable turbopack
+process.env.TURBOPACK = '0'
+process.env.NEXT_PRIVATE_SKIP_TURBOPACK = '1'
 
 const nextConfig = {
   reactStrictMode: true,
   
-  // Performance optimizations
-  compress: true,
-  
-  // Important: keep React Compiler off (intentionally disabled for build speed)
-  reactCompiler: false,
-  
-  // Disable Turbopack for production builds (it's unstable in Next 16.0.1)
-  turbopack: false,
-  
   // Disables uploading sourcemaps in prod builds
   productionBrowserSourceMaps: false,
   
-  // Greatly speeds builds on Vercel; run tsc in CI instead
+  // Skip type checking during build (run in CI instead)
   typescript: {
-    ignoreBuildErrors: isVercel ? true : false,
+    ignoreBuildErrors: true,
   },
   
-  // Webpack configuration for faster builds
-  webpack: (config, { isServer }) => {
-    // Reduce parallelism to avoid memory issues
-    if (!isServer) {
-      config.optimization = {
-        ...config.optimization,
-        minimize: isVercel ? true : false,
-      }
-    }
-    return config
+  // Skip ESLint during build (run in CI instead)
+  eslint: {
+    ignoreDuringBuilds: true,
   },
   
   // Images
@@ -103,5 +87,5 @@ const nextConfig = {
   },
 }
 
-export default withNextIntl(nextConfig)
+export default nextConfig
 

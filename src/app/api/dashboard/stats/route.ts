@@ -7,6 +7,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { withAuth, handleError, requirePermission } from '@/lib/api/middleware'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/dashboard/stats - Get dashboard statistics
  */

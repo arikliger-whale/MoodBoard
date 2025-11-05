@@ -9,6 +9,10 @@ import { prisma } from '@/lib/db'
 import { createMaterialSchema, materialFiltersSchema } from '@/lib/validations/material'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/admin/materials - List all materials (organization-scoped)
  */

@@ -1,0 +1,17 @@
+
+> moodb@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.18
+  - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Skipping linting
+   Checking validity of types ...
+Failed to compile.
+
+src/app/api/auth/[...nextauth]/route.ts
+Type error: Route "src/app/api/auth/[...nextauth]/route.ts" does not match the required types of a Next.js Route.
+  Invalid configuration "GET":
+

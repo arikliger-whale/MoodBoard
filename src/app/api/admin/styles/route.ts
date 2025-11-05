@@ -10,6 +10,10 @@ import { ValidationError } from '@/lib/errors'
 import { createStyleSchema, styleFiltersSchema } from '@/lib/validations/style'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/admin/styles - List all global styles (organizationId = null)
  */

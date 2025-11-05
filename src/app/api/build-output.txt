@@ -1,0 +1,7 @@
+
+> Build error occurred
+Error: > Couldn't find any `pages` or `app` directory. Please create one under the project root
+    at findPagesDir (/Users/arikliger/Documents/MoodB/node_modules/next/dist/lib/find-pages-dir.js:42:15)
+    at /Users/arikliger/Documents/MoodB/node_modules/next/dist/build/index.js:402:73
+    at async Span.traceAsyncFn (/Users/arikliger/Documents/MoodB/node_modules/next/dist/trace/trace.js:154:20)
+    at async build (/Users/arikliger/Documents/MoodB/node_modules/next/dist/build/index.js:364:9)

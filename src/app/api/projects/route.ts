@@ -9,6 +9,10 @@ import { prisma } from '@/lib/db'
 import { withAuth, handleError, requirePermission, validateRequest } from '@/lib/api/middleware'
 import { createProjectSchema, projectFiltersSchema } from '@/lib/validations/project'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * POST /api/projects - Create new project
  */

@@ -1,10 +1,14 @@
 import NextAuth from "next-auth"
 import { authOptions } from "@/lib/auth/auth-config"
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 // Ensure Node runtime for Prisma compatibility
 export const runtime = 'nodejs'
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authOptions)
+const handler = NextAuth(authOptions)
 
-export const { GET, POST } = handlers
+export { handler as GET, handler as POST }
 

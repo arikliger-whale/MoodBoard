@@ -9,6 +9,10 @@ import { prisma } from '@/lib/db'
 import { withAdmin, handleError } from '@/lib/api/admin-middleware'
 import { createOrganizationSchema } from '@/lib/validations/organization'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/admin/organizations - List all organizations
  */

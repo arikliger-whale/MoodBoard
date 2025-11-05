@@ -10,6 +10,10 @@ import { prisma } from '@/lib/db'
 import { withAuth, handleError, validateRequest, requirePermission, verifyOrganizationAccess } from '@/lib/api/middleware'
 import { updateStyleSchema } from '@/lib/validations/style'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/styles/[id] - Get style details
  */

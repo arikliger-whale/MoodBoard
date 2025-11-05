@@ -9,6 +9,10 @@ import { prisma } from '@/lib/db'
 import { withAuth, handleError, requirePermission, validateRequest } from '@/lib/api/middleware'
 import { createClientSchema, clientFiltersSchema } from '@/lib/validations/client'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * POST /api/clients - Create new client
  */

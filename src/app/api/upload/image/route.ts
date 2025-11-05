@@ -10,6 +10,10 @@ import { deleteImageFromR2, uploadImageToR2, type EntityType } from '@/lib/stora
 import { imageDeleteSchema, imageUploadSchema, validateImageFile } from '@/lib/validations/upload'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * POST /api/upload/image - Upload image to R2
  */

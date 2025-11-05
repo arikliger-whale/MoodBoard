@@ -1,0 +1,21 @@
+
+> moodb@0.1.0 build /Users/arikliger/Documents/MoodB
+> next build
+
+  ▲ Next.js 14.2.18
+  - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+Failed to compile.
+
+src/app/layout.tsx
+`next/font` error:
+Unknown font `Geist`
+
+src/app/layout.tsx
+`next/font` error:
+Unknown font `Geist Mono`
+
+
+> Build failed because of webpack errors
+ ELIFECYCLE  Command failed with exit code 1.

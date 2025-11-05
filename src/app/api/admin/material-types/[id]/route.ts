@@ -9,6 +9,10 @@ import { prisma } from '@/lib/db'
 import { updateMaterialTypeSchema } from '@/lib/validations/material-category'
 import { handleError, validateRequest } from '@/lib/api/middleware'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * Helper function to validate ObjectID format
  */

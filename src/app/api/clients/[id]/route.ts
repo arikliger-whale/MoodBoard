@@ -10,6 +10,10 @@ import { prisma } from '@/lib/db'
 import { withAuth, handleError, requirePermission, validateRequest, verifyOrganizationAccess } from '@/lib/api/middleware'
 import { updateClientSchema } from '@/lib/validations/client'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/clients/[id] - Get single client
  */

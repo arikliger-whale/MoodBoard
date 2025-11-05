@@ -10,6 +10,10 @@ import { prisma } from '@/lib/db'
 import { updateMaterialSchema } from '@/lib/validations/material'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * Helper function to validate ObjectID format
  */

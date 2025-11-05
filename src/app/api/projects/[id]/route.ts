@@ -10,6 +10,10 @@ import { prisma } from '@/lib/db'
 import { withAuth, handleError, requirePermission, validateRequest, verifyOrganizationAccess } from '@/lib/api/middleware'
 import { updateProjectSchema } from '@/lib/validations/project'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/projects/[id] - Get single project
  */

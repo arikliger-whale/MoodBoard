@@ -10,6 +10,10 @@ import { prisma } from '@/lib/db'
 import { withAdmin, handleError } from '@/lib/api/admin-middleware'
 import { updateOrganizationSchema } from '@/lib/validations/organization'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * Helper function to validate ObjectID format
  */

@@ -9,6 +9,10 @@ import { prisma } from '@/lib/db'
 import { withAuth, handleError, requirePermission, validateRequest, verifyOrganizationAccess } from '@/lib/api/middleware'
 import { updateRoomSchema } from '@/lib/validations/room'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * PATCH /api/projects/[id]/rooms/[roomId] - Update a room
  */

@@ -9,6 +9,10 @@ import { prisma } from '@/lib/db'
 import { createCategorySchema, updateCategorySchema } from '@/lib/validations/category'
 import { handleError, validateRequest } from '@/lib/api/middleware'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/admin/categories - List all categories
  */

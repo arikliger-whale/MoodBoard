@@ -1,0 +1,41 @@
+
+> moodb@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.18
+  - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+Failed to compile.
+
+./src/app/[locale]/(dashboard)/onboarding/page.tsx
+24:15  Error: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+
+./src/app/[locale]/admin/materials/new/page.tsx
+48:9  Warning: The 'colors' logical expression could make the dependencies of useMemo Hook (at line 126) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'colors' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+52:9  Warning: The 'categories' logical expression could make the dependencies of useMemo Hook (at line 134) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'categories' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+56:9  Warning: The 'organizations' logical expression could make the dependencies of useMemo Hook (at line 151) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'organizations' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./src/app/layout.tsx
+29:9  Warning: Custom fonts not added in `pages/_document.js` will only load for a single page. This is discouraged. See: https://nextjs.org/docs/messages/no-page-custom-font  @next/next/no-page-custom-font
+
+./src/components/features/materials/MaterialItem.tsx
+39:9  Warning: The 'colorIds' logical expression could make the dependencies of useMemo Hook (at line 44) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'colorIds' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+41:9  Warning: The 'allColors' logical expression could make the dependencies of useMemo Hook (at line 44) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'allColors' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./src/components/features/style-engine/MaterialSelector.tsx
+39:9  Warning: The 'materials' logical expression could make the dependencies of useMemo Hook (at line 48) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'materials' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./src/components/features/style-engine/StyleForm.tsx
+90:9  Warning: The 'categories' logical expression could make the dependencies of useMemo Hook (at line 243) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'categories' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+93:9  Warning: The 'colors' logical expression could make the dependencies of useMemo Hook (at line 258) change on every render. To fix this, wrap the initialization of 'colors' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+96:9  Warning: The 'materials' logical expression could make the dependencies of useMemo Hook (at line 266) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'materials' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+235:9  Warning: The 'subCategories' logical expression could make the dependencies of useMemo Hook (at line 250) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'subCategories' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./src/components/ui/ImageUpload.tsx
+119:24  Warning: The ref value 'previewUrlsRef.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'previewUrlsRef.current' to a variable inside the effect, and use that variable in the cleanup function.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules

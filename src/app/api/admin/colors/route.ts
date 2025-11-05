@@ -9,6 +9,10 @@ import { prisma } from '@/lib/db'
 import { withAdmin, handleError, validateRequest } from '@/lib/api/admin-middleware'
 import { createColorSchema, colorFiltersSchema } from '@/lib/validations/color'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/admin/colors - List all colors
  */

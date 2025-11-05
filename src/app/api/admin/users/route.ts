@@ -8,6 +8,9 @@ import { prisma } from '@/lib/db'
 import { withAdmin, handleError } from '@/lib/api/admin-middleware'
 import { z } from 'zod'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 const userFiltersSchema = z.object({
   search: z.string().optional(),
   role: z.string().optional(),

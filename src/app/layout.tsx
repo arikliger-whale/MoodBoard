@@ -1,14 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -16,6 +11,9 @@ export const metadata: Metadata = {
   title: "MoodB - Interior Design Studio Platform",
   description: "Comprehensive SaaS platform for interior design studios",
 };
+
+// Force dynamic rendering to prevent SSG issues
+export const dynamic = 'force-dynamic';
 
 export default function RootLayout({
   children,
@@ -34,12 +32,12 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} antialiased`}
         suppressHydrationWarning
         style={{
           fontFamily: defaultLocale === 'he' 
-            ? '"Heebo", "Assistant", var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-            : 'var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            ? '"Heebo", "Assistant", var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            : 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         }}
       >
         {children}

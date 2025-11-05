@@ -9,6 +9,10 @@ import { prisma } from '@/lib/db'
 import { withAdmin, handleError, validateRequest } from '@/lib/api/admin-middleware'
 import { z } from 'zod'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 const updateUserSchema = z.object({
   name: z.string().optional(),
   email: z.string().email().optional(),

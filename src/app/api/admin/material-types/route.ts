@@ -9,6 +9,10 @@ import { prisma } from '@/lib/db'
 import { createMaterialTypeSchema } from '@/lib/validations/material-category'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/admin/material-types - List all material types
  */

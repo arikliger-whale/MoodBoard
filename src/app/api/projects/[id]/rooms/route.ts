@@ -9,6 +9,10 @@ import { withAuth, handleError, requirePermission, validateRequest, verifyOrgani
 import { createRoomSchema } from '@/lib/validations/room'
 import { v4 as uuidv4 } from 'uuid'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * POST /api/projects/[id]/rooms - Add a new room to project
  */

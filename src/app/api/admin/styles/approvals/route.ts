@@ -7,6 +7,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { withAdmin, handleError } from '@/lib/api/admin-middleware'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/admin/styles/approvals - List pending style approvals
  */

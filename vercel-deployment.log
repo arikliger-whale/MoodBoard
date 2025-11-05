@@ -1,0 +1,100 @@
+Vercel CLI 48.8.2
+Retrieving project…
+Deploying aris-projects-28018302/moodb
+Inspect: https://vercel.com/aris-projects-28018302/moodb/AWZZnGNHtPWrA3Q8gXk6cG8r51JF [3s]
+Production: https://moodb-qjtwwphvv-aris-projects-28018302.vercel.app [3s]
+https://moodb-qjtwwphvv-aris-projects-28018302.vercel.appQueued
+Building
+2025-11-05T07:38:55.239Z  Running build in Washington, D.C., USA (East) – iad1
+2025-11-05T07:38:55.250Z  Build machine configuration: 2 cores, 8 GB
+2025-11-05T07:38:55.640Z  Retrieving list of deployment files...
+2025-11-05T07:38:55.652Z  Previous build caches not available.
+2025-11-05T07:38:56.255Z  Downloading 223 deployment files...
+2025-11-05T07:38:59.779Z  Warning: Detected "engines": { "node": ">=20" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: http://vercel.link/node-version
+2025-11-05T07:38:59.780Z  Running "vercel build"
+2025-11-05T07:39:00.224Z  Vercel CLI 48.8.2
+2025-11-05T07:39:00.610Z  Warning: Detected "engines": { "node": ">=20" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: http://vercel.link/node-version
+2025-11-05T07:39:00.625Z  Running "install" command: `npm ci`...
+2025-11-05T07:39:04.733Z  npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2025-11-05T07:39:05.876Z  npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2025-11-05T07:39:08.780Z  npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2025-11-05T07:39:08.995Z  npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2025-11-05T07:39:09.883Z  npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-11-05T07:39:15.698Z  npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2025-11-05T07:39:33.145Z  
+2025-11-05T07:39:33.146Z  > moodb@0.1.0 postinstall
+2025-11-05T07:39:33.146Z  > npm run prisma:generate
+2025-11-05T07:39:33.146Z  
+2025-11-05T07:39:33.412Z  
+2025-11-05T07:39:33.414Z  > moodb@0.1.0 prisma:generate
+2025-11-05T07:39:33.414Z  > prisma generate
+2025-11-05T07:39:33.415Z  
+2025-11-05T07:39:33.878Z  Environment variables loaded from .env
+2025-11-05T07:39:33.885Z  Prisma schema loaded from prisma/schema.prisma
+2025-11-05T07:39:34.780Z  
+2025-11-05T07:39:34.780Z  ✔ Generated Prisma Client (v5.22.0) to ./node_modules/@prisma/client in 354ms
+2025-11-05T07:39:34.781Z  
+2025-11-05T07:39:34.781Z  Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+2025-11-05T07:39:34.781Z  
+2025-11-05T07:39:34.781Z  Tip: Want real-time updates to your database without manual polling? Discover how with Pulse: https://pris.ly/tip-0-pulse
+2025-11-05T07:39:34.782Z  
+2025-11-05T07:39:35.003Z  
+2025-11-05T07:39:35.003Z  added 969 packages, and audited 970 packages in 34s
+2025-11-05T07:39:35.004Z  
+2025-11-05T07:39:35.004Z  202 packages are looking for funding
+2025-11-05T07:39:35.004Z    run `npm fund` for details
+2025-11-05T07:39:35.071Z  
+2025-11-05T07:39:35.071Z  1 critical severity vulnerability
+2025-11-05T07:39:35.072Z  
+2025-11-05T07:39:35.072Z  To address all issues, run:
+2025-11-05T07:39:35.072Z    npm audit fix --force
+2025-11-05T07:39:35.072Z  
+2025-11-05T07:39:35.072Z  Run `npm audit` for details.
+2025-11-05T07:39:35.121Z  Detected Next.js version: 14.2.18
+2025-11-05T07:39:35.122Z  Running "npm run vercel-build"
+2025-11-05T07:39:35.232Z  
+2025-11-05T07:39:35.232Z  > moodb@0.1.0 vercel-build
+2025-11-05T07:39:35.233Z  > npm run prisma:generate && next build
+2025-11-05T07:39:35.233Z  
+2025-11-05T07:39:35.347Z  
+2025-11-05T07:39:35.350Z  > moodb@0.1.0 prisma:generate
+2025-11-05T07:39:35.350Z  > prisma generate
+2025-11-05T07:39:35.350Z  
+2025-11-05T07:39:35.823Z  Environment variables loaded from .env
+2025-11-05T07:39:35.830Z  Prisma schema loaded from prisma/schema.prisma
+2025-11-05T07:39:36.669Z  
+2025-11-05T07:39:36.670Z  ✔ Generated Prisma Client (v5.22.0) to ./node_modules/@prisma/client in 298ms
+2025-11-05T07:39:36.670Z  
+2025-11-05T07:39:36.670Z  Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+2025-11-05T07:39:36.670Z  
+2025-11-05T07:39:36.671Z  Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints
+2025-11-05T07:39:36.671Z  
+2025-11-05T07:39:36.715Z  ┌─────────────────────────────────────────────────────────┐
+2025-11-05T07:39:36.715Z  │  Update available 5.22.0 -> 6.18.0                      │
+2025-11-05T07:39:36.715Z  │                                                         │
+2025-11-05T07:39:36.715Z  │  This is a major update - please follow the guide at    │
+2025-11-05T07:39:36.715Z  │  https://pris.ly/d/major-version-upgrade                │
+2025-11-05T07:39:36.715Z  │                                                         │
+2025-11-05T07:39:36.716Z  │  Run the following to update                            │
+2025-11-05T07:39:36.716Z  │    npm i --save-dev prisma@latest                       │
+2025-11-05T07:39:36.716Z  │    npm i @prisma/client@latest                          │
+2025-11-05T07:39:36.716Z  └─────────────────────────────────────────────────────────┘
+2025-11-05T07:39:37.426Z  Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2025-11-05T07:39:37.427Z  This information is used to shape Next.js' roadmap and prioritize features.
+2025-11-05T07:39:37.427Z  You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2025-11-05T07:39:37.428Z  https://nextjs.org/telemetry
+2025-11-05T07:39:37.428Z  
+2025-11-05T07:39:37.483Z    ▲ Next.js 14.2.18 (turbo)
+2025-11-05T07:39:37.483Z    - Environments: .env
+2025-11-05T07:39:37.483Z    - Experiments (use with caution):
+2025-11-05T07:39:37.484Z      · turbo
+2025-11-05T07:39:37.484Z  
+2025-11-05T07:39:37.542Z     Creating an optimized production build ...
+2025-11-05T07:39:37.551Z  
+2025-11-05T07:39:37.554Z  > Build error occurred
+2025-11-05T07:39:37.554Z  Error: next build doesn't support turbopack yet
+2025-11-05T07:39:37.554Z      at turbopackBuild (/vercel/path0/node_modules/next/dist/build/index.js:755:27)
+2025-11-05T07:39:37.555Z      at /vercel/path0/node_modules/next/dist/build/index.js:1002:92
+2025-11-05T07:39:37.555Z      at async Span.traceAsyncFn (/vercel/path0/node_modules/next/dist/trace/trace.js:154:20)
+2025-11-05T07:39:37.556Z      at async build (/vercel/path0/node_modules/next/dist/build/index.js:364:9)
+2025-11-05T07:39:37.577Z  Error: Command "npm run vercel-build" exited with 1
