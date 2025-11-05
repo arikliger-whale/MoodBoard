@@ -1,7 +1,7 @@
 import createNextIntlPlugin from 'next-intl/plugin'
 
-// Explicitly specify the i18n config file path for Vercel compatibility
-const withNextIntl = createNextIntlPlugin('./i18n.ts')
+// Use default path resolution (./src/i18n/request.ts) for Vercel compatibility
+const withNextIntl = createNextIntlPlugin()
 
 /** @type {import('next').NextConfig} */
 // Force disable turbopack
