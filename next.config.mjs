@@ -7,20 +7,20 @@ process.env.NEXT_PRIVATE_SKIP_TURBOPACK = '1'
 
 const nextConfig = {
   reactStrictMode: true,
-  
+
   // Disables uploading sourcemaps in prod builds
   productionBrowserSourceMaps: false,
-  
+
   // Skip type checking during build (run in CI instead)
   typescript: {
     ignoreBuildErrors: true,
   },
-  
+
   // Skip ESLint during build (run in CI instead)
   eslint: {
     ignoreDuringBuilds: true,
   },
-  
+
   // Images
   images: {
     remotePatterns: [
