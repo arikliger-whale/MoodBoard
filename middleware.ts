@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import createIntlMiddleware from 'next-intl/middleware'
-import { locales, defaultLocale } from './src/i18n/request'
+import { locales, defaultLocale } from './i18n/request'
 
 // Create intl middleware
 const intlMiddleware = createIntlMiddleware({
