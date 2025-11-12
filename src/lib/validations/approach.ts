@@ -1,66 +1,24 @@
 /**
  * Approach Validation Schemas
- * Handles CRUD validation for style approaches
+ * Handles CRUD validation for style approaches (global entities like אותנטי, פיוזן, etc.)
  */
 
 import { z } from 'zod'
-import { ROOM_TYPES } from './room'
 import { clientImagesSchema, serverImagesSchema } from './upload'
 
 // MongoDB ObjectID validation helper
 const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ObjectID format')
 
-// Material Default Schema (General materials - apply to all rooms)
-// Only stores materialId - material details come from the referenced Material object
-export const materialDefaultSchema = z.object({
-  materialId: objectIdSchema,
-})
-
-// Material Alternative Schema
-export const materialAlternativeSchema = z.object({
-  usageArea: z.string().min(1, 'Usage area is required'),
-  alternatives: z.array(objectIdSchema).min(1, 'At least one alternative is required'),
-})
-
-// Material Set Schema
-// defaults: General materials that apply to all rooms
-// Room-specific materials go in roomProfiles[].materials
-export const materialSetSchema = z.object({
-  defaults: z.array(materialDefaultSchema).optional().default([]),
-  alternatives: z.array(materialAlternativeSchema).optional(),
-})
-
-// Room Constraint Schema
-export const roomConstraintSchema = z.object({
-  waterResistance: z.boolean().optional(),
-  durability: z.number().int().min(1).max(10).optional(),
-  maintenance: z.number().int().min(1).max(10).optional(),
-})
-
-// Room Profile Schema (for client-side forms - allows blob URLs for preview)
-export const roomProfileSchema = z.object({
-  roomType: z.enum(ROOM_TYPES, {
-    errorMap: () => ({ message: 'Invalid room type' }),
-  }),
-  materials: z.array(objectIdSchema).optional().default([]),
-  images: clientImagesSchema.optional(),
-  constraints: roomConstraintSchema.nullable().optional(),
-})
-
-// Room Profile Schema for API (server-side - only HTTPS URLs)
-export const roomProfileApiSchema = z.object({
-  roomType: z.enum(ROOM_TYPES, {
-    errorMap: () => ({ message: 'Invalid room type' }),
-  }),
-  materials: z.array(objectIdSchema).optional().default([]),
-  images: serverImagesSchema.optional(),
-  constraints: roomConstraintSchema.nullable().optional(),
-})
-
 // Localized String Schema
 export const localizedStringSchema = z.object({
   he: z.string().min(1, 'Hebrew name is required'),
   en: z.string().min(1, 'English name is required'),
+})
+
+// Inspiration Pillars Schema (color/shade palette for this approach)
+export const inspirationPillarsSchema = z.object({
+  colors: z.array(objectIdSchema).optional().default([]),
+  shades: z.array(objectIdSchema).optional().default([]),
 })
 
 // Approach Metadata Schema
@@ -78,8 +36,7 @@ export const createApproachSchema = z.object({
   order: z.number().int().min(0).default(0),
   description: localizedStringSchema.optional(),
   images: serverImagesSchema.optional(),
-  materialSet: materialSetSchema.optional(),
-  roomProfiles: z.array(roomProfileApiSchema).optional().default([]),
+  inspirationPillars: inspirationPillarsSchema.optional(),
   metadata: approachMetadataSchema.optional(),
 })
 
@@ -90,8 +47,7 @@ export const updateApproachSchema = z.object({
   order: z.number().int().min(0).optional(),
   description: localizedStringSchema.optional(),
   images: serverImagesSchema.optional(),
-  materialSet: materialSetSchema.optional(),
-  roomProfiles: z.array(roomProfileApiSchema).optional(),
+  inspirationPillars: inspirationPillarsSchema.optional(),
   metadata: approachMetadataSchema.partial().optional(),
 })
 
@@ -102,19 +58,14 @@ export const createApproachFormSchema = z.object({
   order: z.number().int().min(0).default(0),
   description: localizedStringSchema.optional(),
   images: clientImagesSchema.optional(),
-  materialSet: materialSetSchema.optional(),
-  roomProfiles: z.array(roomProfileSchema).optional().default([]),
+  inspirationPillars: inspirationPillarsSchema.optional(),
   metadata: approachMetadataSchema.optional(),
 })
 
 export const updateApproachFormSchema = createApproachFormSchema.partial()
 
 // Types
-export type MaterialDefault = z.infer<typeof materialDefaultSchema>
-export type MaterialAlternative = z.infer<typeof materialAlternativeSchema>
-export type MaterialSet = z.infer<typeof materialSetSchema>
-export type RoomConstraint = z.infer<typeof roomConstraintSchema>
-export type RoomProfile = z.infer<typeof roomProfileSchema>
+export type InspirationPillars = z.infer<typeof inspirationPillarsSchema>
 export type ApproachMetadata = z.infer<typeof approachMetadataSchema>
 export type CreateApproach = z.infer<typeof createApproachSchema>
 export type UpdateApproach = z.infer<typeof updateApproachSchema>

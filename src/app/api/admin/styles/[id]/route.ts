@@ -33,8 +33,8 @@ export const GET = withAdmin(async (req: NextRequest) => {
       include: {
         category: { select: { id: true, name: true, slug: true } },
         subCategory: { select: { id: true, name: true, slug: true } },
+        approach: { select: { id: true, slug: true, name: true, order: true } },
         color: { select: { id: true, name: true, hex: true, pantone: true, category: true } },
-        approaches: true,
       },
     })
 
@@ -90,6 +90,13 @@ export const PATCH = withAdmin(async (req: NextRequest) => {
       }
     }
 
+    if (body.approachId) {
+      const approach = await prisma.approach.findUnique({ where: { id: body.approachId } })
+      if (!approach) {
+        return NextResponse.json({ error: 'Approach not found' }, { status: 404 })
+      }
+    }
+
     if (body.slug) {
       const duplicate = await prisma.style.findFirst({
         where: {
@@ -108,8 +115,10 @@ export const PATCH = withAdmin(async (req: NextRequest) => {
     if (body.slug) updateData.slug = body.slug
     if (body.categoryId) updateData.categoryId = body.categoryId
     if (body.subCategoryId) updateData.subCategoryId = body.subCategoryId
+    if (body.approachId) updateData.approachId = body.approachId
     if (body.colorId) updateData.colorId = body.colorId
     if (body.images !== undefined) updateData.images = sanitizeImages(body.images as string[])
+    if (body.roomProfiles !== undefined) updateData.roomProfiles = body.roomProfiles
     if (body.metadata) {
       updateData.metadata = {
         ...existingStyle.metadata,
@@ -123,8 +132,8 @@ export const PATCH = withAdmin(async (req: NextRequest) => {
       include: {
         category: { select: { id: true, name: true, slug: true } },
         subCategory: { select: { id: true, name: true, slug: true } },
+        approach: { select: { id: true, slug: true, name: true, order: true } },
         color: { select: { id: true, name: true, hex: true, pantone: true, category: true } },
-        approaches: true,
       },
     })
 
@@ -149,152 +158,6 @@ export const DELETE = withAdmin(async (req: NextRequest) => {
     await prisma.style.delete({ where: { id: styleId } })
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return handleError(error)
-  }
-})
-          materialsCount: p.materials.length,
-          imagesCount: p.images.length,
-        })),
-      })
-      updateData.roomProfiles = validatedRoomProfiles
-    }
-
-    // Handle metadata if provided
-    if (body.metadata) {
-      console.log(`${logPrefix} Updating metadata:`, body.metadata)
-      updateData.metadata = {
-        ...existingStyle.metadata,
-        ...body.metadata,
-      }
-    }
-
-    console.log(`${logPrefix} Final update data:`, JSON.stringify(updateData, null, 2))
-
-    // Update style
-    console.log(`${logPrefix} Executing Prisma update...`)
-    let style
-    try {
-      style = await prisma.style.update({
-        where: { id: styleId },
-        data: updateData,
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          subCategory: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          color: {
-            select: {
-              id: true,
-              name: true,
-              hex: true,
-              pantone: true,
-              category: true,
-            },
-          },
-        },
-      })
-
-      console.log(`${logPrefix} ✅ Update successful`)
-      console.log(`${logPrefix} Updated style:`, {
-        id: style.id,
-        name: style.name,
-        imagesCount: style.images?.length || 0,
-        roomProfilesCount: style.roomProfiles?.length || 0,
-      })
-    } catch (prismaError) {
-      console.error(`${logPrefix} ========== PRISMA UPDATE ERROR ==========`)
-      console.error(`${logPrefix} Error:`, prismaError)
-      if (prismaError instanceof Error) {
-        console.error(`${logPrefix} Name:`, prismaError.name)
-        console.error(`${logPrefix} Message:`, prismaError.message)
-        console.error(`${logPrefix} Stack:`, prismaError.stack)
-      }
-      if (prismaError && typeof prismaError === 'object') {
-        console.error(`${logPrefix} Error keys:`, Object.keys(prismaError))
-        if ('code' in prismaError) {
-          console.error(`${logPrefix} Prisma error code:`, (prismaError as any).code)
-        }
-        if ('meta' in prismaError) {
-          console.error(`${logPrefix} Prisma meta:`, JSON.stringify((prismaError as any).meta, null, 2))
-        }
-        if ('clientVersion' in prismaError) {
-          console.error(`${logPrefix} Prisma client version:`, (prismaError as any).clientVersion)
-        }
-      }
-      console.error(`${logPrefix} Update data that failed:`, JSON.stringify(updateData, null, 2))
-      console.error(`${logPrefix} ========================================`)
-      throw prismaError
-    }
-
-    console.log(`${logPrefix} ========== END UPDATE REQUEST (SUCCESS) ==========`)
-    return NextResponse.json(style)
-  } catch (error) {
-    console.error(`${logPrefix} ========== UNHANDLED ERROR ==========`)
-    console.error(`${logPrefix} Error:`, error)
-    if (error instanceof Error) {
-      console.error(`${logPrefix} Name:`, error.name)
-      console.error(`${logPrefix} Message:`, error.message)
-      console.error(`${logPrefix} Stack:`, error.stack)
-    }
-    console.error(`${logPrefix} ====================================`)
-    console.log(`${logPrefix} ========== END UPDATE REQUEST (FAILED) ==========`)
-    return handleError(error)
-  }
-})
-
-/**
- * DELETE /api/admin/styles/[id] - Delete global style
- */
-export const DELETE = withAdmin(async (req: NextRequest, auth) => {
-  try {
-    const url = new URL(req.url)
-    const styleId = url.pathname.split('/').pop()
-
-    if (!styleId) {
-      return NextResponse.json({ error: 'Style ID is required' }, { status: 400 })
-    }
-
-    // Validate ObjectID format
-    if (!isValidObjectId(styleId)) {
-      return NextResponse.json(
-        { error: 'Invalid style ID format' },
-        { status: 400 }
-      )
-    }
-
-    // Check if style exists and is global
-    const existingStyle = await prisma.style.findUnique({
-      where: { id: styleId },
-    })
-
-    if (!existingStyle) {
-      return NextResponse.json({ error: 'Style not found' }, { status: 404 })
-    }
-
-    if (existingStyle.organizationId !== null) {
-      return NextResponse.json(
-        { error: 'This is not a global style' },
-        { status: 403 }
-      )
-    }
-
-    // Delete style
-    await prisma.style.delete({
-      where: { id: styleId },
-    })
-
-    return NextResponse.json({ message: 'Style deleted successfully' })
   } catch (error) {
     return handleError(error)
   }

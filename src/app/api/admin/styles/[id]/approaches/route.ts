@@ -45,9 +45,9 @@ const sanitizeRoomProfiles = (profiles: any[] | undefined) =>
     constraints: profile.constraints || null,
   }))
 
-export const GET = withAdmin(async (req: NextRequest, auth, { params }: { params: { styleId: string } }) => {
+export const GET = withAdmin(async (req: NextRequest, auth, { params }: { params: { id: string } }) => {
   try {
-    const { styleId } = params
+    const { id: styleId } = params
 
     if (!isValidObjectId(styleId)) {
       throw new ValidationError('Invalid style ID')
@@ -64,9 +64,9 @@ export const GET = withAdmin(async (req: NextRequest, auth, { params }: { params
   }
 })
 
-export const POST = withAdmin(async (req: NextRequest, auth, { params }: { params: { styleId: string } }) => {
+export const POST = withAdmin(async (req: NextRequest, auth, { params }: { params: { id: string } }) => {
   try {
-    const { styleId } = params
+    const { id: styleId } = params
 
     if (!isValidObjectId(styleId)) {
       throw new ValidationError('Invalid style ID')

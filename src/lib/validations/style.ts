@@ -5,6 +5,49 @@ import { localizedStringSchema } from './approach'
 // MongoDB ObjectID validation helper
 const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ObjectID format')
 
+// Texture Reference Schema
+export const textureReferenceSchema = z.object({
+  type: z.string().min(1, 'Type is required'), // "flooring", "marble", "wood", etc.
+  materialId: objectIdSchema.optional(),
+  name: z.string().optional(),
+})
+
+// Style Product Reference Schema
+export const styleProductReferenceSchema = z.object({
+  category: z.string().min(1, 'Category is required'), // "lighting", "furniture", "sofas", etc.
+  productId: objectIdSchema.optional(),
+  name: z.string().optional(),
+})
+
+// Room Constraint Schema
+export const roomConstraintSchema = z.object({
+  waterResistance: z.boolean().optional(),
+  durability: z.number().int().min(1).max(10).optional(),
+  maintenance: z.number().int().min(1).max(10).optional(),
+})
+
+// Room Profile Schema (for client-side forms - allows blob URLs for preview)
+export const roomProfileSchema = z.object({
+  roomTypeId: objectIdSchema,
+  colors: z.array(objectIdSchema).optional().default([]),
+  textures: z.array(textureReferenceSchema).optional().default([]),
+  materials: z.array(objectIdSchema).optional().default([]),
+  products: z.array(styleProductReferenceSchema).optional().default([]),
+  images: clientImagesSchema.optional(),
+  constraints: roomConstraintSchema.nullable().optional(),
+})
+
+// Room Profile Schema for API (server-side - only HTTPS URLs)
+export const roomProfileApiSchema = z.object({
+  roomTypeId: objectIdSchema,
+  colors: z.array(objectIdSchema).optional().default([]),
+  textures: z.array(textureReferenceSchema).optional().default([]),
+  materials: z.array(objectIdSchema).optional().default([]),
+  products: z.array(styleProductReferenceSchema).optional().default([]),
+  images: serverImagesSchema.optional(),
+  constraints: roomConstraintSchema.nullable().optional(),
+})
+
 // Style Metadata Schema
 export const styleMetadataSchema = z.object({
   version: z.string().default('1.0.0'),
@@ -23,9 +66,11 @@ export const createStyleSchema = z.object({
   name: localizedStringSchema,
   categoryId: objectIdSchema,
   subCategoryId: objectIdSchema,
+  approachId: objectIdSchema,
   slug: z.string().regex(/^[a-z0-9-]+$/, 'Invalid slug format').optional(),
   colorId: objectIdSchema,
   images: serverImagesSchema.optional(),
+  roomProfiles: z.array(roomProfileApiSchema).optional().default([]),
   metadata: styleMetadataSchema.optional(),
 })
 
@@ -34,9 +79,11 @@ export const updateStyleSchema = z.object({
   name: localizedStringSchema.optional(),
   categoryId: objectIdSchema.optional(),
   subCategoryId: objectIdSchema.optional(),
+  approachId: objectIdSchema.optional(),
   slug: z.string().regex(/^[a-z0-9-]+$/, 'Invalid slug format').optional(),
   colorId: objectIdSchema.optional(),
   images: serverImagesSchema.optional(),
+  roomProfiles: z.array(roomProfileApiSchema).optional(),
   metadata: styleMetadataSchema.partial().optional(),
 })
 
@@ -45,9 +92,11 @@ export const createStyleFormSchema = z.object({
   name: localizedStringSchema,
   categoryId: objectIdSchema,
   subCategoryId: objectIdSchema,
+  approachId: objectIdSchema,
   slug: z.string().regex(/^[a-z0-9-]+$/, 'Invalid slug format').optional(),
   colorId: objectIdSchema,
   images: clientImagesSchema.optional(),
+  roomProfiles: z.array(roomProfileSchema).optional().default([]),
   metadata: styleMetadataSchema.optional(),
 })
 
@@ -56,6 +105,8 @@ export const styleFiltersSchema = z.object({
   search: z.string().optional(),
   categoryId: z.string().optional(),
   subCategoryId: z.string().optional(),
+  approachId: z.string().optional(),
+  colorId: z.string().optional(),
   scope: z.enum(['global', 'public', 'personal', 'all']).optional(),
   approvalStatus: z.enum(['pending', 'approved', 'rejected']).optional(),
   tags: z.array(z.string()).optional(),
@@ -70,6 +121,10 @@ export const approveStyleSchema = z.object({
 })
 
 // Export types
+export type TextureReference = z.infer<typeof textureReferenceSchema>
+export type StyleProductReference = z.infer<typeof styleProductReferenceSchema>
+export type RoomConstraint = z.infer<typeof roomConstraintSchema>
+export type RoomProfile = z.infer<typeof roomProfileSchema>
 export type CreateStyle = z.infer<typeof createStyleSchema>
 export type UpdateStyle = z.infer<typeof updateStyleSchema>
 export type StyleFilters = z.infer<typeof styleFiltersSchema>

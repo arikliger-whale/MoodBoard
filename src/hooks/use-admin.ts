@@ -5,7 +5,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
 
 /**
@@ -47,23 +47,26 @@ export function useAdminGuard() {
   const router = useRouter()
   const pathname = usePathname()
   
-  const isAdmin = session?.user?.role === 'admin'
+  // Memoize admin status and locale to avoid recalculation
+  const isAdmin = useMemo(() => session?.user?.role === 'admin', [session?.user?.role])
   const isLoading = status === 'loading'
+  const locale = useMemo(() => pathname?.split('/')[1] || 'he', [pathname])
   
   useEffect(() => {
+    // Don't do anything while loading
     if (status === 'loading') return
     
+    // Redirect to sign-in if not authenticated
     if (!session) {
-      const locale = pathname?.split('/')[1] || 'he'
       router.push(`/${locale}/sign-in?redirect_url=${pathname}`)
       return
     }
     
+    // Redirect to dashboard if not admin
     if (!isAdmin) {
-      const locale = pathname?.split('/')[1] || 'he'
       router.push(`/${locale}/dashboard`)
     }
-  }, [session, status, isAdmin, router, pathname])
+  }, [session, status, isAdmin, router, pathname, locale])
   
   return {
     isAdmin,

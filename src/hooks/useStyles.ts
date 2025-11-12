@@ -193,6 +193,7 @@ async function fetchStyleApprovals(status: string = 'pending', page: number = 1,
 
 /**
  * Hook to fetch styles list (user-facing)
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useStyles(filters: StyleFilters = {}) {
   const { data: session } = useSession()
@@ -201,15 +202,15 @@ export function useStyles(filters: StyleFilters = {}) {
     queryKey: [STYLES_QUERY_KEY, filters],
     queryFn: () => fetchStyles(filters),
     enabled: !!session,
-    refetchOnWindowFocus: true,
-    refetchInterval: 30000,
-    staleTime: 10000,
+    // FIX: Removed refetchOnWindowFocus, refetchInterval, and staleTime overrides
+    // Use global defaults (60s staleTime, no auto-refetch) for better performance
   })
 }
 
 /**
  * Hook to fetch admin styles (global styles)
  * Protected: Only works for admin users
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useAdminStyles(filters: StyleFilters = {}) {
   const { data: session } = useSession()
@@ -225,9 +226,8 @@ export function useAdminStyles(filters: StyleFilters = {}) {
       return fetchAdminStyles(filters)
     },
     enabled: !!session && isAdmin,
-    refetchOnWindowFocus: true,
-    refetchInterval: 30000,
-    staleTime: 10000,
+    // FIX: Removed refetchOnWindowFocus, refetchInterval, and staleTime overrides
+    // Use global defaults (60s staleTime, no auto-refetch) for better performance
     retry: false,
     onError: (error: any) => {
       if (error?.message?.includes('Admin access') || error?.status === 403) {
@@ -241,6 +241,7 @@ export function useAdminStyles(filters: StyleFilters = {}) {
 /**
  * Hook to fetch style approvals (admin only)
  * Protected: Only works for admin users
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useStyleApprovals(status: string = 'pending', page: number = 1, limit: number = 20) {
   const { data: session } = useSession()
@@ -256,9 +257,8 @@ export function useStyleApprovals(status: string = 'pending', page: number = 1, 
       return fetchStyleApprovals(status, page, limit)
     },
     enabled: !!session && isAdmin,
-    refetchOnWindowFocus: true,
-    refetchInterval: 30000,
-    staleTime: 10000,
+    // FIX: Removed refetchOnWindowFocus, refetchInterval, and staleTime overrides
+    // Use global defaults (60s staleTime, no auto-refetch) for better performance
     retry: false,
     onError: (error: any) => {
       if (error?.message?.includes('Admin access') || error?.status === 403) {
@@ -271,6 +271,7 @@ export function useStyleApprovals(status: string = 'pending', page: number = 1, 
 
 /**
  * Hook to fetch a single style (user-facing)
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useStyle(styleId: string) {
   const { data: session } = useSession()
@@ -287,14 +288,15 @@ export function useStyle(styleId: string) {
       return response.json()
     },
     enabled: !!session && !!styleId,
-    refetchOnWindowFocus: true,
-    staleTime: 10000,
+    // FIX: Removed refetchOnWindowFocus and staleTime overrides
+    // Use global defaults (60s staleTime, no auto-refetch) for better performance
   })
 }
 
 /**
  * Hook to fetch a single admin style (admin-only)
  * Protected: Only works for admin users
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useAdminStyle(styleId: string) {
   const { data: session } = useSession()
@@ -307,7 +309,7 @@ export function useAdminStyle(styleId: string) {
       if (!isAdmin) {
         throw new Error('Admin access required')
       }
-      
+
       const response = await fetch(`/api/admin/styles/${styleId}`)
 
       if (!response.ok) {
@@ -320,8 +322,8 @@ export function useAdminStyle(styleId: string) {
       return response.json()
     },
     enabled: !!session && !!styleId && isAdmin,
-    refetchOnWindowFocus: true,
-    staleTime: 10000,
+    // FIX: Removed refetchOnWindowFocus and staleTime overrides
+    // Use global defaults (60s staleTime, no auto-refetch) for better performance
     retry: false,
     onError: (error: any) => {
       if (error?.message?.includes('Admin access') || error?.status === 403) {
@@ -636,6 +638,7 @@ export function useDeleteAdminStyle() {
 
 /**
  * Hooks for managing approaches (admin only)
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useAdminApproaches(styleId: string) {
   const { data: session } = useSession()
@@ -662,8 +665,8 @@ export function useAdminApproaches(styleId: string) {
       return data.data as Approach[]
     },
     enabled: !!session && !!styleId && isAdmin,
-    refetchOnWindowFocus: true,
-    staleTime: 10000,
+    // FIX: Removed refetchOnWindowFocus and staleTime overrides
+    // Use global defaults (60s staleTime, no auto-refetch) for better performance
     retry: false,
     onError: (error: any) => {
       if (error?.message?.includes('Admin access') || error?.status === 403) {

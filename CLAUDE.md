@@ -7,6 +7,8 @@ USE HEBREW RTL as first language
 
 alwys prioretise reuse of exsting compoents structure and manage a clear lib of pages or components structure that we can reuse.
 
+
+When asking to optemize perforence and loading time see ideas how to do it here: /Users/arikliger/MoodBoard/PERFORMANCE_OPTIMIZATION_REPORT.md
 ## 🆘 When You're Stuck
 
 **IMPORTANT**: If you've tried solving a problem 3 times without success:

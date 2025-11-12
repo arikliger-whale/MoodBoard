@@ -83,7 +83,8 @@ async function fetchClients(filters: ClientFilters): Promise<ClientsResponse> {
 }
 
 /**
- * Hook to fetch clients list with real-time updates
+ * Hook to fetch clients list
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useClients(filters: ClientFilters = {}) {
   const { data: session } = useSession()
@@ -92,10 +93,8 @@ export function useClients(filters: ClientFilters = {}) {
     queryKey: [CLIENTS_QUERY_KEY, filters],
     queryFn: () => fetchClients(filters),
     enabled: !!session, // Only fetch when authenticated
-    // Auto-refetch for real-time feel
-    refetchOnWindowFocus: true,
-    refetchInterval: 30000, // Refetch every 30 seconds
-    staleTime: 10000, // Consider data stale after 10 seconds
+    // FIX: Removed refetchOnWindowFocus, refetchInterval, and staleTime overrides
+    // Use global defaults (5min staleTime, no auto-refetch) for better performance
   })
 }
 
@@ -180,6 +179,7 @@ export function useDeleteClient() {
 
 /**
  * Hook to fetch a single client
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useClient(clientId: string) {
   const { data: session } = useSession()
@@ -196,7 +196,7 @@ export function useClient(clientId: string) {
       return response.json()
     },
     enabled: !!session && !!clientId,
-    refetchOnWindowFocus: true,
-    staleTime: 10000,
+    // FIX: Removed refetchOnWindowFocus and staleTime overrides
+    // Use global defaults (5min staleTime, no auto-refetch) for better performance
   })
 }

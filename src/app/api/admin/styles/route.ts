@@ -25,6 +25,8 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
       search: searchParams.get('search') || undefined,
       categoryId: searchParams.get('categoryId') || undefined,
       subCategoryId: searchParams.get('subCategoryId') || undefined,
+      approachId: searchParams.get('approachId') || undefined,
+      colorId: searchParams.get('colorId') || undefined,
       page: parseInt(searchParams.get('page') || '1'),
       limit: parseInt(searchParams.get('limit') || '20'),
     })
@@ -42,12 +44,18 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
       ]
     }
 
-    // Add category filters
+    // Add filters
     if (filters.categoryId) {
       where.categoryId = filters.categoryId
     }
     if (filters.subCategoryId) {
       where.subCategoryId = filters.subCategoryId
+    }
+    if (filters.approachId) {
+      where.approachId = filters.approachId
+    }
+    if (filters.colorId) {
+      where.colorId = filters.colorId
     }
 
     // Get total count
@@ -71,6 +79,15 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
             slug: true,
           },
         },
+        approach: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            order: true,
+            metadata: true,
+          },
+        },
         color: {
           select: {
             id: true,
@@ -79,16 +96,6 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
             pantone: true,
             category: true,
           },
-        },
-        approaches: {
-          select: {
-            id: true,
-            slug: true,
-            name: true,
-            order: true,
-            metadata: true,
-          },
-          orderBy: { order: 'asc' },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -149,6 +156,15 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
       )
     }
 
+    // Verify approach exists
+    const approach = await prisma.approach.findUnique({
+      where: { id: body.approachId },
+    })
+
+    if (!approach) {
+      return NextResponse.json({ error: 'Approach not found' }, { status: 404 })
+    }
+
     // Verify color exists
     const color = await prisma.color.findUnique({
       where: { id: body.colorId },
@@ -184,8 +200,10 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
       name: body.name,
       categoryId: body.categoryId,
       subCategoryId: body.subCategoryId,
+      approachId: body.approachId,
       colorId: body.colorId,
       images: body.images || [],
+      roomProfiles: body.roomProfiles || [],
       metadata: {
         version: body.metadata?.version || '1.0.0',
         isPublic: true, // Global styles are always public
@@ -212,6 +230,15 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
             slug: true,
           },
         },
+        approach: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            order: true,
+            metadata: true,
+          },
+        },
         color: {
           select: {
             id: true,
@@ -220,16 +247,6 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
             pantone: true,
             category: true,
           },
-        },
-        approaches: {
-          select: {
-            id: true,
-            slug: true,
-            name: true,
-            order: true,
-            metadata: true,
-          },
-          orderBy: { order: 'asc' },
         },
       },
     })

@@ -57,9 +57,9 @@ const validateIds = (styleId: string, approachId: string) => {
 }
 
 export const GET = withAdmin(
-  async (req: NextRequest, auth, { params }: { params: { styleId: string; approachId: string } }) => {
+  async (req: NextRequest, auth, { params }: { params: { id: string; approachId: string } }) => {
     try {
-      const { styleId, approachId } = params
+      const { id: styleId, approachId } = params
       validateIds(styleId, approachId)
 
       const approach = await prisma.approach.findFirst({
@@ -78,9 +78,9 @@ export const GET = withAdmin(
 )
 
 export const PATCH = withAdmin(
-  async (req: NextRequest, auth, { params }: { params: { styleId: string; approachId: string } }) => {
+  async (req: NextRequest, auth, { params }: { params: { id: string; approachId: string } }) => {
     try {
-      const { styleId, approachId } = params
+      const { id: styleId, approachId } = params
       validateIds(styleId, approachId)
 
       const approach = await prisma.approach.findFirst({
@@ -152,9 +152,9 @@ export const PATCH = withAdmin(
 )
 
 export const DELETE = withAdmin(
-  async (req: NextRequest, auth, { params }: { params: { styleId: string; approachId: string } }) => {
+  async (req: NextRequest, auth, { params }: { params: { id: string; approachId: string } }) => {
     try {
-      const { styleId, approachId } = params
+      const { id: styleId, approachId } = params
       validateIds(styleId, approachId)
 
       const approach = await prisma.approach.findFirst({

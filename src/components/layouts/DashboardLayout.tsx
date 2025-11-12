@@ -1,12 +1,19 @@
+/**
+ * Dashboard Layout Component
+ * Provides main app layout with navigation
+ *
+ * FIX: Removed duplicate auth checking to improve performance
+ * The server layout (dashboard/layout.tsx) already validates authentication
+ * No need to check again on the client side
+ */
+
 'use client'
 
-import { AppShell, Burger, Group, Loader, Center, Avatar, Menu, Text } from '@mantine/core'
+import { AppShell, Burger, Group, Avatar, Menu, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useAuth } from '@/hooks/use-auth'
 import { SidebarNavigation } from './SidebarNavigation'
 import { Logo } from './Logo'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
 import { signOut } from 'next-auth/react'
 import { IconLogout, IconUser } from '@tabler/icons-react'
 
@@ -16,26 +23,14 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [opened, { toggle }] = useDisclosure()
-  const { user, isAuthenticated, isLoading } = useAuth()
-  const router = useRouter()
+  const { user } = useAuth()
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/sign-in')
-    }
-  }, [isAuthenticated, isLoading, router])
-
-  if (isLoading) {
-    return (
-      <Center h="100vh" bg="#f7f7ed">
-        <Loader size="lg" color="brand" />
-      </Center>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return null
-  }
+  // FIX: Removed isLoading, isAuthenticated checks, and useEffect redirect
+  // Server layout already validates auth - no need for duplicate checking
+  // This eliminates:
+  // 1. Duplicate useSession() call
+  // 2. Loading screen flash
+  // 3. Unnecessary re-renders
 
   return (
     <AppShell

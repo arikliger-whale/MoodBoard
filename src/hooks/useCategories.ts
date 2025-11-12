@@ -85,7 +85,8 @@ export const useCategories = (search?: string) => {
       if (!res.ok) throw new Error('Failed to fetch categories')
       return res.json()
     },
-    staleTime: 10 * 1000, // 10 seconds
+    // FIX: Removed aggressive staleTime override - use global default (60s)
+    // This prevents unnecessary refetches every 10 seconds
   })
 }
 
@@ -192,7 +193,8 @@ export const useSubCategories = (categoryId?: string, search?: string) => {
       if (!res.ok) throw new Error('Failed to fetch sub-categories')
       return res.json()
     },
-    staleTime: 10 * 1000, // 10 seconds
+    // FIX: Removed aggressive staleTime override - use global default (60s)
+    // This prevents unnecessary refetches every 10 seconds
   })
 }
 

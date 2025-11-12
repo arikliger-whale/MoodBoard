@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   description: "Comprehensive SaaS platform for interior design studios",
 };
 
-// Force dynamic rendering to prevent SSG issues
-export const dynamic = 'force-dynamic';
+// Root layout can be static - locale layout handles dynamic rendering
+// NEXT_PUBLIC_ env vars are baked in at build time, so no need for force-dynamic here
 
 export default function RootLayout({
   children,
@@ -26,10 +26,13 @@ export default function RootLayout({
   return (
     <html lang={defaultLocale} suppressHydrationWarning dir={defaultLocale === 'he' ? 'rtl' : 'ltr'}>
       <head>
-        {/* Hebrew font support */}
+        {/* Hebrew font support - optimized with preconnect for faster loading */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link 
+          href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700&family=Heebo:wght@400;500;600;700&display=swap" 
+          rel="stylesheet"
+        />
       </head>
       <body
         className={`${inter.variable} antialiased`}

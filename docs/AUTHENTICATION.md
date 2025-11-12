@@ -522,11 +522,14 @@ export { GET, POST }
 
 ### Enable Debug Logging
 
+**⚠️ WARNING:** Debug logging exposes sensitive information (client secrets, tokens, PKCE verifiers). Only enable when actively debugging auth issues.
+
 In `.env.local`:
 ```bash
-NEXTAUTH_DEBUG=true
-NODE_ENV=development
+AUTH_DEBUG=true
 ```
+
+**Note:** Debug logging is now opt-in via `AUTH_DEBUG` environment variable, rather than automatically enabled in development mode. This prevents accidental exposure of sensitive credentials.
 
 ### Common Log Messages
 

@@ -110,7 +110,8 @@ async function fetchProjects(filters: ProjectFilters): Promise<ProjectsResponse>
 }
 
 /**
- * Hook to fetch projects list with real-time updates
+ * Hook to fetch projects list
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useProjects(filters: ProjectFilters = {}) {
   const { data: session } = useSession()
@@ -119,10 +120,9 @@ export function useProjects(filters: ProjectFilters = {}) {
     queryKey: [PROJECTS_QUERY_KEY, filters],
     queryFn: () => fetchProjects(filters),
     enabled: !!session, // Only fetch when authenticated
-    // Auto-refetch for real-time feel
-    refetchOnWindowFocus: true,
-    refetchInterval: 30000, // Refetch every 30 seconds
-    staleTime: 10000, // Consider data stale after 10 seconds
+    // FIX: Removed refetchOnWindowFocus, refetchInterval, and staleTime overrides
+    // Use global defaults (5min staleTime, no auto-refetch) for better performance
+    // Projects don't change frequently - no need for aggressive real-time updates
   })
 }
 
@@ -210,6 +210,7 @@ export function useDeleteProject() {
 
 /**
  * Hook to fetch a single project
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useProject(projectId: string) {
   const { data: session } = useSession()
@@ -226,7 +227,7 @@ export function useProject(projectId: string) {
       return response.json()
     },
     enabled: !!session && !!projectId,
-    refetchOnWindowFocus: true,
-    staleTime: 10000,
+    // FIX: Removed refetchOnWindowFocus and staleTime overrides
+    // Use global defaults (5min staleTime, no auto-refetch) for better performance
   })
 }

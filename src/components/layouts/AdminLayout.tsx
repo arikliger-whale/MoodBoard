@@ -1,24 +1,32 @@
 /**
  * Admin Layout Component
  * Provides admin-specific layout with navigation
+ *
+ * FIX: Removed useAdminGuard to eliminate duplicate session checking
+ * The server layout (admin/layout.tsx) already validates admin access
+ * No need to check again on the client side
  */
 
 'use client'
 
-import { Container, AppShell, NavLink, Stack, Group, Text, Avatar, Loader, Center } from '@mantine/core'
-import { useTranslations } from 'next-intl'
-import { usePathname, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useAuth } from '@/hooks/use-auth'
-import { useAdminGuard } from '@/hooks/use-admin'
+import { AppShell, Collapse, Container, Group, NavLink, Stack, Text } from '@mantine/core'
 import {
-  IconLayoutDashboard,
-  IconPalette,
   IconBox,
   IconBuilding,
-  IconUsers,
   IconCheck,
+  IconChevronDown,
+  IconChevronRight,
+  IconDoor,
+  IconLayoutDashboard,
+  IconPalette,
+  IconSparkles,
+  IconUsers,
 } from '@tabler/icons-react'
+import { useTranslations } from 'next-intl'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useMemo, useState } from 'react'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -27,87 +35,88 @@ interface AdminLayoutProps {
 export function AdminLayout({ children }: AdminLayoutProps) {
   const t = useTranslations('admin')
   const pathname = usePathname()
-  const router = useRouter()
   const { user } = useAuth()
-  const { isAdmin, isLoading } = useAdminGuard()
-  const locale = pathname?.split('/')[1] || 'he'
 
-  // Show loading state while checking admin status
-  if (isLoading) {
-    return (
-      <Center h="100vh">
-        <Loader size="lg" />
-      </Center>
-    )
-  }
+  // Memoize locale extraction to avoid recalculation
+  const locale = useMemo(() => pathname?.split('/')[1] || 'he', [pathname])
 
-  // Don't render admin UI if not admin (guard will redirect)
-  if (!isAdmin) {
-    return null
-  }
+  // Check if style system section should be open - memoize to avoid recalculation
+  const isStyleSystemActive = pathname?.includes('/admin/style-system')
+  const [styleSystemOpen, setStyleSystemOpen] = useState(isStyleSystemActive)
 
-  const navItems = [
+  // Memoize navigation items to prevent recreation on every render
+  const navItems = useMemo(() => [
     {
       label: t('navigation.dashboard'),
       icon: IconLayoutDashboard,
       href: `/${locale}/admin`,
       translationKey: 'dashboard',
     },
+  ], [t, locale])
+
+  const styleSystemItems = useMemo(() => [
     {
       label: t('navigation.categories'),
       icon: IconPalette,
       href: `/${locale}/admin/categories`,
-      translationKey: 'categories',
     },
     {
       label: t('navigation.subCategories'),
       icon: IconPalette,
       href: `/${locale}/admin/sub-categories`,
-      translationKey: 'subCategories',
+    },
+    {
+      label: t('navigation.approaches'),
+      icon: IconSparkles,
+      href: `/${locale}/admin/style-system/approaches`,
+    },
+    {
+      label: t('navigation.roomTypes'),
+      icon: IconDoor,
+      href: `/${locale}/admin/style-system/room-types`,
     },
     {
       label: t('navigation.styles'),
       icon: IconPalette,
       href: `/${locale}/admin/styles`,
-      translationKey: 'styles',
     },
+  ], [t, locale])
+
+  const otherItems = useMemo(() => [
     {
       label: t('navigation.approvals'),
       icon: IconCheck,
       href: `/${locale}/admin/styles/approvals`,
-      translationKey: 'approvals',
     },
     {
       label: t('navigation.colors'),
       icon: IconPalette,
       href: `/${locale}/admin/colors`,
-      translationKey: 'colors',
     },
     {
       label: t('navigation.materials'),
       icon: IconBox,
       href: `/${locale}/admin/materials`,
-      translationKey: 'materials',
     },
     {
       label: t('navigation.materialSettings'),
       icon: IconBox,
       href: `/${locale}/admin/materials/settings`,
-      translationKey: 'materialSettings',
     },
     {
       label: t('navigation.organizations'),
       icon: IconBuilding,
       href: `/${locale}/admin/organizations`,
-      translationKey: 'organizations',
     },
     {
       label: t('navigation.users'),
       icon: IconUsers,
       href: `/${locale}/admin/users`,
-      translationKey: 'users',
     },
-  ]
+  ], [t, locale])
+
+  // FIX: Removed isLoading check and isAdmin check - server already validated
+  // This eliminates duplicate session fetching and improves performance
 
   return (
     <AppShell
@@ -140,6 +149,59 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           {/* Navigation */}
           <Stack gap="xs">
             {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+
+              return (
+                <NavLink
+                  key={item.href}
+                  component={Link}
+                  href={item.href}
+                  label={item.label}
+                  leftSection={<Icon size={20} />}
+                  active={isActive}
+                  variant="subtle"
+                  color="brand"
+                />
+              )
+            })}
+
+            {/* Style System Section */}
+            <NavLink
+              label={t('navigation.styleSystem')}
+              leftSection={<IconPalette size={20} />}
+              rightSection={
+                styleSystemOpen ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />
+              }
+              onClick={() => setStyleSystemOpen(!styleSystemOpen)}
+              variant="subtle"
+              color="brand"
+              active={isStyleSystemActive}
+            />
+            <Collapse in={styleSystemOpen}>
+              <Stack gap={2} ml="md">
+                {styleSystemItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+
+                  return (
+                    <NavLink
+                      key={item.href}
+                      component={Link}
+                      href={item.href}
+                      label={item.label}
+                      leftSection={<Icon size={18} />}
+                      active={isActive}
+                      variant="subtle"
+                      color="brand"
+                    />
+                  )
+                })}
+              </Stack>
+            </Collapse>
+
+            {/* Other Items */}
+            {otherItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
 

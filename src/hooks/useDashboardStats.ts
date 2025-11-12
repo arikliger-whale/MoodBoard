@@ -35,7 +35,8 @@ async function fetchDashboardStats(): Promise<DashboardStatsResponse> {
 }
 
 /**
- * Hook to fetch dashboard statistics with real-time updates
+ * Hook to fetch dashboard statistics
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useDashboardStats() {
   const { data: session } = useSession()
@@ -44,10 +45,9 @@ export function useDashboardStats() {
     queryKey: [DASHBOARD_STATS_QUERY_KEY],
     queryFn: fetchDashboardStats,
     enabled: !!session, // Only fetch when authenticated
-    // Auto-refetch for real-time feel
-    refetchOnWindowFocus: true,
-    refetchInterval: 30000, // Refetch every 30 seconds
-    staleTime: 10000, // Consider data stale after 10 seconds
+    // FIX: Removed refetchOnWindowFocus, refetchInterval, and staleTime overrides
+    // Use global defaults (5min staleTime, no auto-refetch) for better performance
+    // Dashboard stats don't change frequently - no need for real-time updates
   })
 }
 

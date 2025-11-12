@@ -471,17 +471,20 @@ model Style {
   slug String @unique
   name LocalizedString
 
+  // Belongs to Category, SubCategory, Approach, and has a specific Color
   categoryId    String    @db.ObjectId
   category      Category  @relation(fields: [categoryId], references: [id])
   subCategoryId String    @db.ObjectId
   subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
-
-  colorId String  @db.ObjectId
-  color   Color   @relation(fields: [colorId], references: [id])
+  approachId    String    @db.ObjectId
+  approach      Approach  @relation(fields: [approachId], references: [id])
+  colorId       String    @db.ObjectId
+  color         Color     @relation(fields: [colorId], references: [id])
 
   images String[] @default([]) // Array of R2 image URLs
 
-  approaches Approach[]
+  // Rooms for this style (inspiration page)
+  roomProfiles RoomProfile[]
 
   metadata StyleMetadata
 
@@ -491,7 +494,8 @@ model Style {
   @@index([organizationId])
   @@index([categoryId])
   @@index([subCategoryId])
-  @@index([categoryId, subCategoryId])
+  @@index([approachId])
+  @@index([categoryId, subCategoryId, approachId])
   @@index([colorId])
   @@map("styles")
 }
@@ -516,10 +520,27 @@ type MaterialAlternative {
 }
 
 type RoomProfile {
-  roomType    String
-  materials   String[]          @db.ObjectId // References to Material IDs
+  roomTypeId  String            @db.ObjectId // Reference to RoomType
+  // Colors & Textures (from flow diagram)
+  colors      String[]          @db.ObjectId // References to Color IDs
+  textures    TextureReference[] // Floorings, Marble, Wood, etc.
+  // Materials & Products (from flow diagram)
+  materials   String[]          @db.ObjectId // References to Material IDs (Cornices, Profiles, etc.)
+  products    StyleProductReference[] // Lighting, Sofas, etc.
   images      String[]          @default([]) // Array of R2 image URLs for this room profile
   constraints RoomConstraint?
+}
+
+type TextureReference {
+  type     String // "flooring", "marble", "wood", etc.
+  materialId String? @db.ObjectId // Optional reference to Material if it exists
+  name     String? // Display name
+}
+
+type StyleProductReference {
+  category String // "lighting", "furniture", "sofas", etc.
+  productId String? @db.ObjectId // Optional reference to Product if it exists
+  name     String? // Display name
 }
 
 type RoomConstraint {
@@ -529,28 +550,32 @@ type RoomConstraint {
 }
 
 model Approach {
-  id       String @id @default(auto()) @map("_id") @db.ObjectId
-  styleId  String @db.ObjectId
-  style    Style  @relation(fields: [styleId], references: [id], onDelete: Cascade)
-
-  slug  String
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  slug  String @unique
   name  LocalizedString
   order Int    @default(0)
 
   description LocalizedString?
   images      String[] @default([])
 
-  materialSet  MaterialSet?
-  roomProfiles RoomProfile[]
+  // Inspiration Pillars = Colors/Shades (גוונים / צבעים) - from flow diagram
+  inspirationPillars InspirationPillars?
+
+  // One approach has many styles
+  styles Style[]
 
   metadata ApproachMetadata
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  @@unique([styleId, slug])
-  @@index([styleId, order])
+  @@index([order])
   @@map("approaches")
+}
+
+type InspirationPillars {
+  colors String[] @db.ObjectId // References to Color IDs (shades/colors palette)
+  shades String[] @db.ObjectId // Additional shade references if needed
 }
 
 type ApproachMetadata {
@@ -570,6 +595,22 @@ type StyleMetadata {
   tags            String[]
   usage           Int       @default(0)
   rating          Float?
+}
+
+// Room Types for managing available room categories
+model RoomType {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  slug        String @unique
+  name        LocalizedString
+  description LocalizedString?
+  icon        String?
+  order       Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@index([order])
+  @@map("room_types")
 }
 
 // ============================================

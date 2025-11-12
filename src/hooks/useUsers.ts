@@ -87,6 +87,7 @@ async function fetchAdminUsers(filters: UserFilters): Promise<UsersResponse> {
 /**
  * Hook to fetch admin users (admin only)
  * Protected: Only works for admin users
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useAdminUsers(filters: UserFilters = {}) {
   const { data: session } = useSession()
@@ -102,9 +103,8 @@ export function useAdminUsers(filters: UserFilters = {}) {
       return fetchAdminUsers(filters)
     },
     enabled: !!session && isAdmin,
-    refetchOnWindowFocus: true,
-    refetchInterval: 30000,
-    staleTime: 10000,
+    // FIX: Removed refetchOnWindowFocus, refetchInterval, and staleTime overrides
+    // Use global defaults (5min staleTime, no auto-refetch) for better performance
     retry: false,
     onError: (error: any) => {
       if (error?.message?.includes('Admin access') || error?.status === 403) {
@@ -118,6 +118,7 @@ export function useAdminUsers(filters: UserFilters = {}) {
 /**
  * Hook to fetch a single admin user (admin only)
  * Protected: Only works for admin users
+ * FIX: Removed aggressive refetch options to improve performance
  */
 export function useAdminUser(userId: string) {
   const { data: session } = useSession()
@@ -146,8 +147,8 @@ export function useAdminUser(userId: string) {
       return response.json()
     },
     enabled: !!session && !!userId && isAdmin,
-    refetchOnWindowFocus: true,
-    staleTime: 10000,
+    // FIX: Removed refetchOnWindowFocus and staleTime overrides
+    // Use global defaults (5min staleTime, no auto-refetch) for better performance
     retry: false,
     onError: (error: any) => {
       if (error?.message?.includes('Admin access') || error?.status === 403) {
