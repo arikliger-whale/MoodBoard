@@ -10,7 +10,15 @@ import { Container, Title, Group, Stack, TextInput, Select, Pagination, ActionIc
 import { useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'
 import { IconSearch, IconDots, IconMail, IconBuilding, IconEye } from '@tabler/icons-react'
-import { MoodBCard, MoodBTable, MoodBTableHead, MoodBTableBody, MoodBTableRow, MoodBTableHeader, MoodBTableCell, MoodBBadge, EmptyState, LoadingState, ErrorState } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { MoodBCard } from '@/components/ui/Card'
+import { MoodBTable, MoodBTableHead, MoodBTableBody, MoodBTableRow, MoodBTableHeader, MoodBTableCell } from '@/components/ui/Table'
+import { MoodBBadge } from '@/components/ui/Badge'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { LoadingState } from '@/components/ui/LoadingState'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { useAdminUsers } from '@/hooks/useUsers'
 import Link from 'next/link'
 

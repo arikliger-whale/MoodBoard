@@ -9,7 +9,11 @@ import { Container } from '@mantine/core'
 import { useTranslations } from 'next-intl'
 import { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { LoadingState, ErrorState } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { LoadingState } from '@/components/ui/LoadingState'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { useStyle } from '@/hooks/useStyles'
 
 export default function StyleEntryPage() {

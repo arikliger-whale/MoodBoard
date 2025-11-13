@@ -11,7 +11,12 @@ import { useParams, useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { IconArrowLeft, IconAlertCircle, IconColorPicker } from '@tabler/icons-react'
-import { MoodBButton, MoodBCard, FormSection } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { MoodBButton } from '@/components/ui/Button'
+import { MoodBCard } from '@/components/ui/Card'
+import { FormSection } from '@/components/ui/FormSection'
 import { createColorSchema, type CreateColor } from '@/lib/validations/color'
 import { useCreateColor } from '@/hooks/useColors'
 import { useMemo } from 'react'

@@ -105,6 +105,7 @@
       "searchPlaceholder": "חפש דפי השראה...",
       "filterByCategory": "סנן לפי קטגוריה",
       "filterBySubCategory": "סנן לפי תת-קטגוריה",
+      "filterByApproach": "סנן לפי גישה עיצובית",
       "noStyles": "אין דפי השראה",
       "noStylesDescription": "צור את דף ההשראה הראשון",
       "deleteStyle": "מחק דף השראה",
@@ -112,6 +113,7 @@
       "table": {
         "name": "שם",
         "category": "קטגוריה",
+        "approach": "גישה עיצובית",
         "version": "גרסה",
         "usage": "שימוש",
         "createdAt": "נוצר ב",

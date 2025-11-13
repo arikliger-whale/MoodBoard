@@ -6,7 +6,10 @@
 'use client'
 
 import { MaterialItem } from '@/components/features/materials'
-import { ErrorState } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { ErrorState } from '@/components/ui/ErrorState'
 import { Container } from '@mantine/core'
 import { useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'

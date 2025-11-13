@@ -18,7 +18,10 @@ import {
 } from '@mantine/core'
 import { IconChevronDown, IconChevronUp, IconInfoCircle } from '@tabler/icons-react'
 import { createRoomSchema, ROOM_TYPES, DIMENSION_UNITS, type CreateRoom } from '@/lib/validations/room'
-import { FormSection } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { FormSection } from '@/components/ui/FormSection'
 import { useAddRoom, useUpdateRoom } from '@/hooks/useRooms'
 
 interface RoomFormDrawerProps {

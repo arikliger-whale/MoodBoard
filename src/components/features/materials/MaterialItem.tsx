@@ -5,7 +5,15 @@
 
 'use client'
 
-import { ConfirmDialog, ErrorState, ImageUpload, LoadingState, MoodBBadge, MoodBCard } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { ImageUpload } from '@/components/ui/ImageUpload'
+import { LoadingState } from '@/components/ui/LoadingState'
+import { MoodBBadge } from '@/components/ui/Badge'
+import { MoodBCard } from '@/components/ui/Card'
 import { useAuth } from '@/hooks/use-auth/useAuth'
 import { useColors } from '@/hooks/useColors'
 import { useDeleteMaterial, useMaterial, type Material } from '@/hooks/useMaterials'

@@ -19,7 +19,10 @@ import {
 } from '@mantine/core'
 import { IconChevronDown, IconChevronUp, IconInfoCircle } from '@tabler/icons-react'
 import { createProjectSchema, type CreateProject } from '@/lib/validations/project'
-import { FormSection } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { FormSection } from '@/components/ui/FormSection'
 import { useClients } from '@/hooks/useClients'
 import { useCreateProject, useUpdateProject } from '@/hooks/useProjects'
 

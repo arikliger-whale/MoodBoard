@@ -9,7 +9,11 @@ import { Container, Title, Stack, Text, Button, Alert } from '@mantine/core'
 import { useTranslations } from 'next-intl'
 import { useRouter, useParams } from 'next/navigation'
 import { IconArrowLeft, IconInfoCircle } from '@tabler/icons-react'
-import { MoodBCard, LoadingState } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { MoodBCard } from '@/components/ui/Card'
+import { LoadingState } from '@/components/ui/LoadingState'
 
 export default function CreateStylePage() {
   const t = useTranslations('styles.user')

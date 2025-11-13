@@ -23,6 +23,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAdminStyles, useDeleteAdminStyle } from '@/hooks/useStyles'
 import { useCategories, useSubCategories } from '@/hooks/useCategories'
+import { useApproaches } from '@/hooks/useApproaches'
 import Link from 'next/link'
 
 export default function AdminStylesPage() {
@@ -36,21 +37,24 @@ export default function AdminStylesPage() {
   const [search, setSearch] = useState('')
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [subCategoryId, setSubCategoryId] = useState<string | null>(null)
+  const [approachId, setApproachId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
 
   // Delete confirmation
   const [deleteStyleId, setDeleteStyleId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // Fetch categories and sub-categories
+  // Fetch categories, sub-categories, and approaches
   const { data: categoriesData } = useCategories()
   const { data: subCategoriesData } = useSubCategories(categoryId || undefined)
+  const { data: approachesData } = useApproaches()
 
   // Fetch global styles
   const { data, isLoading, error } = useAdminStyles({
     search,
     categoryId: categoryId || undefined,
     subCategoryId: subCategoryId || undefined,
+    approachId: approachId || undefined,
     page,
     limit: 20,
   })
@@ -87,6 +91,15 @@ export default function AdminStylesPage() {
     ...(subCategoriesData?.data.map((subCat) => ({
       value: subCat.id,
       label: `${subCat.name.he} (${subCat.name.en})`,
+    })) || []),
+  ]
+
+  // Approach options
+  const approachOptions = [
+    { value: '', label: tCommon('filter') },
+    ...(approachesData?.data.map((approach: any) => ({
+      value: approach.id,
+      label: `${approach.name.he} (${approach.name.en})`,
     })) || []),
   ]
 
@@ -146,6 +159,17 @@ export default function AdminStylesPage() {
               disabled={!categoryId}
               style={{ width: 200 }}
             />
+            <Select
+              placeholder={t('filterByApproach')}
+              data={approachOptions}
+              value={approachId}
+              onChange={(value) => {
+                setApproachId(value)
+                setPage(1)
+              }}
+              clearable
+              style={{ width: 200 }}
+            />
           </Group>
         </MoodBCard>
 
@@ -171,6 +195,7 @@ export default function AdminStylesPage() {
                   <MoodBTableRow>
                     <MoodBTableHeader>{t('table.name')}</MoodBTableHeader>
                     <MoodBTableHeader>{t('table.category')}</MoodBTableHeader>
+                    <MoodBTableHeader>{t('table.approach')}</MoodBTableHeader>
                     <MoodBTableHeader>{t('table.version')}</MoodBTableHeader>
                     <MoodBTableHeader>{t('table.usage')}</MoodBTableHeader>
                     <MoodBTableHeader>{t('table.createdAt')}</MoodBTableHeader>
@@ -201,6 +226,13 @@ export default function AdminStylesPage() {
                             </MoodBBadge>
                           )}
                         </Stack>
+                      </MoodBTableCell>
+                      <MoodBTableCell>
+                        {style.approach && (
+                          <MoodBBadge color="grape" variant="light">
+                            {style.approach.name.he}
+                          </MoodBBadge>
+                        )}
                       </MoodBTableCell>
                       <MoodBTableCell>
                         <Text size="sm">{style.metadata.version}</Text>

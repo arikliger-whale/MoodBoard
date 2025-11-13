@@ -12,7 +12,13 @@ import { useParams, useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { IconArrowLeft, IconAlertCircle, IconInfoCircle } from '@tabler/icons-react'
-import { MoodBCard, FormSection, RichTextEditor, ImageUpload } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { MoodBCard } from '@/components/ui/Card'
+import { FormSection } from '@/components/ui/FormSection'
+import { RichTextEditor } from '@/components/ui/RichTextEditor'
+import { ImageUpload } from '@/components/ui/ImageUpload'
 import { createCategorySchema, type CreateCategory } from '@/lib/validations/category'
 import { useCreateCategory } from '@/hooks/useCategories'
 import { hasHtmlContent } from '@/lib/utils/html'

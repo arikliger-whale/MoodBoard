@@ -5,7 +5,11 @@
 
 'use client'
 
-import { FormSection, MoodBCard } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { FormSection } from '@/components/ui/FormSection'
+import { MoodBCard } from '@/components/ui/Card'
 import { useAuth } from '@/hooks/use-auth/useAuth'
 import { useColors } from '@/hooks/useColors'
 import { useImageUpload } from '@/hooks/useImageUpload'

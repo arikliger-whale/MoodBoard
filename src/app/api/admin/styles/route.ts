@@ -36,13 +36,9 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
       organizationId: null,
     }
 
-    // Add search filter (by name)
-    if (filters.search) {
-      where.OR = [
-        { 'name.he': { contains: filters.search, mode: 'insensitive' } },
-        { 'name.en': { contains: filters.search, mode: 'insensitive' } },
-      ]
-    }
+    // Add search filter (by name) - Search disabled for composite types in MongoDB
+    // TODO: Implement search using MongoDB aggregation pipeline if needed
+    // For now, we'll filter by other criteria (category, subcategory, approach)
 
     // Add filters
     if (filters.categoryId) {

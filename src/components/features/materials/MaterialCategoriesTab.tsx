@@ -5,7 +5,15 @@
 
 'use client'
 
-import { ConfirmDialog, EmptyState, ErrorState, LoadingState, MoodBCard, MoodBTable, MoodBTableBody, MoodBTableCell, MoodBTableHead, MoodBTableHeader, MoodBTableRow } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { LoadingState } from '@/components/ui/LoadingState'
+import { MoodBCard } from '@/components/ui/Card'
+import { MoodBTable, MoodBTableBody, MoodBTableCell, MoodBTableHead, MoodBTableHeader, MoodBTableRow } from '@/components/ui/Table'
 import { useDeleteMaterialCategory, useMaterialCategories, type MaterialCategory } from '@/hooks/useMaterialCategories'
 import { ActionIcon, Badge, Button, Group, Menu, Stack, Text, TextInput } from '@mantine/core'
 import { IconDots, IconEdit, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react'

@@ -7,7 +7,12 @@
 
 import { ApproachForm } from '@/components/features/style-engine/ApproachForm'
 import { StyleForm } from '@/components/features/style-engine/StyleForm'
-import { ErrorState, LoadingState, MoodBModal } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { ErrorState } from '@/components/ui/ErrorState'
+import { LoadingState } from '@/components/ui/LoadingState'
+import { MoodBModal } from '@/components/ui/Modal'
 import {
   useAdminApproaches,
   useAdminStyle,

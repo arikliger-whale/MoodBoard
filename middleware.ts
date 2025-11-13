@@ -34,6 +34,7 @@ export async function middleware(request: NextRequest) {
 
   // Try to get token, with error handling
   let token = null
+  let hasInvalidToken = false
   try {
     token = await getToken({
       req: request,
@@ -41,25 +42,52 @@ export async function middleware(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error getting token in middleware:', error)
-    // If token validation fails, treat as unauthenticated
+    // If token validation fails, treat as unauthenticated and mark for cookie cleanup
     token = null
+    hasInvalidToken = true
+  }
+
+  // If token is invalid or expired, clear the session cookies
+  if (hasInvalidToken || (!token && (request.cookies.has('authjs.session-token') || request.cookies.has('__Secure-authjs.session-token')))) {
+    // We have a cookie but no valid token - means the session is invalid/expired
+    hasInvalidToken = true
   }
 
   // Check authentication for protected routes
   if (isProtectedRoute && !token) {
-    // Prevent redirect loop: if we've been redirecting too many times, stop
-    const referer = request.headers.get('referer')
-    const isRedirectLoop = referer && referer.includes('/sign-in')
-    
-    if (isRedirectLoop) {
-      console.warn('Detected potential redirect loop, allowing request through')
-      // Don't redirect if we just came from sign-in
-      return intlMiddleware(request)
+    // Prevent redirect loop with cookie-based counter
+    const redirectCountCookie = request.cookies.get('_redirect_count')
+    const redirectCount = redirectCountCookie ? parseInt(redirectCountCookie.value) : 0
+
+    // If we've redirected too many times (>2), allow through to prevent infinite loop
+    // This is a safety net but shouldn't normally trigger
+    if (redirectCount > 2) {
+      console.warn('Exceeded redirect limit, allowing request through to prevent loop')
+      // Clear the counter cookie and apply i18n
+      const response = intlMiddleware(request)
+      response.cookies.delete('_redirect_count')
+      return response
     }
-    
+
+    // Increment redirect counter
     const signInUrl = new URL(`/${locale}/sign-in`, request.url)
     signInUrl.searchParams.set('redirect_url', pathname)
-    return NextResponse.redirect(signInUrl)
+    const response = NextResponse.redirect(signInUrl)
+
+    // Set short-lived cookie (30 seconds) to track redirect count
+    response.cookies.set('_redirect_count', String(redirectCount + 1), {
+      maxAge: 30,
+      httpOnly: true,
+      sameSite: 'lax',
+    })
+
+    // Clear invalid session cookies to prevent stale session issues
+    if (hasInvalidToken) {
+      response.cookies.delete('authjs.session-token')
+      response.cookies.delete('__Secure-authjs.session-token')
+    }
+
+    return response
   }
 
   // Check admin access
@@ -70,14 +98,15 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages to prevent loops
   if (isAuthPage && token) {
-    // Check if we're in a redirect loop by checking referrer
-    const referer = request.headers.get('referer')
     const redirectUrl = request.nextUrl.searchParams.get('redirect_url')
 
     // If redirect_url is also an auth page, ignore it to prevent loops
     if (redirectUrl && (redirectUrl.includes('/sign-in') || redirectUrl.includes('/sign-up'))) {
       const dashboardUrl = new URL(`/${locale}/dashboard`, request.url)
-      return NextResponse.redirect(dashboardUrl)
+      const response = NextResponse.redirect(dashboardUrl)
+      // Clear redirect counter when user successfully authenticates
+      response.cookies.delete('_redirect_count')
+      return response
     }
 
     // Use redirect_url if provided, otherwise go to dashboard
@@ -91,12 +120,20 @@ export async function middleware(request: NextRequest) {
     // Only redirect if we're not already going there (prevent loop)
     if (pathname !== finalTarget) {
       const url = new URL(finalTarget, request.url)
-      return NextResponse.redirect(url)
+      const response = NextResponse.redirect(url)
+      // Clear redirect counter when user successfully authenticates
+      response.cookies.delete('_redirect_count')
+      return response
     }
   }
 
-  // Handle i18n routing
-  return intlMiddleware(request)
+  // Handle i18n routing and clear redirect counter on successful access
+  const response = intlMiddleware(request)
+  // Clear redirect counter when user successfully accesses any page
+  if (request.cookies.has('_redirect_count')) {
+    response.cookies.delete('_redirect_count')
+  }
+  return response
 }
 
 export const config = {

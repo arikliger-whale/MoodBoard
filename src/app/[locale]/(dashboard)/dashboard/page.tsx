@@ -8,7 +8,11 @@ import { useProjects } from '@/hooks/useProjects'
 import { IconFolder, IconUsers, IconPalette, IconCoins, IconTrendingUp, IconCalendar, IconCheck, IconArrowRight } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LoadingState, ErrorState } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { LoadingState } from '@/components/ui/LoadingState'
+import { ErrorState } from '@/components/ui/ErrorState'
 import type { MouseEvent } from 'react'
 
 export default function DashboardPage() {

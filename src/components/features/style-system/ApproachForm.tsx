@@ -5,7 +5,10 @@
 
 'use client'
 
-import { FormSection } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { FormSection } from '@/components/ui/FormSection'
 import { useCreateApproach, useUpdateApproach } from '@/hooks/useApproaches'
 import { createApproachFormSchema } from '@/lib/validations/approach'
 import { zodResolver } from '@hookform/resolvers/zod'

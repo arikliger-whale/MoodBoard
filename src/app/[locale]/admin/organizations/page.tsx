@@ -10,7 +10,17 @@ import { Container, Title, Group, Stack, TextInput, Button, Text, SimpleGrid, Se
 import { useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'
 import { IconSearch, IconPlus, IconAlertCircle, IconDots, IconEdit, IconTrash } from '@tabler/icons-react'
-import { MoodBCard, MoodBTable, MoodBTableHead, MoodBTableBody, MoodBTableRow, MoodBTableHeader, MoodBTableCell, EmptyState, LoadingState, ErrorState, MoodBModal, FormSection, ConfirmDialog } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { MoodBCard } from '@/components/ui/Card'
+import { MoodBTable, MoodBTableHead, MoodBTableBody, MoodBTableRow, MoodBTableHeader, MoodBTableCell } from '@/components/ui/Table'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { LoadingState } from '@/components/ui/LoadingState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { FormSection } from '@/components/ui/FormSection'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { MoodBModal } from '@/components/ui/Modal'
 import { useOrganizations, useCreateOrganization, useUpdateOrganization, useDeleteOrganization, useOrganization } from '@/hooks/useOrganizations'
 import { CreateOrganization, UpdateOrganization } from '@/lib/validations/organization'
 import { zodResolver } from '@hookform/resolvers/zod'

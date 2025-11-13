@@ -94,6 +94,7 @@
       "searchPlaceholder": "Search styles...",
       "filterByCategory": "Filter by category",
       "filterBySubCategory": "Filter by sub-category",
+      "filterByApproach": "Filter by design approach",
       "noStyles": "No styles",
       "noStylesDescription": "Create your first global style",
       "deleteStyle": "Delete Style",
@@ -101,6 +102,7 @@
       "table": {
         "name": "Name",
         "category": "Category",
+        "approach": "Design Approach",
         "version": "Version",
         "usage": "Usage",
         "createdAt": "Created At",

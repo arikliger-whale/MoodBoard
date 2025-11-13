@@ -19,22 +19,31 @@ export default function SignInPage() {
   const t = useTranslations('auth')
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [hasRedirected, setHasRedirected] = useState(false)
-  
-  // Redirect if already authenticated - only once with delay to prevent loops
+  const [shouldRedirect, setShouldRedirect] = useState(false)
+
+  // Redirect if already authenticated - with proper checks to prevent loops
   useEffect(() => {
     if (!isLoading && isAuthenticated && !hasRedirected) {
-      setHasRedirected(true)
-      const redirectUrl = searchParams.get('redirect_url') || `/${locale}/dashboard`
-      
-      // Add a small delay to ensure auth state is properly synced
+      // Add a delay to ensure session is fully validated and not stale
+      // This prevents race conditions with middleware
       const timer = setTimeout(() => {
-        // Use router.replace instead of window.location to work better with middleware
-        router.replace(redirectUrl)
-      }, 100)
-      
+        setShouldRedirect(true)
+      }, 300)
+
       return () => clearTimeout(timer)
     }
-  }, [isAuthenticated, isLoading, searchParams, locale, hasRedirected, router])
+  }, [isAuthenticated, isLoading, hasRedirected])
+
+  // Separate effect for actual redirect to ensure proper state management
+  useEffect(() => {
+    if (shouldRedirect && isAuthenticated && !hasRedirected) {
+      setHasRedirected(true)
+      const redirectUrl = searchParams.get('redirect_url') || `/${locale}/dashboard`
+
+      // Use window.location for full navigation to ensure cookies are properly sent
+      window.location.href = redirectUrl
+    }
+  }, [shouldRedirect, isAuthenticated, hasRedirected, searchParams, locale])
 
   const handleSignIn = async () => {
     setIsSigningIn(true)

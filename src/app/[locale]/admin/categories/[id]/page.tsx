@@ -9,7 +9,12 @@ import { Container, Title, Stack, Group, Text, Badge, ActionIcon, Paper, Button,
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
 import { IconEdit, IconArrowLeft, IconList, IconPalette, IconPhoto } from '@tabler/icons-react'
-import { MoodBCard, LoadingState, ErrorState } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { MoodBCard } from '@/components/ui/Card'
+import { LoadingState } from '@/components/ui/LoadingState'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { useCategory } from '@/hooks/useCategories'
 import Link from 'next/link'
 

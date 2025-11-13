@@ -31,13 +31,14 @@ import {
   IconUser,
   IconTag,
 } from '@tabler/icons-react'
-import {
-  MoodBCard,
-  MoodBBadge,
-  LoadingState,
-  ErrorState,
-  ConfirmDialog,
-} from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { MoodBCard } from '@/components/ui/Card'
+import { MoodBBadge } from '@/components/ui/Badge'
+import { LoadingState } from '@/components/ui/LoadingState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useClient, useDeleteClient } from '@/hooks/useClients'
 import { ClientFormDrawer } from '@/components/features/clients'
 import { useState } from 'react'

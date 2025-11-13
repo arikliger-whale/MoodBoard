@@ -24,7 +24,13 @@ import { IconArrowLeft, IconCheck, IconPhoto } from '@tabler/icons-react'
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
 import { useMemo } from 'react'
-import { MoodBCard, MoodBBadge, LoadingState, ErrorState } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { MoodBCard } from '@/components/ui/Card'
+import { MoodBBadge } from '@/components/ui/Badge'
+import { LoadingState } from '@/components/ui/LoadingState'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { useStyle } from '@/hooks/useStyles'
 
 export default function StyleApproachPage() {

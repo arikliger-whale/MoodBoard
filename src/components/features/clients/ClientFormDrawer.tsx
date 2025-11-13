@@ -20,7 +20,10 @@ import {
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
 import { createClientSchema, type CreateClientInput } from '@/lib/validations/client'
 import { PREDEFINED_TAGS } from '@/lib/validations/client'
-import { FormSection } from '@/components/ui'
+// FIX: Replaced barrel import with direct imports to improve compilation speed
+// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
+// Direct imports only compile what's needed
+import { FormSection } from '@/components/ui/FormSection'
 
 interface ClientFormDrawerProps {
   opened: boolean
