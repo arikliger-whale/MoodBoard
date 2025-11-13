@@ -29,9 +29,15 @@ export interface AuthContext {
  * Get authenticated user from request
  */
 export async function getAuthUser(req: NextRequest): Promise<AuthContext> {
+  // Must match cookie configuration in auth-config.ts
+  const cookieName = process.env.NODE_ENV === 'production'
+    ? '__Secure-authjs.session-token'
+    : 'authjs.session-token'
+
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
+    cookieName: cookieName,
   })
 
   if (!token || !token.email) {
