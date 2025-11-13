@@ -50,6 +50,59 @@ This document covers:
 - ✅ Always validate `organizationId` in database queries
 - ✅ Never expose sensitive data in client components
 
+### Authentication Troubleshooting (CRITICAL FOR PRODUCTION ISSUES)
+**⚠️ IMPORTANT**: If you encounter ANY of these symptoms in production, READ this guide FIRST.
+
+**Location**: `docs/AUTH_TROUBLESHOOTING.md`
+
+**Read this guide immediately if you see:**
+- 🚨 **Redirect loops** - User gets stuck between sign-in and dashboard
+- 🚨 **API 401 errors** - All API routes return "Unauthorized" despite valid session
+- 🚨 **Sign-in page loops** - Auto-redirects after successful OAuth
+- 🚨 **Middleware can't read session** - Logs show "Authentication required"
+- 🚨 **"Detected potential redirect loop"** warning in logs
+- 🚨 **Works locally but fails on Vercel** - Different behavior in production
+
+**This guide contains:**
+- ✅ Complete analysis of redirect loop root causes
+- ✅ Step-by-step fixes for cookie detection issues
+- ✅ Edge Middleware vs Lambda session handling
+- ✅ Before/after code comparisons with explanations
+- ✅ Debugging checklist for Vercel production
+- ✅ Testing procedures to verify fixes
+- ✅ Prevention guidelines for future development
+
+**CRITICAL RULE: Cookie Name Configuration**
+```typescript
+// ⚠️ ALWAYS specify cookieName when calling getToken()
+const cookieName = process.env.NODE_ENV === 'production'
+  ? '__Secure-authjs.session-token'
+  : 'authjs.session-token'
+
+const token = await getToken({
+  req: request,
+  secret: process.env.NEXTAUTH_SECRET,
+  cookieName: cookieName,  // ← MUST match auth-config.ts
+})
+```
+
+**Why this matters:**
+- Custom cookie names require explicit configuration
+- Edge Middleware can't auto-detect custom cookies
+- Missing `cookieName` causes 100% authentication failures on Vercel
+- One line fix affects entire system (all API routes, middleware)
+
+**Quick Decision Tree:**
+```
+Are you experiencing auth issues on Vercel?
+├─ YES → Read docs/AUTH_TROUBLESHOOTING.md FIRST
+│   ├─ Redirect loops? → Section 1
+│   ├─ API 401 errors? → Section 2
+│   └─ Sign-in loops? → Section 3
+│
+└─ NO → Read docs/AUTHENTICATION.md for setup/configuration
+```
+
 ### Brand Identity
 **MoodB Brand Colors:**
 - **Primary Background**: `#f7f7ed` (Light cream/beige)
