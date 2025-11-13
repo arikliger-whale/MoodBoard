@@ -94,13 +94,13 @@ export default function AdminStylesPage() {
     })) || []),
   ]
 
-  // Approach options
+  // Approach options for filtering
   const approachOptions = [
     { value: '', label: tCommon('filter') },
-    ...(approachesData?.data.map((approach: any) => ({
+    ...((approachesData?.data || []).map((approach: any) => ({
       value: approach.id,
       label: `${approach.name.he} (${approach.name.en})`,
-    })) || []),
+    }))),
   ]
 
   // Reset sub-category when category changes

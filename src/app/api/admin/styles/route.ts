@@ -36,9 +36,8 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
       organizationId: null,
     }
 
-    // Add search filter (by name) - Search disabled for composite types in MongoDB
-    // TODO: Implement search using MongoDB aggregation pipeline if needed
-    // For now, we'll filter by other criteria (category, subcategory, approach)
+    // Search filter disabled - MongoDB with Prisma doesn't support direct querying of composite types
+    // Use filters instead: category, subcategory, approach, color
 
     // Add filters
     if (filters.categoryId) {
