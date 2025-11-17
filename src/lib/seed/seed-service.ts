@@ -963,7 +963,7 @@ export async function seedStyles(
           subCatsToProcess.length
         )
 
-        const detailedContent = await generateStyleContent(styleName, {
+        let detailedContent = await generateStyleContent(styleName, {
           category: { name: subCategory.category.name },
           subCategory: {
             name: subCategory.name,
@@ -983,6 +983,29 @@ export async function seedStyles(
           },
         })
 
+        // Clean up AI-generated content to match Prisma schema
+        // Remove any extra fields that Gemini might have added (like imagePrompt, quote in poeticIntro)
+        // Note: keywords is valid and optional in the schema
+        if (detailedContent.he?.poeticIntro) {
+          const { imagePrompt: _heImagePrompt, quote: _heQuote, ...cleanHePoetic } = detailedContent.he.poeticIntro as any
+          detailedContent.he.poeticIntro = cleanHePoetic
+        }
+        if (detailedContent.en?.poeticIntro) {
+          const { imagePrompt: _enImagePrompt, quote: _enQuote, ...cleanEnPoetic } = detailedContent.en.poeticIntro as any
+          detailedContent.en.poeticIntro = cleanEnPoetic
+        }
+
+        // Extract visual context from sub-category detailedContent
+        // This will be used for both general images and room images
+        const visualContext = subCategory.detailedContent?.en
+          ? {
+              characteristics: subCategory.detailedContent.en.characteristics || [],
+              visualElements: subCategory.detailedContent.en.visualElements || [],
+              materialGuidance: subCategory.detailedContent.en.materialGuidance,
+              colorGuidance: subCategory.detailedContent.en.colorGuidance,
+            }
+          : undefined
+
         // Step 3b: Generate 3 general style images
         let generalImages: string[] = []
         if (options.generateImages) {
@@ -993,16 +1016,6 @@ export async function seedStyles(
           )
 
           try {
-            // Extract visual context from sub-category detailedContent
-            const visualContext = subCategory.detailedContent?.en
-              ? {
-                  characteristics: subCategory.detailedContent.en.characteristics || [],
-                  visualElements: subCategory.detailedContent.en.visualElements || [],
-                  materialGuidance: subCategory.detailedContent.en.materialGuidance,
-                  colorGuidance: subCategory.detailedContent.en.colorGuidance,
-                }
-              : undefined
-
             generalImages = await generateStyleImages(
               styleName,
               {
@@ -1150,6 +1163,12 @@ export async function seedStyles(
               // Generate room-specific images
               let roomImages: string[] = []
               try {
+                onProgress?.(
+                  `      🎨 Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Starting image generation (visualContext: ${!!visualContext}, referenceImages: ${subCategory.images?.length || 0})...`,
+                  i + 1,
+                  subCatsToProcess.length
+                )
+
                 roomImages = await generateStyleRoomImages(
                   styleName,
                   roomType.name.en,
@@ -1157,9 +1176,17 @@ export async function seedStyles(
                   visualContext, // Use same visual context from sub-category
                   subCategory.images || [] // Pass sub-category reference images
                 )
-              } catch (error) {
+
                 onProgress?.(
-                  `      ⚠️  Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Image generation failed, continuing...`,
+                  `      ✅ Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Generated ${roomImages.length} images`,
+                  i + 1,
+                  subCatsToProcess.length
+                )
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error)
+                console.error(`Room image generation failed for ${roomType.name.en}:`, error)
+                onProgress?.(
+                  `      ⚠️  Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Image generation failed: ${errorMessage}`,
                   i + 1,
                   subCatsToProcess.length
                 )

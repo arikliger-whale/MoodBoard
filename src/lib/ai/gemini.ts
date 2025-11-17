@@ -7,12 +7,18 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Validate API key exists
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY environment variable is required')
-}
+// Lazy initialization to avoid build-time errors
+let genAI: GoogleGenerativeAI | null = null
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+function getGenAI(): GoogleGenerativeAI {
+  if (!genAI) {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY environment variable is required')
+    }
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  }
+  return genAI
+}
 
 /**
  * Available Gemini models
@@ -74,7 +80,7 @@ export async function generateCategoryContent(
     existingStyles?: string[]
   }
 ): Promise<LocalizedDetailedContent> {
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODELS.FLASH_LITE })
+  const model = getGenAI().getGenerativeModel({ model: GEMINI_MODELS.FLASH_LITE })
 
   const prompt = `
 You are an expert interior design historian and content writer. Generate comprehensive, detailed content for a design style CATEGORY.
@@ -143,7 +149,7 @@ export async function generateSubCategoryContent(
     relatedStyles?: string[]
   }
 ): Promise<LocalizedDetailedContent> {
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODELS.FLASH_LITE })
+  const model = getGenAI().getGenerativeModel({ model: GEMINI_MODELS.FLASH_LITE })
 
   const prompt = `
 You are an expert interior design historian and content writer. Generate comprehensive, detailed content for a design style SUB-CATEGORY.
@@ -257,7 +263,7 @@ export async function generateStyleContent(
     }
   }
 ): Promise<EnhancedLocalizedDetailedContent> {
-  const model = genAI.getGenerativeModel({
+  const model = getGenAI().getGenerativeModel({
     model: GEMINI_MODELS.FLASH,
     generationConfig: {
       ...DEFAULT_CONFIG,
@@ -324,7 +330,7 @@ export async function generateApproachContent(
     relatedStyles?: string[]
   }
 ): Promise<LocalizedDetailedContent> {
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODELS.FLASH_LITE })
+  const model = getGenAI().getGenerativeModel({ model: GEMINI_MODELS.FLASH_LITE })
 
   const prompt = `
 You are an expert interior design philosopher and content writer. Generate comprehensive, detailed content for a design APPROACH.
@@ -390,7 +396,7 @@ export async function generateRoomTypeContent(
     category?: string
   }
 ): Promise<LocalizedDetailedContent> {
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODELS.FLASH_LITE })
+  const model = getGenAI().getGenerativeModel({ model: GEMINI_MODELS.FLASH_LITE })
 
   const prompt = `
 You are an expert interior designer and content writer. Generate comprehensive, detailed content for a ROOM TYPE.
@@ -454,7 +460,7 @@ export async function generateColorDescription(
     category: string
   }
 ): Promise<{ he: string; en: string }> {
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODELS.FLASH_LITE })
+  const model = getGenAI().getGenerativeModel({ model: GEMINI_MODELS.FLASH_LITE })
 
   const prompt = `
 You are an expert interior designer and color consultant. Generate a professional, detailed description for this color.
@@ -587,7 +593,7 @@ export async function generateRoomProfileContent(
     }
   }
 ): Promise<RoomProfile> {
-  const model = genAI.getGenerativeModel({
+  const model = getGenAI().getGenerativeModel({
     model: GEMINI_MODELS.FLASH,
     generationConfig: {
       ...DEFAULT_CONFIG,
