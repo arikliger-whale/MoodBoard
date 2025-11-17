@@ -1292,5 +1292,35 @@
         "styles": "Styles"
       }
     }
+  },
+  "styles": {
+    "user": {
+      "title": "Styles Library",
+      "createStyle": "Create Style",
+      "searchPlaceholder": "Search styles...",
+      "filterByCategory": "Filter by category",
+      "filterBySubCategory": "Filter by sub-category",
+      "filterByScope": "Filter by scope",
+      "noStyles": "No styles found",
+      "noStylesDescription": "Start creating your first style or browse global styles",
+      "noTags": "No tags",
+      "deleteStyle": "Delete Style",
+      "deleteStyleMessage": "Are you sure you want to delete this style? This action cannot be undone.",
+      "scope": {
+        "all": "All Styles",
+        "global": "Global",
+        "public": "Public",
+        "personal": "Personal"
+      },
+      "table": {
+        "name": "Name",
+        "category": "Category",
+        "scope": "Scope",
+        "tags": "Tags",
+        "usage": "Usage",
+        "createdAt": "Created At",
+        "actions": "Actions"
+      }
+    }
   }
 }

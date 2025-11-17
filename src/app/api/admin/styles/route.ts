@@ -35,15 +35,11 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
 
     console.log('[GET /api/admin/styles] Filters:', filters)
 
-    // Build where clause - only global styles (organizationId = null)
-    const where: any = {
-      organizationId: null,
-    }
-
-    console.log('[GET /api/admin/styles] Where clause:', where)
-
-    // Search filter disabled - MongoDB with Prisma doesn't support direct querying of composite types
-    // Use filters instead: category, subcategory, approach, color
+    // Build where clause - only global styles
+    // Note: MongoDB stores null as BSON null which needs special handling
+    // We'll fetch all styles and filter in JavaScript for now
+    // TODO: Find a better Prisma+MongoDB solution for null queries
+    const where: any = {}
 
     // Add filters
     if (filters.categoryId) {
@@ -59,12 +55,10 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
       where.colorId = filters.colorId
     }
 
-    // Get total count
-    const total = await prisma.style.count({ where })
-    console.log('[GET /api/admin/styles] Total styles count:', total)
+    console.log('[GET /api/admin/styles] Where clause:', where)
 
-    // Get styles
-    const styles = await prisma.style.findMany({
+    // Get all styles first (we'll filter for global in JavaScript)
+    const allStyles = await prisma.style.findMany({
       where,
       include: {
         category: {
@@ -84,10 +78,8 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
         approach: {
           select: {
             id: true,
-            slug: true,
             name: true,
-            order: true,
-            metadata: true,
+            slug: true,
           },
         },
         color: {
@@ -101,12 +93,20 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
         },
       },
       orderBy: { createdAt: 'desc' },
-      skip: (filters.page - 1) * filters.limit,
-      take: filters.limit,
     })
 
-    console.log('[GET /api/admin/styles] Styles found:', styles.length)
-    console.log('[GET /api/admin/styles] Returning response with pagination')
+    // Filter for global styles (organizationId is null/undefined)
+    const globalStyles = allStyles.filter((style) => !style.organizationId)
+    console.log('[GET /api/admin/styles] Filtered global styles:', globalStyles.length)
+
+    // Apply pagination in JavaScript
+    const total = globalStyles.length
+    const startIndex = (filters.page - 1) * filters.limit
+    const endIndex = startIndex + filters.limit
+    const styles = globalStyles.slice(startIndex, endIndex)
+
+    console.log('[GET /api/admin/styles] Total global styles:', total)
+    console.log('[GET /api/admin/styles] Returning styles:', styles.length)
 
     return NextResponse.json({
       data: styles,

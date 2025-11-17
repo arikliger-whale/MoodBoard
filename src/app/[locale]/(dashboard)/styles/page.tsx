@@ -6,15 +6,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Container, Title, Group, Stack, TextInput, Select, Pagination, ActionIcon, Menu, Text, Button, Badge } from '@mantine/core'
+import { Container, Title, Group, Stack, TextInput, Select, Pagination, ActionIcon, Menu, Text, Button, Badge, SimpleGrid, Image, Card } from '@mantine/core'
 import { useTranslations } from 'next-intl'
 import { useRouter, useParams } from 'next/navigation'
-import { IconPlus, IconSearch, IconDots, IconEdit, IconTrash, IconEye, IconTag } from '@tabler/icons-react'
+import { IconPlus, IconSearch, IconDots, IconEdit, IconTrash, IconEye, IconTag, IconPhoto } from '@tabler/icons-react'
 // FIX: Replaced barrel import with direct imports to improve compilation speed
 // Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
 // Direct imports only compile what's needed
 import { MoodBCard } from '@/components/ui/Card'
-import { MoodBTable, MoodBTableHead, MoodBTableBody, MoodBTableRow, MoodBTableHeader, MoodBTableCell } from '@/components/ui/Table'
 import { MoodBBadge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { LoadingState } from '@/components/ui/LoadingState'
@@ -173,7 +172,7 @@ export default function StylesPage() {
           </Group>
         </MoodBCard>
 
-        {/* Table */}
+        {/* Styles Grid */}
         {isLoading ? (
           <LoadingState />
         ) : error ? (
@@ -189,140 +188,165 @@ export default function StylesPage() {
           />
         ) : (
           <>
-            <MoodBCard>
-              <MoodBTable>
-                <MoodBTableHead>
-                  <MoodBTableRow>
-                    <MoodBTableHeader>{t('table.name')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.category')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.scope')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.tags')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.usage')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.createdAt')}</MoodBTableHeader>
-                    <MoodBTableHeader style={{ width: 100 }}>{t('table.actions')}</MoodBTableHeader>
-                  </MoodBTableRow>
-                </MoodBTableHead>
-                <MoodBTableBody>
-                  {data.data.map((style) => {
-                    const metadata = style.metadata as any
-                    const isGlobal = style.organizationId === null
-                    const isPublic = metadata.isPublic && metadata.approvalStatus === 'approved'
-                    const isPersonal = !isGlobal && !isPublic
+            <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="lg">
+              {data.data.map((style) => {
+                const metadata = style.metadata as any
+                const isGlobal = style.organizationId === null
+                const isPublic = metadata.isPublic && metadata.approvalStatus === 'approved'
+                const isPersonal = !isGlobal && !isPublic
+                const firstImage = style.images?.[0]
 
-                    return (
-                      <MoodBTableRow key={style.id}>
-                        <MoodBTableCell>
-                          <Stack gap={4}>
-                            <Text fw={500}>{style.name.he}</Text>
-                            <Text size="xs" c="dimmed">
-                              {style.name.en}
-                            </Text>
-                          </Stack>
-                        </MoodBTableCell>
-                        <MoodBTableCell>
-                          <Stack gap={4}>
-                            {style.category && (
-                              <MoodBBadge color="brand" variant="light">
-                                {style.category.name.he}
-                              </MoodBBadge>
-                            )}
-                            {style.subCategory && (
-                              <MoodBBadge color="blue" variant="light" size="sm">
-                                {style.subCategory.name.he}
-                              </MoodBBadge>
-                            )}
-                          </Stack>
-                        </MoodBTableCell>
-                        <MoodBTableCell>
-                          {isGlobal ? (
-                            <MoodBBadge color="violet" variant="light">
-                              {t('scope.global')}
-                            </MoodBBadge>
-                          ) : isPublic ? (
-                            <MoodBBadge color="green" variant="light">
-                              {t('scope.public')}
-                            </MoodBBadge>
-                          ) : (
-                            <MoodBBadge color="orange" variant="light">
-                              {t('scope.personal')}
-                            </MoodBBadge>
-                          )}
-                        </MoodBTableCell>
-                        <MoodBTableCell>
-                          {metadata.tags && metadata.tags.length > 0 ? (
-                            <Group gap={4}>
-                              {metadata.tags.slice(0, 2).map((tag: string) => (
-                                <Badge key={tag} size="sm" variant="dot" leftSection={<IconTag size={12} />}>
-                                  {tag}
-                                </Badge>
-                              ))}
-                              {metadata.tags.length > 2 && (
-                                <Text size="xs" c="dimmed">
-                                  +{metadata.tags.length - 2}
-                                </Text>
-                              )}
-                            </Group>
-                          ) : (
-                            <Text size="sm" c="dimmed">
-                              {t('noTags')}
-                            </Text>
-                          )}
-                        </MoodBTableCell>
-                        <MoodBTableCell>
-                          <Text size="sm">{metadata.usage || 0}</Text>
-                        </MoodBTableCell>
-                        <MoodBTableCell>
-                          <Text size="sm">
-                            {new Date(style.createdAt).toLocaleDateString(locale)}
+                return (
+                  <Card
+                    key={style.id}
+                    shadow="sm"
+                    padding="lg"
+                    radius="md"
+                    withBorder
+                    style={{
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      backgroundColor: '#f7f7ed',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-4px)'
+                      e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.1)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = ''
+                    }}
+                    onClick={() => router.push(`/${locale}/styles/${style.id}`)}
+                  >
+                    {/* Image */}
+                    <Card.Section>
+                      {firstImage ? (
+                        <Image
+                          src={firstImage}
+                          height={200}
+                          alt={style.name.he}
+                          fit="cover"
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            height: 200,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#e0e0d8',
+                          }}
+                        >
+                          <IconPhoto size={48} color="#999" />
+                        </div>
+                      )}
+                    </Card.Section>
+
+                    {/* Content */}
+                    <Stack gap="xs" mt="md">
+                      {/* Title */}
+                      <Group justify="space-between" align="flex-start">
+                        <div style={{ flex: 1 }}>
+                          <Text fw={600} size="lg" lineClamp={1}>
+                            {style.name.he}
                           </Text>
-                        </MoodBTableCell>
-                        <MoodBTableCell>
-                          <Menu shadow="md" width={200}>
-                            <Menu.Target>
-                              <ActionIcon variant="subtle" color="brand">
-                                <IconDots size={16} />
-                              </ActionIcon>
-                            </Menu.Target>
-                            <Menu.Dropdown>
-                              <Menu.Item
-                                leftSection={<IconEye size={16} />}
-                                component={Link}
-                                href={`/${locale}/styles/${style.id}`}
-                              >
-                                {tCommon('view')}
-                              </Menu.Item>
-                              {canEditStyle(style) && (
-                                <>
-                                  <Menu.Item
-                                    leftSection={<IconEdit size={16} />}
-                                    component={Link}
-                                    href={`/${locale}/styles/${style.id}/edit`}
-                                  >
-                                    {tCommon('edit')}
-                                  </Menu.Item>
-                                  <Menu.Divider />
-                                  <Menu.Item
-                                    leftSection={<IconTrash size={16} />}
-                                    color="red"
-                                    onClick={() => setDeleteStyleId(style.id)}
-                                  >
-                                    {tCommon('delete')}
-                                  </Menu.Item>
-                                </>
-                              )}
-                            </Menu.Dropdown>
-                          </Menu>
-                        </MoodBTableCell>
-                      </MoodBTableRow>
-                    )
-                  })}
-                </MoodBTableBody>
-              </MoodBTable>
-            </MoodBCard>
+                          <Text size="sm" c="dimmed" lineClamp={1}>
+                            {style.name.en}
+                          </Text>
+                        </div>
+                        <Menu shadow="md" width={200} onClick={(e) => e.stopPropagation()}>
+                          <Menu.Target>
+                            <ActionIcon variant="subtle" color="brand">
+                              <IconDots size={16} />
+                            </ActionIcon>
+                          </Menu.Target>
+                          <Menu.Dropdown>
+                            <Menu.Item
+                              leftSection={<IconEye size={16} />}
+                              component={Link}
+                              href={`/${locale}/styles/${style.id}`}
+                            >
+                              {tCommon('view')}
+                            </Menu.Item>
+                            {canEditStyle(style) && (
+                              <>
+                                <Menu.Item
+                                  leftSection={<IconEdit size={16} />}
+                                  component={Link}
+                                  href={`/${locale}/styles/${style.id}/edit`}
+                                >
+                                  {tCommon('edit')}
+                                </Menu.Item>
+                                <Menu.Divider />
+                                <Menu.Item
+                                  leftSection={<IconTrash size={16} />}
+                                  color="red"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setDeleteStyleId(style.id)
+                                  }}
+                                >
+                                  {tCommon('delete')}
+                                </Menu.Item>
+                              </>
+                            )}
+                          </Menu.Dropdown>
+                        </Menu>
+                      </Group>
+
+                      {/* Category & Sub-Category */}
+                      <Group gap="xs">
+                        {style.category && (
+                          <MoodBBadge color="brand" variant="light" size="sm">
+                            {style.category.name.he}
+                          </MoodBBadge>
+                        )}
+                        {style.subCategory && (
+                          <MoodBBadge color="blue" variant="light" size="sm">
+                            {style.subCategory.name.he}
+                          </MoodBBadge>
+                        )}
+                      </Group>
+
+                      {/* Scope Badge */}
+                      {isGlobal ? (
+                        <MoodBBadge color="violet" variant="light" size="sm">
+                          {t('scope.global')}
+                        </MoodBBadge>
+                      ) : isPublic ? (
+                        <MoodBBadge color="green" variant="light" size="sm">
+                          {t('scope.public')}
+                        </MoodBBadge>
+                      ) : (
+                        <MoodBBadge color="orange" variant="light" size="sm">
+                          {t('scope.personal')}
+                        </MoodBBadge>
+                      )}
+
+                      {/* Tags */}
+                      {metadata.tags && metadata.tags.length > 0 && (
+                        <Group gap={4}>
+                          {metadata.tags.slice(0, 2).map((tag: string) => (
+                            <Badge key={tag} size="xs" variant="dot" leftSection={<IconTag size={10} />}>
+                              {tag}
+                            </Badge>
+                          ))}
+                          {metadata.tags.length > 2 && (
+                            <Badge size="xs" variant="light">
+                              +{metadata.tags.length - 2}
+                            </Badge>
+                          )}
+                        </Group>
+                      )}
+                    </Stack>
+                  </Card>
+                )
+              })}
+            </SimpleGrid>
 
             {/* Pagination */}
             {data.pagination.totalPages > 1 && (
-              <Group justify="center">
+              <Group justify="center" mt="xl">
                 <Pagination
                   value={page}
                   onChange={setPage}

@@ -1069,6 +1069,7 @@ export async function seedStyles(
         let style = await prisma.style.upsert({
           where: { slug: styleSlug },
           create: {
+            organizationId: null, // Global style (not organization-specific)
             slug: styleSlug,
             name: styleName,
             categoryId: subCategory.categoryId,
@@ -1095,6 +1096,7 @@ export async function seedStyles(
             },
           },
           update: {
+            organizationId: null, // Ensure it stays global on updates
             name: styleName,
             categoryId: subCategory.categoryId,
             subCategoryId: subCategory.id,

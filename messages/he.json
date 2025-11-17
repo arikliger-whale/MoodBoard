@@ -1207,5 +1207,35 @@
       "deleteRoomTitle": "מחיקת חדר",
       "deleteRoomMessage": "האם אתה בטוח שברצונך למחוק חדר זה? פעולה זו אינה ניתנת לביטול."
     }
+  },
+  "styles": {
+    "user": {
+      "title": "ספריית סגנונות",
+      "createStyle": "צור סגנון",
+      "searchPlaceholder": "חפש סגנונות...",
+      "filterByCategory": "סנן לפי קטגוריה",
+      "filterBySubCategory": "סנן לפי תת-קטגוריה",
+      "filterByScope": "סנן לפי היקף",
+      "noStyles": "לא נמצאו סגנונות",
+      "noStylesDescription": "התחל ביצירת הסגנון הראשון שלך או עיין בסגנונות גלובליים",
+      "noTags": "אין תגיות",
+      "deleteStyle": "מחק סגנון",
+      "deleteStyleMessage": "האם אתה בטוח שברצונך למחוק סגנון זה? פעולה זו אינה ניתנת לביטול.",
+      "scope": {
+        "all": "כל הסגנונות",
+        "global": "גלובלי",
+        "public": "ציבורי",
+        "personal": "אישי"
+      },
+      "table": {
+        "name": "שם",
+        "category": "קטגוריה",
+        "scope": "היקף",
+        "tags": "תגיות",
+        "usage": "שימוש",
+        "createdAt": "תאריך יצירה",
+        "actions": "פעולות"
+      }
+    }
   }
 }
