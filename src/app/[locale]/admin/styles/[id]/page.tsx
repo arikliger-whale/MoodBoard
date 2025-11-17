@@ -18,6 +18,9 @@ import { LoadingState } from '@/components/ui/LoadingState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useAdminStyle } from '@/hooks/useStyles'
 import { useMaterial } from '@/hooks/useMaterials'
+import { AIMetadataDisplay } from '@/components/features/style-system/AIMetadataDisplay'
+import { DetailedContentViewer } from '@/components/features/style-system/DetailedContentViewer'
+import { useImageViewer } from '@/contexts/ImageViewerContext'
 import Link from 'next/link'
 
 // Material Card Component
@@ -128,7 +131,7 @@ function MaterialCard({ materialId, usageArea, defaultFinish, locale, compact = 
 }
 
 // Room Profile Card Component
-function RoomProfileCard({ profile, locale, t }: { profile: any; locale: string; t: any }) {
+function RoomProfileCard({ profile, locale, t, openImages }: { profile: any; locale: string; t: any; openImages: any }) {
   const tProjects = useTranslations('projects')
   const roomTypeName = tProjects(`form.roomTypes.${profile.roomType}`) || profile.roomType
 
@@ -139,6 +142,51 @@ function RoomProfileCard({ profile, locale, t }: { profile: any; locale: string;
           <Title order={4}>{roomTypeName}</Title>
           <Badge variant="light" color="brand">{profile.roomType}</Badge>
         </Group>
+
+        {/* Room Colors */}
+        {profile.colors && profile.colors.length > 0 && (
+          <>
+            <Divider />
+            <div>
+              <Text fw={500} size="sm" mb="xs" c="dimmed">
+                צבעים ({profile.colors.length})
+              </Text>
+              <Group gap="xs">
+                {profile.colors.map((colorId: string, colorIndex: number) => (
+                  <Badge key={colorIndex} variant="light" color="blue" size="sm">
+                    {colorId.substring(0, 8)}...
+                  </Badge>
+                ))}
+              </Group>
+            </div>
+          </>
+        )}
+
+        {/* Room Textures */}
+        {profile.textures && profile.textures.length > 0 && (
+          <>
+            <Divider />
+            <div>
+              <Text fw={500} size="sm" mb="xs" c="dimmed">
+                טקסטורות ({profile.textures.length})
+              </Text>
+              <Stack gap="xs">
+                {profile.textures.map((texture: any, textureIndex: number) => (
+                  <Group key={textureIndex} justify="space-between">
+                    <Badge variant="light" color="teal" size="sm">
+                      {texture.type}
+                    </Badge>
+                    {texture.name && (
+                      <Text size="xs" c="dimmed">
+                        {texture.name}
+                      </Text>
+                    )}
+                  </Group>
+                ))}
+              </Stack>
+            </div>
+          </>
+        )}
 
         {/* Room Materials */}
         {profile.materials && profile.materials.length > 0 && (
@@ -155,6 +203,32 @@ function RoomProfileCard({ profile, locale, t }: { profile: any; locale: string;
                   </Grid.Col>
                 ))}
               </Grid>
+            </div>
+          </>
+        )}
+
+        {/* Room Products */}
+        {profile.products && profile.products.length > 0 && (
+          <>
+            <Divider />
+            <div>
+              <Text fw={500} size="sm" mb="xs" c="dimmed">
+                מוצרים ({profile.products.length})
+              </Text>
+              <Stack gap="xs">
+                {profile.products.map((product: any, productIndex: number) => (
+                  <Group key={productIndex} justify="space-between">
+                    <Badge variant="light" color="orange" size="sm">
+                      {product.category}
+                    </Badge>
+                    {product.name && (
+                      <Text size="xs" c="dimmed">
+                        {product.name}
+                      </Text>
+                    )}
+                  </Group>
+                ))}
+              </Stack>
             </div>
           </>
         )}
@@ -211,15 +285,26 @@ function RoomProfileCard({ profile, locale, t }: { profile: any; locale: string;
                     p="xs"
                     withBorder
                     radius="md"
-                    style={{ overflow: 'hidden', cursor: 'pointer' }}
-                    onClick={() => window.open(imageUrl, '_blank')}
+                    style={{ overflow: 'hidden' }}
                   >
                     <Box
                       style={{
                         aspectRatio: '1',
                         overflow: 'hidden',
                         borderRadius: 'var(--mantine-radius-sm)',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s ease',
                       }}
+                      onClick={() => openImages(
+                        profile.images.map((url: string, idx: number) => ({
+                          url,
+                          title: `${roomTypeName} - תמונה ${idx + 1}`,
+                          description: profile.roomType
+                        })),
+                        imgIndex
+                      )}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >
                       <Image
                         src={imageUrl}
@@ -248,6 +333,7 @@ export default function AdminStyleDetailPage() {
   const styleId = params.id as string
 
   const { data: style, isLoading, error } = useAdminStyle(styleId)
+  const { openImages } = useImageViewer()
 
   if (isLoading) {
     return (
@@ -370,8 +456,18 @@ export default function AdminStyleDetailPage() {
                             overflow: 'hidden',
                             borderRadius: 'var(--mantine-radius-sm)',
                             cursor: 'pointer',
+                            transition: 'transform 0.2s ease',
                           }}
-                          onClick={() => window.open(imageUrl, '_blank')}
+                          onClick={() => openImages(
+                            style.images.map((url, idx) => ({
+                              url,
+                              title: `${style.name.he} - תמונה ${idx + 1}`,
+                              description: style.name.en
+                            })),
+                            index
+                          )}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                         >
                           <Image
                             src={imageUrl}
@@ -388,6 +484,26 @@ export default function AdminStyleDetailPage() {
             )}
           </Stack>
         </MoodBCard>
+
+        {/* AI Metadata Section */}
+        <AIMetadataDisplay
+          aiGenerated={style.metadata.aiGenerated}
+          aiSelection={style.metadata.aiSelection}
+          variant="full"
+          locale={locale}
+        />
+
+        {/* Detailed Content Section */}
+        {style.detailedContent && (
+          <MoodBCard>
+            <DetailedContentViewer
+              content={style.detailedContent}
+              entityName={style.name}
+              entityType="style"
+              images={style.images}
+            />
+          </MoodBCard>
+        )}
 
         <MoodBCard>
           <Stack gap="lg">
@@ -454,15 +570,26 @@ export default function AdminStyleDetailPage() {
                                 p="xs"
                                 withBorder
                                 radius="md"
-                                style={{ overflow: 'hidden', cursor: 'pointer' }}
-                                onClick={() => window.open(imageUrl, '_blank')}
+                                style={{ overflow: 'hidden' }}
                               >
                                 <Box
                                   style={{
                                     aspectRatio: '1',
                                     overflow: 'hidden',
                                     borderRadius: 'var(--mantine-radius-sm)',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s ease',
                                   }}
+                                  onClick={() => openImages(
+                                    approach.images.map((url: string, idx: number) => ({
+                                      url,
+                                      title: `${approach.name?.he} - תמונה ${idx + 1}`,
+                                      description: approach.name?.en
+                                    })),
+                                    index
+                                  )}
+                                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                 >
                                   <Image
                                     src={imageUrl}
@@ -523,7 +650,7 @@ export default function AdminStyleDetailPage() {
                           <Text fw={500}>{t('detail.rooms.title')}</Text>
                           <Stack gap="md">
                             {approach.roomProfiles.map((profile: any, index: number) => (
-                              <RoomProfileCard key={index} profile={profile} locale={locale} t={t} />
+                              <RoomProfileCard key={index} profile={profile} locale={locale} t={t} openImages={openImages} />
                             ))}
                           </Stack>
                         </Stack>

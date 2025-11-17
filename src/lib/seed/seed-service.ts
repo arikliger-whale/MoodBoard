@@ -730,8 +730,13 @@ export async function seedStyles(
     categoryFilter?: string
     subCategoryFilter?: string
     generateRoomProfiles?: boolean
+    roomTypeFilter?: string[]  // Filter specific room types (slugs)
     executionId?: string // For tracking in SeedExecution table
     onStyleCompleted?: (styleId: string, styleName: { he: string; en: string }) => Promise<void>
+    // Manual generation mode
+    manualMode?: boolean
+    approachId?: string
+    colorId?: string
   } = {}
 ): Promise<SeedResult> {
   const {
@@ -740,8 +745,12 @@ export async function seedStyles(
     onProgress,
     dryRun = false,
     generateRoomProfiles = true,
+    roomTypeFilter,
     executionId,
-    onStyleCompleted
+    onStyleCompleted,
+    manualMode = false,
+    approachId,
+    colorId
   } = options
 
   const result: SeedResult = {
@@ -773,7 +782,11 @@ export async function seedStyles(
       prisma.color.findMany({
         where: { organizationId: null }, // Only global colors
       }),
-      prisma.roomType.findMany(),
+      prisma.roomType.findMany({
+        where: roomTypeFilter && roomTypeFilter.length > 0
+          ? { slug: { in: roomTypeFilter } }
+          : {},
+      }),
     ])
 
     onProgress?.(
@@ -825,23 +838,59 @@ export async function seedStyles(
     const { generateStyleImages, generateStyleRoomImages } = await import('../ai/image-generation')
     const { batchGenerateRoomProfiles } = await import('../ai/gemini')
 
-    // Step 2: Batch AI selection for all sub-categories
-    onProgress?.(
-      `🤖 AI selecting optimal approach & color combinations for ${subCatsToProcess.length} sub-categories...`,
-      0,
-      subCatsToProcess.length
-    )
+    // Step 2: Batch AI selection OR manual selection
+    let selections: Map<string, { approachId: string; colorId: string; confidence: number; reasoning: string }>
 
-    const selections = await batchSelectOptimalCombinations(
-      subCatsToProcess,
-      approaches,
-      colors,
-      (message, current, total) => {
-        onProgress?.(message, current, total)
+    if (manualMode && approachId && colorId) {
+      // MANUAL MODE: Use user-provided approach & color
+      onProgress?.('✅ Using manual approach & color selection')
+      selections = new Map()
+
+      // Validate that approach and color exist
+      const selectedApproach = approaches.find((a) => a.id === approachId)
+      const selectedColor = colors.find((c) => c.id === colorId)
+
+      if (!selectedApproach || !selectedColor) {
+        throw new Error(
+          `Invalid manual selection: Approach ${approachId} or Color ${colorId} not found`
+        )
       }
-    )
 
-    onProgress?.(`✅ AI selections complete!`)
+      // Apply same approach/color to all sub-categories being processed
+      subCatsToProcess.forEach((sc) => {
+        selections.set(sc.id, {
+          approachId: approachId,
+          colorId: colorId,
+          confidence: 1.0,
+          reasoning: {
+            he: 'בחירה ידנית על ידי המשתמש',
+            en: 'Manual selection by user',
+          },
+        })
+      })
+
+      onProgress?.(
+        `   Using: ${selectedApproach.name.en} + ${selectedColor.name.en} for ${subCatsToProcess.length} style(s)`
+      )
+    } else {
+      // AI MODE: Batch select optimal combinations
+      onProgress?.(
+        `🤖 AI selecting optimal approach & color combinations for ${subCatsToProcess.length} sub-categories...`,
+        0,
+        subCatsToProcess.length
+      )
+
+      selections = await batchSelectOptimalCombinations(
+        subCatsToProcess,
+        approaches,
+        colors,
+        (message, current, total) => {
+          onProgress?.(message, current, total)
+        }
+      )
+
+      onProgress?.('✅ AI selections complete!')
+    }
 
     // Step 3: Generate styles one by one
     for (let i = 0; i < subCatsToProcess.length; i++) {
@@ -898,6 +947,15 @@ export async function seedStyles(
           continue
         }
 
+        if (existing && !skipExisting) {
+          // Manual mode override - will update existing style
+          onProgress?.(
+            `♻️  Regenerating existing style: ${styleName.en}`,
+            i + 1,
+            subCatsToProcess.length
+          )
+        }
+
         // Step 3a: Generate hybrid content (poetic + factual)
         onProgress?.(
           `   📝 Generating hybrid content (poetic + factual)...`,
@@ -935,6 +993,16 @@ export async function seedStyles(
           )
 
           try {
+            // Extract visual context from sub-category detailedContent
+            const visualContext = subCategory.detailedContent?.en
+              ? {
+                  characteristics: subCategory.detailedContent.en.characteristics || [],
+                  visualElements: subCategory.detailedContent.en.visualElements || [],
+                  materialGuidance: subCategory.detailedContent.en.materialGuidance,
+                  colorGuidance: subCategory.detailedContent.en.colorGuidance,
+                }
+              : undefined
+
             generalImages = await generateStyleImages(
               styleName,
               {
@@ -943,6 +1011,8 @@ export async function seedStyles(
                 colorName: selectedColor.name.en,
                 colorHex: selectedColor.hex,
               },
+              visualContext,
+              subCategory.images || [], // Pass sub-category reference images
               (current, total, type) => {
                 onProgress?.(
                   `      Image ${current}/${total}: ${type}`,
@@ -1083,7 +1153,9 @@ export async function seedStyles(
                 roomImages = await generateStyleRoomImages(
                   styleName,
                   roomType.name.en,
-                  selectedColor.hex
+                  selectedColor.hex,
+                  visualContext, // Use same visual context from sub-category
+                  subCategory.images || [] // Pass sub-category reference images
                 )
               } catch (error) {
                 onProgress?.(

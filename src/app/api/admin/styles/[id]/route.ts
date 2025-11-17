@@ -97,6 +97,44 @@ export const PATCH = withAdmin(async (req: NextRequest) => {
       }
     }
 
+    if (body.colorId) {
+      const color = await prisma.color.findUnique({ where: { id: body.colorId } })
+      if (!color) {
+        return NextResponse.json({ error: 'Color not found' }, { status: 404 })
+      }
+    }
+
+    // Verify room profiles if provided
+    if (body.roomProfiles && body.roomProfiles.length > 0) {
+      for (const [index, profile] of body.roomProfiles.entries()) {
+        // Verify room type exists
+        const roomType = await prisma.roomType.findUnique({
+          where: { id: profile.roomTypeId },
+        })
+        if (!roomType) {
+          return NextResponse.json(
+            { error: `Room type not found for room profile ${index + 1}` },
+            { status: 404 }
+          )
+        }
+
+        // Verify all colors exist if provided
+        if (profile.colors && profile.colors.length > 0) {
+          for (const colorId of profile.colors) {
+            const roomColor = await prisma.color.findUnique({
+              where: { id: colorId },
+            })
+            if (!roomColor) {
+              return NextResponse.json(
+                { error: `Color not found in room profile ${index + 1}: ${colorId}` },
+                { status: 404 }
+              )
+            }
+          }
+        }
+      }
+    }
+
     if (body.slug) {
       const duplicate = await prisma.style.findFirst({
         where: {
@@ -112,6 +150,7 @@ export const PATCH = withAdmin(async (req: NextRequest) => {
     const updateData: Record<string, unknown> = { updatedAt: new Date() }
 
     if (body.name) updateData.name = body.name
+    if (body.description !== undefined) updateData.description = body.description
     if (body.slug) updateData.slug = body.slug
     if (body.categoryId) updateData.categoryId = body.categoryId
     if (body.subCategoryId) updateData.subCategoryId = body.subCategoryId

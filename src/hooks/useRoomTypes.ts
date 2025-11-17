@@ -3,19 +3,28 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSession } from 'next-auth/react'
 import { CreateRoomType, UpdateRoomType } from '@/lib/validations/roomType'
 
 const API_BASE = '/api/admin/room-types'
 
+interface RoomTypesResponse {
+  data: any[]
+  count: number
+}
+
 // Fetch all room types
 export function useRoomTypes() {
-  return useQuery({
+  const { status } = useSession()
+
+  return useQuery<RoomTypesResponse>({
     queryKey: ['roomTypes'],
     queryFn: async () => {
       const res = await fetch(API_BASE)
       if (!res.ok) throw new Error('Failed to fetch room types')
       return res.json()
     },
+    enabled: status === 'authenticated', // Only fetch when authenticated
   })
 }
 

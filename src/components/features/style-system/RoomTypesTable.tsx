@@ -30,7 +30,7 @@ export function RoomTypesTable() {
   const params = useParams()
   const locale = params.locale as string
 
-  const { data: roomTypes, isLoading, error } = useRoomTypes()
+  const { data: roomTypesData, isLoading, error } = useRoomTypes()
   const deleteMutation = useDeleteRoomType()
 
   const [search, setSearch] = useState('')
@@ -41,6 +41,8 @@ export function RoomTypesTable() {
   const [viewDetailsRoomType, setViewDetailsRoomType] = useState<any>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+
+  const roomTypes = roomTypesData?.data || []
 
   const handleCreate = () => {
     setSelectedRoomType(null)
@@ -86,10 +88,10 @@ export function RoomTypesTable() {
   }
 
   const handleSelectAll = () => {
-    if (selectedIds.length === filteredRoomTypes?.length) {
+    if (selectedIds.length === filteredRoomTypes.length) {
       setSelectedIds([])
     } else {
-      setSelectedIds(filteredRoomTypes?.map((rt) => rt.id) || [])
+      setSelectedIds(filteredRoomTypes.map((rt) => rt.id))
     }
   }
 
@@ -101,7 +103,7 @@ export function RoomTypesTable() {
     }
   }
 
-  const filteredRoomTypes = roomTypes?.filter((roomType) => {
+  const filteredRoomTypes = roomTypes.filter((roomType) => {
     if (!search) return true
     const searchLower = search.toLowerCase()
     return (
@@ -157,7 +159,7 @@ export function RoomTypesTable() {
           <LoadingState />
         ) : error ? (
           <ErrorState message={tCommon('error')} />
-        ) : !filteredRoomTypes || filteredRoomTypes.length === 0 ? (
+        ) : filteredRoomTypes.length === 0 ? (
           <EmptyState
             title={t('empty')}
             description={t('emptyDescription')}
@@ -173,8 +175,8 @@ export function RoomTypesTable() {
                 <MoodBTableRow>
                   <MoodBTableHeader style={{ width: 40 }}>
                     <Checkbox
-                      checked={selectedIds.length === filteredRoomTypes?.length && filteredRoomTypes.length > 0}
-                      indeterminate={selectedIds.length > 0 && selectedIds.length < (filteredRoomTypes?.length || 0)}
+                      checked={selectedIds.length === filteredRoomTypes.length && filteredRoomTypes.length > 0}
+                      indeterminate={selectedIds.length > 0 && selectedIds.length < filteredRoomTypes.length}
                       onChange={handleSelectAll}
                     />
                   </MoodBTableHeader>

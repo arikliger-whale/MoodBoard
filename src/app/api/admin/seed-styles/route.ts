@@ -19,7 +19,13 @@ interface SeedConfig {
   subCategoryFilter?: string
   generateImages?: boolean
   generateRoomProfiles?: boolean
+  roomTypeFilter?: string[]  // Array of room type slugs to generate
   dryRun?: boolean
+  resumeExecutionId?: string
+  // Manual generation mode
+  manualMode?: boolean
+  approachId?: string
+  colorId?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -44,63 +50,122 @@ export async function POST(request: NextRequest) {
 
         let executionId: string | null = null
         const startTime = Date.now()
+        let execution: any
 
         try {
-          // Create SeedExecution record (status: 'running')
-          const execution = await prisma.seedExecution.create({
-            data: {
-              executedAt: new Date(),
-              executedBy: null, // TODO: Get from session when auth is ready
-              config: {
-                limit: config.limit,
-                categoryFilter: config.categoryFilter,
-                subCategoryFilter: config.subCategoryFilter,
-                generateImages: config.generateImages ?? true,
-                generateRoomProfiles: config.generateRoomProfiles ?? true,
-                dryRun: config.dryRun ?? false,
-              },
-              result: {
-                success: false,
-                message: 'In progress...',
-              },
-              stats: {
-                totalSubCategories: 0,
-                alreadyGenerated: 0,
-                pendingBeforeSeed: 0,
-                created: 0,
-                updated: 0,
-                skipped: 0,
-                errorsCount: 0,
-              },
-              errors: [],
-              generatedStyles: [],
-              estimatedCost: costBreakdown.grandTotal,
-              actualCost: null,
-              status: 'running',
-              error: null,
-            },
-          })
+          // Resume existing execution or create new one
+          if (config.resumeExecutionId) {
+            // Fetch existing execution
+            execution = await prisma.seedExecution.findUnique({
+              where: { id: config.resumeExecutionId },
+            })
 
-          executionId = execution.id
+            if (!execution) {
+              throw new Error(`Execution ${config.resumeExecutionId} not found`)
+            }
+
+            // Update status to running
+            execution = await prisma.seedExecution.update({
+              where: { id: config.resumeExecutionId },
+              data: {
+                status: 'running',
+                error: null,
+              },
+            })
+
+            executionId = String(execution.id)
+          } else {
+            // Create new SeedExecution record (status: 'running')
+            execution = await prisma.seedExecution.create({
+              data: {
+                executedAt: new Date(),
+                executedBy: null, // TODO: Get from session when auth is ready
+                config: {
+                  limit: config.limit,
+                  categoryFilter: config.categoryFilter,
+                  subCategoryFilter: config.subCategoryFilter,
+                  generateImages: config.generateImages ?? true,
+                  generateRoomProfiles: config.generateRoomProfiles ?? true,
+                  roomTypeFilter: config.roomTypeFilter || [],
+                  dryRun: config.dryRun ?? false,
+                  manualMode: config.manualMode,
+                  approachId: config.approachId,
+                  colorId: config.colorId,
+                },
+                result: {
+                  success: false,
+                  message: 'In progress...',
+                },
+                stats: {
+                  totalSubCategories: 0,
+                  alreadyGenerated: 0,
+                  pendingBeforeSeed: 0,
+                  created: 0,
+                  updated: 0,
+                  skipped: 0,
+                  errorsCount: 0,
+                },
+                errors: [],
+                generatedStyles: [],
+                estimatedCost: costBreakdown.grandTotal,
+                actualCost: null,
+                status: 'running',
+                error: null,
+              },
+            })
+
+            executionId = String(execution.id)
+          }
+
+          // Use config from execution if resuming (convert to plain object)
+          const effectiveConfig = config.resumeExecutionId
+            ? {
+                limit: execution.config.limit,
+                categoryFilter: execution.config.categoryFilter,
+                subCategoryFilter: execution.config.subCategoryFilter,
+                generateImages: execution.config.generateImages,
+                generateRoomProfiles: execution.config.generateRoomProfiles,
+                roomTypeFilter: execution.config.roomTypeFilter,
+                dryRun: execution.config.dryRun,
+                manualMode: execution.config.manualMode,
+                approachId: execution.config.approachId,
+                colorId: execution.config.colorId,
+              }
+            : config
 
           sendEvent('start', {
-            message: 'Starting style generation...',
-            config,
-            executionId: execution.id,
-            estimatedCost: costBreakdown.grandTotal,
+            message: config.resumeExecutionId
+              ? `Resuming execution (${Number(execution.generatedStyles?.length || 0)} styles already generated)...`
+              : 'Starting style generation...',
+            config: {
+              limit: effectiveConfig.limit,
+              categoryFilter: effectiveConfig.categoryFilter,
+              subCategoryFilter: effectiveConfig.subCategoryFilter,
+              generateImages: effectiveConfig.generateImages,
+              generateRoomProfiles: effectiveConfig.generateRoomProfiles,
+              roomTypeFilter: effectiveConfig.roomTypeFilter,
+              dryRun: effectiveConfig.dryRun,
+            },
+            executionId: String(execution.id),
+            estimatedCost: Number(costBreakdown.grandTotal),
+            isResume: !!config.resumeExecutionId,
             timestamp: new Date().toISOString(),
           })
 
           // Run seed with progress callbacks
           const result = await seedStyles({
-            limit: config.limit,
-            categoryFilter: config.categoryFilter,
-            subCategoryFilter: config.subCategoryFilter,
-            generateImages: config.generateImages ?? true,
-            generateRoomProfiles: config.generateRoomProfiles ?? true,
-            dryRun: config.dryRun ?? false,
-            skipExisting: true,
-            executionId: execution.id,
+            limit: effectiveConfig.limit,
+            categoryFilter: effectiveConfig.categoryFilter,
+            subCategoryFilter: effectiveConfig.subCategoryFilter,
+            generateImages: effectiveConfig.generateImages ?? true,
+            generateRoomProfiles: effectiveConfig.generateRoomProfiles ?? true,
+            roomTypeFilter: effectiveConfig.roomTypeFilter,
+            dryRun: effectiveConfig.dryRun ?? false,
+            skipExisting: !effectiveConfig.manualMode, // Allow override in manual mode
+            executionId: String(execution.id),
+            manualMode: effectiveConfig.manualMode,
+            approachId: effectiveConfig.approachId,
+            colorId: effectiveConfig.colorId,
             onProgress: (message: string, current?: number, total?: number) => {
               sendEvent('progress', {
                 message,
@@ -123,32 +188,32 @@ export async function POST(request: NextRequest) {
 
               if (!style) return
 
-              // Add to generatedStyles array
+              // Add to generatedStyles array (convert Prisma objects to plain objects)
               await prisma.seedExecution.update({
-                where: { id: execution.id },
+                where: { id: String(execution.id) },
                 data: {
                   generatedStyles: {
                     push: {
-                      styleId: style.id,
-                      slug: style.slug,
-                      name: style.name,
-                      subCategoryId: style.subCategoryId,
-                      subCategory: style.subCategory.name.en,
-                      approachId: style.approachId,
-                      approach: style.approach.name.en,
-                      colorId: style.colorId,
-                      color: style.color.name.en,
-                      adminEditUrl: `/admin/styles/${style.id}/edit`,
-                      publicViewUrl: `/styles/${style.slug}`,
+                      styleId: String(style.id),
+                      slug: String(style.slug),
+                      name: { he: String(style.name.he), en: String(style.name.en) },
+                      subCategoryId: String(style.subCategoryId),
+                      subCategory: String(style.subCategory.name.en),
+                      approachId: String(style.approachId),
+                      approach: String(style.approach.name.en),
+                      colorId: String(style.colorId),
+                      color: String(style.color.name.en),
+                      adminEditUrl: `/admin/styles/${String(style.id)}/edit`,
+                      publicViewUrl: `/styles/${String(style.slug)}`,
                     },
                   },
                 },
               })
 
               sendEvent('style-completed', {
-                styleId: style.id,
-                styleName: style.name,
-                slug: style.slug,
+                styleId: String(style.id),
+                styleName: { he: String(style.name.he), en: String(style.name.en) },
+                slug: String(style.slug),
                 timestamp: new Date().toISOString(),
               })
             },
@@ -159,7 +224,7 @@ export async function POST(request: NextRequest) {
 
           // Update SeedExecution with final results (status: 'completed')
           await prisma.seedExecution.update({
-            where: { id: execution.id },
+            where: { id: String(execution.id) },
             data: {
               completedAt: new Date(),
               result: {
@@ -184,11 +249,53 @@ export async function POST(request: NextRequest) {
             },
           })
 
-          // Send final result
+          // Send final result (explicitly serialize to prevent circular references)
           sendEvent('complete', {
-            result,
-            executionId: execution.id,
-            duration: durationSeconds,
+            result: {
+              success: Boolean(result.success),
+              stats: {
+                categories: {
+                  created: Number(result.stats.categories.created),
+                  updated: Number(result.stats.categories.updated),
+                  skipped: Number(result.stats.categories.skipped),
+                },
+                subCategories: {
+                  created: Number(result.stats.subCategories.created),
+                  updated: Number(result.stats.subCategories.updated),
+                  skipped: Number(result.stats.subCategories.skipped),
+                },
+                approaches: {
+                  created: Number(result.stats.approaches.created),
+                  updated: Number(result.stats.approaches.updated),
+                  skipped: Number(result.stats.approaches.skipped),
+                },
+                roomTypes: {
+                  created: Number(result.stats.roomTypes.created),
+                  updated: Number(result.stats.roomTypes.updated),
+                  skipped: Number(result.stats.roomTypes.skipped),
+                },
+                styles: {
+                  created: Number(result.stats.styles.created),
+                  updated: Number(result.stats.styles.updated),
+                  skipped: Number(result.stats.styles.skipped),
+                  totalSubCategories: result.stats.styles.totalSubCategories !== undefined
+                    ? Number(result.stats.styles.totalSubCategories)
+                    : undefined,
+                  alreadyGenerated: result.stats.styles.alreadyGenerated !== undefined
+                    ? Number(result.stats.styles.alreadyGenerated)
+                    : undefined,
+                  pendingBeforeSeed: result.stats.styles.pendingBeforeSeed !== undefined
+                    ? Number(result.stats.styles.pendingBeforeSeed)
+                    : undefined,
+                },
+              },
+              errors: result.errors.map((e) => ({
+                entity: String(e.entity),
+                error: String(e.error),
+              })),
+            },
+            executionId: String(execution.id),
+            duration: Number(durationSeconds),
             timestamp: new Date().toISOString(),
           })
 
@@ -216,7 +323,7 @@ export async function POST(request: NextRequest) {
 
           sendEvent('error', {
             error: error instanceof Error ? error.message : String(error),
-            executionId,
+            executionId: executionId ? String(executionId) : null,
             timestamp: new Date().toISOString(),
           })
           controller.close()

@@ -85,6 +85,8 @@
       "materialSettings": "הגדרות חומרים",
       "organizations": "ארגונים",
       "users": "משתמשים",
+      "translations": "תרגומים",
+      "seedStyles": "יצירת סגנונות",
       "backToDashboard": "חזור לדשבורד"
     },
     "dashboard": {
@@ -160,6 +162,13 @@
           "maintenance": "תחזוקה"
         }
       },
+      "manually_created": "נוצר ידנית",
+      "ai_generated": "נוצר באמצעות AI",
+      "ai_powered": "מופעל על ידי AI",
+      "ai_confidence": "רמת ביטחון AI",
+      "ai_confidence_tooltip": "רמת הביטחון של ה-AI בבחירת הגישה והצבע",
+      "ai_reasoning": "הסבר בחירת ה-AI",
+      "ai_generated_note": "סגנון זה נוצר אוטומטית על ידי AI בהתבסס על עקרונות עיצוב ותיאוריית צבע.",
       "edit": {
         "styleTab": "פרטי סגנון",
         "approachesTab": "גישות"
@@ -191,7 +200,6 @@
         "usageArea": "אזור שימוש",
         "finish": "גימור",
         "type": "סוג",
-        "category": "קטגוריה",
         "pricing": "מחיר",
         "availability": "זמינות",
         "rooms": "חדרים",
@@ -208,7 +216,12 @@
         "cancel": "בטל",
         "images": "תמונות",
         "imagesNote": "ניתן להוסיף תמונות לאחר יצירת דף ההשראה בעמוד העריכה",
-        "imagesAfterCreation": "תוכל להוסיף תמונות לאחר יצירת דף ההשראה"
+        "imagesAfterCreation": "תוכל להוסיף תמונות לאחר יצירת דף ההשראה",
+        "approach": "גישה עיצובית",
+        "approachPlaceholder": "בחר גישה עיצובית",
+        "descriptionHe": "תיאור (עברית)",
+        "descriptionEn": "תיאור (אנגלית)",
+        "descriptionPlaceholder": "הכנס תיאור..."
       },
       "approvals": {
         "title": "אישור דפי השראה",
@@ -378,6 +391,7 @@
           "order": "סדר תצוגה",
           "orderDescription": "מספר נמוך יותר יוצג ראשון",
           "orderPlaceholder": "0",
+          "descriptionSection": "תיאור",
           "description": {
             "he": "תיאור בעברית",
             "hePlaceholder": "תאר את הגישה העיצובית בעברית...",
@@ -388,6 +402,7 @@
           "descriptionEn": "תיאור באנגלית",
           "descriptionHePlaceholder": "תאר את הגישה העיצובית בעברית...",
           "descriptionEnPlaceholder": "Describe the design approach in English...",
+          "images": "תמונות",
           "create": "צור גישה",
           "update": "עדכן גישה",
           "saving": "שומר...",

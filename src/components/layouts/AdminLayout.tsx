@@ -18,8 +18,10 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconDoor,
+  IconLanguage,
   IconLayoutDashboard,
   IconPalette,
+  IconSeeding,
   IconSparkles,
   IconUsers,
 } from '@tabler/icons-react'
@@ -27,6 +29,7 @@ import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useMemo, useState } from 'react'
+import { ImageViewerProvider } from '@/contexts/ImageViewerContext'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -112,6 +115,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       label: t('navigation.users'),
       icon: IconUsers,
       href: `/${locale}/admin/users`,
+    },
+    {
+      label: t('navigation.translations'),
+      icon: IconLanguage,
+      href: `/${locale}/admin/translations`,
+    },
+    {
+      label: t('navigation.seedStyles'),
+      icon: IconSeeding,
+      href: `/${locale}/admin/seed-styles`,
     },
   ], [t, locale])
 
@@ -232,7 +245,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       </AppShell.Navbar>
 
       <AppShell.Main>
-        <Container size="xl">{children}</Container>
+        <ImageViewerProvider>
+          <Container size="xl">{children}</Container>
+        </ImageViewerProvider>
       </AppShell.Main>
     </AppShell>
   )

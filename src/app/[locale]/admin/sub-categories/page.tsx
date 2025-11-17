@@ -176,26 +176,27 @@ export default function AdminSubCategoriesPage() {
         ) : (
           <>
             <MoodBCard>
-              <MoodBTable>
-                <MoodBTableHead>
-                  <MoodBTableRow>
-                    <MoodBTableHeader style={{ width: 40 }}>
-                      <Checkbox
-                        checked={selectedIds.length === data.data.length && data.data.length > 0}
-                        indeterminate={selectedIds.length > 0 && selectedIds.length < data.data.length}
-                        onChange={handleSelectAll}
-                      />
-                    </MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.category')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.name')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.slug')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.styles')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.order')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.createdAt')}</MoodBTableHeader>
-                    <MoodBTableHeader style={{ width: 100 }}>{t('table.actions')}</MoodBTableHeader>
-                  </MoodBTableRow>
-                </MoodBTableHead>
-                <MoodBTableBody>
+              <div style={{ overflowX: 'auto' }}>
+                <MoodBTable>
+                  <MoodBTableHead>
+                    <MoodBTableRow>
+                      <MoodBTableHeader style={{ width: 40 }}>
+                        <Checkbox
+                          checked={selectedIds.length === data.data.length && data.data.length > 0}
+                          indeterminate={selectedIds.length > 0 && selectedIds.length < data.data.length}
+                          onChange={handleSelectAll}
+                        />
+                      </MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.category')}</MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.name')}</MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.slug')}</MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.styles')}</MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.order')}</MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.createdAt')}</MoodBTableHeader>
+                      <MoodBTableHeader style={{ width: 100 }}>{t('table.actions')}</MoodBTableHeader>
+                    </MoodBTableRow>
+                  </MoodBTableHead>
+                  <MoodBTableBody>
                   {data.data.map((subCategory) => (
                     <MoodBTableRow key={subCategory.id}>
                       <MoodBTableCell>
@@ -285,6 +286,7 @@ export default function AdminSubCategoriesPage() {
                   ))}
                 </MoodBTableBody>
               </MoodBTable>
+              </div>
             </MoodBCard>
           </>
         )}

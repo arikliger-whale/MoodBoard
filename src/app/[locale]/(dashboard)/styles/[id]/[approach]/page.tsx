@@ -32,6 +32,7 @@ import { MoodBBadge } from '@/components/ui/Badge'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useStyle } from '@/hooks/useStyles'
+import { useImageViewer } from '@/contexts/ImageViewerContext'
 
 export default function StyleApproachPage() {
   const tUser = useTranslations('admin.styles.user')
@@ -46,6 +47,7 @@ export default function StyleApproachPage() {
   const approachSlug = params.approach as string
 
   const { data: style, isLoading, error } = useStyle(styleId)
+  const { openImages } = useImageViewer()
 
   const selectedApproach = useMemo(() => {
     if (!style?.approaches) return undefined
@@ -215,15 +217,26 @@ export default function StyleApproachPage() {
                     p="xs"
                     withBorder
                     radius="md"
-                    style={{ overflow: 'hidden', cursor: 'pointer' }}
-                    onClick={() => window.open(imageUrl, '_blank')}
+                    style={{ overflow: 'hidden' }}
                   >
                     <Box
                       style={{
                         aspectRatio: '1',
                         overflow: 'hidden',
                         borderRadius: 'var(--mantine-radius-sm)',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s ease',
                       }}
+                      onClick={() => openImages(
+                        style.images.map((url, idx) => ({
+                          url,
+                          title: `${style.name.he} - תמונה ${idx + 1}`,
+                          description: style.name.en
+                        })),
+                        index
+                      )}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >
                       <Image
                         src={imageUrl}
@@ -331,15 +344,26 @@ export default function StyleApproachPage() {
                                 p="xs"
                                 withBorder
                                 radius="md"
-                                style={{ overflow: 'hidden', cursor: 'pointer' }}
-                                onClick={() => window.open(imageUrl, '_blank')}
+                                style={{ overflow: 'hidden' }}
                               >
                                 <Box
                                   style={{
                                     aspectRatio: '1',
                                     overflow: 'hidden',
                                     borderRadius: 'var(--mantine-radius-sm)',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s ease',
                                   }}
+                                  onClick={() => openImages(
+                                    profile.images.map((url: string, idx: number) => ({
+                                      url,
+                                      title: `${profile.roomType} - תמונה ${idx + 1}`,
+                                      description: `${selectedApproach.name?.he} - ${profile.roomType}`
+                                    })),
+                                    imgIndex
+                                  )}
+                                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                 >
                                   <Image
                                     src={imageUrl}

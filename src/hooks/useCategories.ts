@@ -5,6 +5,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import type {
   CreateCategory,
   UpdateCategory,
@@ -75,6 +76,8 @@ interface SubCategoriesResponse {
 
 // Categories hooks
 export const useCategories = (search?: string) => {
+  const { status } = useSession()
+
   return useQuery<CategoriesResponse>({
     queryKey: ['admin', 'categories', { search }],
     queryFn: async () => {
@@ -85,6 +88,7 @@ export const useCategories = (search?: string) => {
       if (!res.ok) throw new Error('Failed to fetch categories')
       return res.json()
     },
+    enabled: status === 'authenticated', // Only fetch when authenticated
     // FIX: Removed aggressive staleTime override - use global default (60s)
     // This prevents unnecessary refetches every 10 seconds
   })
@@ -182,6 +186,8 @@ export const useDeleteCategory = () => {
 
 // SubCategories hooks
 export const useSubCategories = (categoryId?: string, search?: string) => {
+  const { status } = useSession()
+
   return useQuery<SubCategoriesResponse>({
     queryKey: ['admin', 'sub-categories', { categoryId, search }],
     queryFn: async () => {
@@ -193,6 +199,7 @@ export const useSubCategories = (categoryId?: string, search?: string) => {
       if (!res.ok) throw new Error('Failed to fetch sub-categories')
       return res.json()
     },
+    enabled: status === 'authenticated', // Only fetch when authenticated
     // FIX: Removed aggressive staleTime override - use global default (60s)
     // This prevents unnecessary refetches every 10 seconds
   })

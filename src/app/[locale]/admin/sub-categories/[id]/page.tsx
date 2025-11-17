@@ -16,6 +16,7 @@ import { MoodBCard } from '@/components/ui/Card'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useSubCategory } from '@/hooks/useCategories'
+import { useImageViewer } from '@/contexts/ImageViewerContext'
 import Link from 'next/link'
 
 export default function AdminSubCategoryDetailPage() {
@@ -27,6 +28,7 @@ export default function AdminSubCategoryDetailPage() {
   const subCategoryId = params.id as string
 
   const { data: subCategory, isLoading, error } = useSubCategory(subCategoryId)
+  const { openImages } = useImageViewer()
 
   if (isLoading) {
     return (
@@ -181,8 +183,18 @@ export default function AdminSubCategoryDetailPage() {
                             overflow: 'hidden',
                             borderRadius: 'var(--mantine-radius-sm)',
                             cursor: 'pointer',
+                            transition: 'transform 0.2s ease',
                           }}
-                          onClick={() => window.open(imageUrl, '_blank')}
+                          onClick={() => openImages(
+                            subCategory.images.map((url, idx) => ({
+                              url,
+                              title: `${subCategory.name.he} - תמונה ${idx + 1}`,
+                              description: subCategory.description?.he
+                            })),
+                            index
+                          )}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                         >
                           <Image
                             src={imageUrl}

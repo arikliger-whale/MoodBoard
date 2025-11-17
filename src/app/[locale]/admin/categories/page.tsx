@@ -155,110 +155,112 @@ export default function AdminCategoriesPage() {
         ) : (
           <>
             <MoodBCard>
-              <MoodBTable>
-                <MoodBTableHead>
-                  <MoodBTableRow>
-                    <MoodBTableHeader style={{ width: 40 }}>
-                      <Checkbox
-                        checked={selectedIds.length === data.data.length && data.data.length > 0}
-                        indeterminate={selectedIds.length > 0 && selectedIds.length < data.data.length}
-                        onChange={handleSelectAll}
-                      />
-                    </MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.name')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.slug')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.subCategories')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.styles')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.order')}</MoodBTableHeader>
-                    <MoodBTableHeader>{t('table.createdAt')}</MoodBTableHeader>
-                    <MoodBTableHeader style={{ width: 100 }}>{t('table.actions')}</MoodBTableHeader>
-                  </MoodBTableRow>
-                </MoodBTableHead>
-                <MoodBTableBody>
-                  {data.data.map((category) => (
-                    <MoodBTableRow key={category.id}>
-                      <MoodBTableCell>
-                        <Checkbox checked={selectedIds.includes(category.id)} onChange={() => handleSelectOne(category.id)} />
-                      </MoodBTableCell>
-                      <MoodBTableCell>
-                        <Stack gap={4}>
-                          <Text fw={500}>{category.name.he}</Text>
-                          <Text size="xs" c="dimmed">
-                            {category.name.en}
-                          </Text>
-                        </Stack>
-                      </MoodBTableCell>
-                      <MoodBTableCell>
-                        <Text size="sm" c="dimmed">
-                          {category.slug}
-                        </Text>
-                      </MoodBTableCell>
-                      <MoodBTableCell>
-                        <Badge variant="light" color="brand">
-                          {category._count?.subCategories || 0}
-                        </Badge>
-                      </MoodBTableCell>
-                      <MoodBTableCell>
-                        <Badge variant="light" color="blue">
-                          {category._count?.styles || 0}
-                        </Badge>
-                      </MoodBTableCell>
-                      <MoodBTableCell>
-                        <Text size="sm">{category.order}</Text>
-                      </MoodBTableCell>
-                      <MoodBTableCell>
-                        <Text size="sm">
-                          {new Date(category.createdAt).toLocaleDateString(locale)}
-                        </Text>
-                      </MoodBTableCell>
-                      <MoodBTableCell>
-                        <Menu shadow="md" width={200}>
-                          <Menu.Target>
-                            <ActionIcon variant="subtle" color="brand">
-                              <IconDots size={16} />
-                            </ActionIcon>
-                          </Menu.Target>
-                          <Menu.Dropdown>
-                            {category.detailedContent && (
-                              <>
-                                <Menu.Item
-                                  leftSection={<IconEye size={16} />}
-                                  onClick={() => setViewDetailsCategory(category)}
-                                >
-                                  {locale === 'he' ? 'הצג פרטים מלאים' : 'View Full Details'}
-                                </Menu.Item>
-                                <Menu.Divider />
-                              </>
-                            )}
-                            <Menu.Item
-                              leftSection={<IconEye size={16} />}
-                              component={Link}
-                              href={`/${locale}/admin/categories/${category.id}`}
-                            >
-                              {tCommon('view')}
-                            </Menu.Item>
-                            <Menu.Item
-                              leftSection={<IconEdit size={16} />}
-                              component={Link}
-                              href={`/${locale}/admin/categories/${category.id}/edit`}
-                            >
-                              {tCommon('edit')}
-                            </Menu.Item>
-                            <Menu.Divider />
-                            <Menu.Item
-                              leftSection={<IconTrash size={16} />}
-                              color="red"
-                              onClick={() => setDeleteCategoryId(category.id)}
-                            >
-                              {tCommon('delete')}
-                            </Menu.Item>
-                          </Menu.Dropdown>
-                        </Menu>
-                      </MoodBTableCell>
+              <div style={{ overflowX: 'auto' }}>
+                <MoodBTable>
+                  <MoodBTableHead>
+                    <MoodBTableRow>
+                      <MoodBTableHeader style={{ width: 40 }}>
+                        <Checkbox
+                          checked={selectedIds.length === data.data.length && data.data.length > 0}
+                          indeterminate={selectedIds.length > 0 && selectedIds.length < data.data.length}
+                          onChange={handleSelectAll}
+                        />
+                      </MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.name')}</MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.slug')}</MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.subCategories')}</MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.styles')}</MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.order')}</MoodBTableHeader>
+                      <MoodBTableHeader>{t('table.createdAt')}</MoodBTableHeader>
+                      <MoodBTableHeader style={{ width: 100 }}>{t('table.actions')}</MoodBTableHeader>
                     </MoodBTableRow>
-                  ))}
-                </MoodBTableBody>
-              </MoodBTable>
+                  </MoodBTableHead>
+                  <MoodBTableBody>
+                    {data.data.map((category) => (
+                      <MoodBTableRow key={category.id}>
+                        <MoodBTableCell>
+                          <Checkbox checked={selectedIds.includes(category.id)} onChange={() => handleSelectOne(category.id)} />
+                        </MoodBTableCell>
+                        <MoodBTableCell>
+                          <Stack gap={4}>
+                            <Text fw={500}>{category.name.he}</Text>
+                            <Text size="xs" c="dimmed">
+                              {category.name.en}
+                            </Text>
+                          </Stack>
+                        </MoodBTableCell>
+                        <MoodBTableCell>
+                          <Text size="sm" c="dimmed">
+                            {category.slug}
+                          </Text>
+                        </MoodBTableCell>
+                        <MoodBTableCell>
+                          <Badge variant="light" color="brand">
+                            {category._count?.subCategories || 0}
+                          </Badge>
+                        </MoodBTableCell>
+                        <MoodBTableCell>
+                          <Badge variant="light" color="blue">
+                            {category._count?.styles || 0}
+                          </Badge>
+                        </MoodBTableCell>
+                        <MoodBTableCell>
+                          <Text size="sm">{category.order}</Text>
+                        </MoodBTableCell>
+                        <MoodBTableCell>
+                          <Text size="sm">
+                            {new Date(category.createdAt).toLocaleDateString(locale)}
+                          </Text>
+                        </MoodBTableCell>
+                        <MoodBTableCell>
+                          <Menu shadow="md" width={200}>
+                            <Menu.Target>
+                              <ActionIcon variant="subtle" color="brand">
+                                <IconDots size={16} />
+                              </ActionIcon>
+                            </Menu.Target>
+                            <Menu.Dropdown>
+                              {category.detailedContent && (
+                                <>
+                                  <Menu.Item
+                                    leftSection={<IconEye size={16} />}
+                                    onClick={() => setViewDetailsCategory(category)}
+                                  >
+                                    {locale === 'he' ? 'הצג פרטים מלאים' : 'View Full Details'}
+                                  </Menu.Item>
+                                  <Menu.Divider />
+                                </>
+                              )}
+                              <Menu.Item
+                                leftSection={<IconEye size={16} />}
+                                component={Link}
+                                href={`/${locale}/admin/categories/${category.id}`}
+                              >
+                                {tCommon('view')}
+                              </Menu.Item>
+                              <Menu.Item
+                                leftSection={<IconEdit size={16} />}
+                                component={Link}
+                                href={`/${locale}/admin/categories/${category.id}/edit`}
+                              >
+                                {tCommon('edit')}
+                              </Menu.Item>
+                              <Menu.Divider />
+                              <Menu.Item
+                                leftSection={<IconTrash size={16} />}
+                                color="red"
+                                onClick={() => setDeleteCategoryId(category.id)}
+                              >
+                                {tCommon('delete')}
+                              </Menu.Item>
+                            </Menu.Dropdown>
+                          </Menu>
+                        </MoodBTableCell>
+                      </MoodBTableRow>
+                    ))}
+                  </MoodBTableBody>
+                </MoodBTable>
+              </div>
             </MoodBCard>
           </>
         )}

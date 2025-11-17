@@ -474,8 +474,9 @@ model Style {
   organizationId String?       @db.ObjectId
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  slug String @unique
-  name LocalizedString
+  slug        String          @unique
+  name        LocalizedString
+  description LocalizedString? // Simple description field
 
   // Belongs to Category, SubCategory, Approach, and has a specific Color
   categoryId    String    @db.ObjectId
@@ -532,6 +533,17 @@ type DetailedContent {
   applications    String[]  // Common applications and use cases
   historicalContext String? // Historical background and evolution
   culturalContext String?   // Cultural influences and significance
+  poeticIntro     PoeticIntro? // Poetic/artistic introduction for styles
+}
+
+type PoeticIntro {
+  title      String  // Main title for the poetic section
+  subtitle   String  // Subtitle/tagline
+  paragraph1 String  // First paragraph - harmony/unity
+  paragraph2 String  // Second paragraph - color/nature
+  paragraph3 String  // Third paragraph - form/philosophy
+  paragraph4 String  // Fourth paragraph - integration/synthesis
+  keywords   String? // Optional keywords/tags for SEO
 }
 
 type MaterialSet {
@@ -549,33 +561,65 @@ type MaterialAlternative {
 }
 
 type RoomProfile {
-  roomTypeId  String            @db.ObjectId // Reference to RoomType
-  // Colors & Textures (from flow diagram)
-  colors      String[]          @db.ObjectId // References to Color IDs
-  textures    TextureReference[] // Floorings, Marble, Wood, etc.
-  // Materials & Products (from flow diagram)
-  materials   String[]          @db.ObjectId // References to Material IDs (Cornices, Profiles, etc.)
-  products    StyleProductReference[] // Lighting, Sofas, etc.
-  images      String[]          @default([]) // Array of R2 image URLs for this room profile
-  constraints RoomConstraint?
+  roomTypeId            String                    @db.ObjectId
+  description           LocalizedString?
+  colorPalette          RoomColorPalette?
+  materials             RoomMaterial[]
+  furnitureAndFixtures  RoomFurniture[]
+  lighting              RoomLighting?
+  spatialConsiderations RoomSpatialConsiderations?
+  decorativeElements    RoomDecorativeElement[]
+  designTips            RoomDesignTip[]
+  images                String[]                  @default([])
 }
 
-type TextureReference {
-  type     String // "flooring", "marble", "wood", etc.
-  materialId String? @db.ObjectId // Optional reference to Material if it exists
-  name     String? // Display name
+type RoomColorPalette {
+  primary     String   // Single primary color
+  secondary   String[]
+  accent      String[]
+  description LocalizedString?
 }
 
-type StyleProductReference {
-  category String // "lighting", "furniture", "sofas", etc.
-  productId String? @db.ObjectId // Optional reference to Product if it exists
-  name     String? // Display name
+type RoomMaterial {
+  name        LocalizedString
+  application LocalizedString?
+  finish      String?  // e.g. "natural", "matte", "textured", "glossy"
 }
 
-type RoomConstraint {
-  waterResistance Boolean?
-  durability      Int? // 1-10
-  maintenance     Int? // 1-10
+type RoomFurniture {
+  item        LocalizedString
+  description LocalizedString?
+  importance  String?  // "high", "medium", "low"
+}
+
+type RoomLighting {
+  natural    LocalizedString?
+  artificial RoomLightingFixture[]
+}
+
+type RoomLightingFixture {
+  type        LocalizedString
+  description LocalizedString?
+}
+
+type RoomSpatialConsiderations {
+  layout          LocalizedString?
+  circulation     LocalizedString?
+  functionalZones RoomFunctionalZone[]
+}
+
+type RoomFunctionalZone {
+  zone    LocalizedString
+  purpose LocalizedString?
+}
+
+type RoomDecorativeElement {
+  element LocalizedString
+  role    LocalizedString?
+}
+
+type RoomDesignTip {
+  tip LocalizedString
 }
 
 model Approach {
@@ -617,6 +661,12 @@ type ApproachMetadata {
   usage     Int     @default(0)
 }
 
+// AI Selection metadata for tracking AI-generated style decisions
+type AISelection {
+  approachConfidence Float           // AI's confidence in approach selection (0.0-1.0)
+  reasoning          LocalizedString // Why this approach/color combination was chosen
+}
+
 type StyleMetadata {
   version         String
   isPublic        Boolean   @default(false)
@@ -627,6 +677,10 @@ type StyleMetadata {
   tags            String[]
   usage           Int       @default(0)
   rating          Float?
+
+  // AI Generation tracking
+  aiGenerated     Boolean?     @default(false)
+  aiSelection     AISelection?
 }
 
 // Room Types for managing available room categories
@@ -929,6 +983,23 @@ model AuditLog {
 }
 
 // ============================================
+// Translation Management
+// ============================================
+
+model Translation {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  key   String @unique // Dot notation: pagename.componentname.actualkey
+
+  valueHe String @db.String // Hebrew translation
+  valueEn String @db.String // English translation
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("translations")
+}
+
+// ============================================
 // AI Seed Executions
 // ============================================
 
@@ -974,7 +1045,11 @@ type SeedConfig {
   subCategoryFilter      String?
   generateImages         Boolean
   generateRoomProfiles   Boolean
+  roomTypeFilter         String[]
   dryRun                 Boolean
+  manualMode             Boolean?
+  approachId             String?
+  colorId                String?
 }
 
 type SeedResult {

@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 interface ListQuery {
   limit?: number
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
         duration: true,
         status: true,
         error: true,
+        errors: true,
         generatedStyles: {
           select: {
             styleId: true,

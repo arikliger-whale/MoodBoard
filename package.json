@@ -22,6 +22,8 @@
     "db:seed:materials": "dotenv -e .env.local -- tsx prisma/seeds/seed-material-categories.ts",
     "seed:content": "dotenv -e .env.local -- tsx scripts/seed-content.ts",
     "seed:colors": "dotenv -e .env.local -- tsx scripts/seed-colors.ts",
+    "seed:images": "dotenv -e .env.local -- tsx scripts/populate-category-images.ts",
+    "seed:images:dry": "dotenv -e .env.local -- tsx scripts/populate-category-images.ts --dry-run",
     "admin:set": "dotenv -e .env.local -- node scripts/set-admin.js",
     "test": "vitest run",
     "test:e2e": "playwright test"

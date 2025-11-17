@@ -20,6 +20,20 @@ export interface ImageGenerationOptions {
   description?: { he: string; en: string }
   period?: string
   numberOfImages?: number
+  // Enhanced detailed content for richer prompts
+  detailedContent?: {
+    introduction?: string
+    description?: string
+    period?: string
+    characteristics?: string[]
+    visualElements?: string[]
+    philosophy?: string
+    colorGuidance?: string
+    materialGuidance?: string
+    applications?: string[]
+    historicalContext?: string
+    culturalContext?: string
+  }
   // Style-specific options
   styleContext?: {
     subCategoryName: string
@@ -35,13 +49,22 @@ export interface ImageGenerationOptions {
   }
   // Image variation type (for generating different angles/perspectives)
   variationType?: 'wide-angle' | 'detail-shot' | 'furniture-arrangement'
+  // NEW: Visual context from sub-category for style and style-room images
+  visualContext?: {
+    characteristics?: string[]
+    visualElements?: string[]
+    materialGuidance?: string
+    colorGuidance?: string
+  }
+  // NEW: Reference images from sub-category
+  referenceImages?: string[]
 }
 
 /**
  * Generate image prompt for design entities
  */
 function createImagePrompt(options: ImageGenerationOptions): string {
-  const { entityType, entityName, description, period, styleContext, roomContext, variationType } = options
+  const { entityType, entityName, description, period, detailedContent, styleContext, roomContext, variationType, visualContext, referenceImages } = options
 
   let prompt = ''
 
@@ -66,6 +89,28 @@ The image should:
 - Suitable for an interior design portfolio or magazine spread
 
 Style: Professional detail photography, macro perspective, dramatic lighting highlighting textures, high-end architectural digest quality.`
+
+        // Add visual context from sub-category
+        if (visualContext) {
+          if (visualContext.characteristics && visualContext.characteristics.length > 0) {
+            prompt += `\n\nKey Characteristics to showcase in details:
+${visualContext.characteristics.slice(0, 5).map(c => `- ${c}`).join('\n')}`
+          }
+
+          if (visualContext.materialGuidance) {
+            prompt += `\n\nMaterial Focus: ${visualContext.materialGuidance}`
+          }
+
+          if (visualContext.colorGuidance) {
+            prompt += `\n\nColor Palette Details: ${visualContext.colorGuidance}`
+          }
+        }
+
+        // Add reference images instruction
+        if (referenceImages && referenceImages.length > 0) {
+          prompt += `\n\nIMPORTANT: Draw inspiration from the visual aesthetic, material textures, and decorative details characteristic of this sub-category style. Focus on authentic materials and finishes that define this design approach.`
+        }
+
       } else if (variationType === 'furniture-arrangement') {
         prompt = `Create a stunning, professional interior design photograph focusing on FURNITURE COMPOSITION in the "${entityName.en}" style.
 
@@ -82,6 +127,29 @@ The image should:
 - Capture the balance and proportion typical of this style
 
 Style: Professional interior photography, medium shot, natural lighting, architectural digest quality, emphasizing furniture design and spatial relationships.`
+
+        // Add visual context from sub-category
+        if (visualContext) {
+          if (visualContext.visualElements && visualContext.visualElements.length > 0) {
+            prompt += `\n\nSignature Visual Elements to include:
+${visualContext.visualElements.slice(0, 5).map(v => `- ${v}`).join('\n')}`
+          }
+
+          if (visualContext.characteristics && visualContext.characteristics.length > 0) {
+            prompt += `\n\nStyle Characteristics:
+${visualContext.characteristics.slice(0, 5).map(c => `- ${c}`).join('\n')}`
+          }
+
+          if (visualContext.colorGuidance) {
+            prompt += `\n\nColor Application: ${visualContext.colorGuidance}`
+          }
+        }
+
+        // Add reference images instruction
+        if (referenceImages && referenceImages.length > 0) {
+          prompt += `\n\nIMPORTANT: Use the overall spatial composition, furniture style, and arrangement patterns characteristic of this sub-category as inspiration for the furniture composition and layout.`
+        }
+
       } else {
         // Default: wide-angle
         prompt = `Create a stunning, professional interior design photograph representing the complete "${entityName.en}" design style.
@@ -99,6 +167,32 @@ The image should:
 - Capture the overall atmosphere and aesthetic of this unique style combination
 
 Style: Professional interior photography, wide angle, high-end, architectural digest quality, natural lighting, showing full room context.`
+
+        // Add visual context from sub-category
+        if (visualContext) {
+          if (visualContext.characteristics && visualContext.characteristics.length > 0) {
+            prompt += `\n\nKey Characteristics to showcase:
+${visualContext.characteristics.slice(0, 6).map(c => `- ${c}`).join('\n')}`
+          }
+
+          if (visualContext.visualElements && visualContext.visualElements.length > 0) {
+            prompt += `\n\nSignature Visual Elements to include:
+${visualContext.visualElements.slice(0, 6).map(v => `- ${v}`).join('\n')}`
+          }
+
+          if (visualContext.materialGuidance) {
+            prompt += `\n\nMaterials & Finishes: ${visualContext.materialGuidance}`
+          }
+
+          if (visualContext.colorGuidance) {
+            prompt += `\n\nColor Palette Guidance: ${visualContext.colorGuidance}`
+          }
+        }
+
+        // Add reference images instruction
+        if (referenceImages && referenceImages.length > 0) {
+          prompt += `\n\nIMPORTANT: Use the provided reference images as visual inspiration for the overall aesthetic, spatial layout, architectural details, and design elements characteristic of this style. Match the atmosphere and design language.`
+        }
       }
       break
 
@@ -123,50 +217,167 @@ The image should:
 - Show both aesthetics and functionality
 
 Style: Professional interior photography, architectural digest quality, natural lighting, full room view with focus on ${roomTypeName}-specific design elements and the ${styleName} aesthetic.`
+
+      // Add visual context from sub-category
+      if (visualContext) {
+        if (visualContext.characteristics && visualContext.characteristics.length > 0) {
+          prompt += `\n\nKey Style Characteristics to apply to this ${roomTypeName}:
+${visualContext.characteristics.slice(0, 5).map(c => `- ${c}`).join('\n')}`
+        }
+
+        if (visualContext.visualElements && visualContext.visualElements.length > 0) {
+          prompt += `\n\nSignature Elements for this ${roomTypeName}:
+${visualContext.visualElements.slice(0, 5).map(v => `- ${v}`).join('\n')}`
+        }
+
+        if (visualContext.materialGuidance) {
+          prompt += `\n\nMaterials to use in ${roomTypeName}: ${visualContext.materialGuidance}`
+        }
+      }
+
+      // Add reference images instruction
+      if (referenceImages && referenceImages.length > 0) {
+        prompt += `\n\nIMPORTANT: Apply the visual aesthetic and design language from the reference images specifically to this ${roomTypeName} space, ensuring consistency with the overall style.`
+      }
       break
 
     case 'category':
       prompt = `Create a stunning, professional interior design photograph that represents the "${entityName.en}" design category.`
-      if (period) {
-        prompt += ` This category spans the period ${period}.`
+
+      // Add period information
+      if (detailedContent?.period || period) {
+        prompt += ` This category spans the period: ${detailedContent?.period || period}.`
       }
-      if (description) {
+
+      // Add introduction/description
+      if (detailedContent?.introduction) {
+        prompt += ` ${detailedContent.introduction}`
+      } else if (detailedContent?.description) {
+        prompt += ` ${detailedContent.description}`
+      } else if (description) {
         prompt += ` ${description.en}`
       }
+
+      // Add historical context
+      if (detailedContent?.historicalContext) {
+        prompt += ` Historical Background: ${detailedContent.historicalContext}`
+      }
+
+      // Add characteristics
+      if (detailedContent?.characteristics && detailedContent.characteristics.length > 0) {
+        prompt += `\n\nKey Characteristics to showcase:
+${detailedContent.characteristics.map(c => `- ${c}`).join('\n')}`
+      }
+
+      // Add visual elements
+      if (detailedContent?.visualElements && detailedContent.visualElements.length > 0) {
+        prompt += `\n\nVisual Elements to include:
+${detailedContent.visualElements.map(v => `- ${v}`).join('\n')}`
+      }
+
+      // Add material guidance
+      if (detailedContent?.materialGuidance) {
+        prompt += `\n\nMaterials & Finishes: ${detailedContent.materialGuidance}`
+      }
+
+      // Add color guidance
+      if (detailedContent?.colorGuidance) {
+        prompt += `\n\nColor Palette: ${detailedContent.colorGuidance}`
+      }
+
       prompt += `
 
 The image should:
-- Showcase a beautifully designed interior space that embodies this design era/category
+- Showcase a beautifully designed interior space that authentically embodies the ${entityName.en} design category
 - Include rich architectural details, furniture, decor, and materials characteristic of this period
-- Feature excellent lighting and composition
-- Be photorealistic and professionally shot
-- Show a complete, well-styled room or space
-- Capture the essence and atmosphere of ${entityName.en} design
-- Be suitable for an interior design portfolio or magazine
+- Feature all the key characteristics and visual elements mentioned above
+- Use appropriate color palette and materials for this era
+- Feature excellent lighting and composition that enhances the period aesthetic
+- Be photorealistic and professionally shot (architectural photography quality)
+- Show a complete, well-styled room or space with proper context
+- Capture the authentic essence, atmosphere, and spirit of ${entityName.en} design
+- Be suitable for an interior design portfolio, museum catalog, or architectural digest magazine
+- Avoid modern elements that would be anachronistic to this period
 
-Style: Professional interior photography, high-end, architectural digest quality, natural lighting, wide angle shot showing full room context.`
+Style: Professional interior photography, high-end, architectural digest quality, museum-quality documentation, natural lighting appropriate to the era, wide angle shot showing full room context and spatial relationships.`
       break
 
     case 'subcategory':
       prompt = `Create a stunning, professional interior design photograph that represents the "${entityName.en}" design style.`
-      if (period) {
-        prompt += ` This style is from ${period}.`
+
+      // Add period information
+      if (detailedContent?.period || period) {
+        prompt += ` This style is from the period: ${detailedContent?.period || period}.`
       }
-      if (description) {
+
+      // Add introduction/description
+      if (detailedContent?.introduction) {
+        prompt += ` ${detailedContent.introduction}`
+      } else if (detailedContent?.description) {
+        prompt += ` ${detailedContent.description}`
+      } else if (description) {
         prompt += ` ${description.en}`
       }
+
+      // Add historical context
+      if (detailedContent?.historicalContext) {
+        prompt += ` Historical Background: ${detailedContent.historicalContext}`
+      }
+
+      // Add cultural context (important for regional styles)
+      if (detailedContent?.culturalContext) {
+        prompt += ` Cultural Influences: ${detailedContent.culturalContext}`
+      }
+
+      // Add characteristics
+      if (detailedContent?.characteristics && detailedContent.characteristics.length > 0) {
+        prompt += `\n\nKey Characteristics to showcase:
+${detailedContent.characteristics.map(c => `- ${c}`).join('\n')}`
+      }
+
+      // Add visual elements
+      if (detailedContent?.visualElements && detailedContent.visualElements.length > 0) {
+        prompt += `\n\nSignature Visual Elements to include:
+${detailedContent.visualElements.map(v => `- ${v}`).join('\n')}`
+      }
+
+      // Add material guidance
+      if (detailedContent?.materialGuidance) {
+        prompt += `\n\nMaterials & Finishes: ${detailedContent.materialGuidance}`
+      }
+
+      // Add color guidance
+      if (detailedContent?.colorGuidance) {
+        prompt += `\n\nColor Palette: ${detailedContent.colorGuidance}`
+      }
+
+      // Add philosophy (important for design approaches)
+      if (detailedContent?.philosophy) {
+        prompt += `\n\nDesign Philosophy: ${detailedContent.philosophy}`
+      }
+
+      // Add applications
+      if (detailedContent?.applications && detailedContent.applications.length > 0) {
+        prompt += `\n\nTypical Applications:
+${detailedContent.applications.map(a => `- ${a}`).join('\n')}`
+      }
+
       prompt += `
 
 The image should:
-- Showcase a beautifully designed interior space in the ${entityName.en} style
-- Include signature furniture, materials, colors, and decorative elements of this specific style
-- Feature excellent lighting and composition
-- Be photorealistic and professionally shot
-- Show a complete, well-styled room highlighting the style's characteristics
-- Capture the unique aesthetic and atmosphere of ${entityName.en}
-- Be suitable for an interior design portfolio or magazine
+- Showcase a beautifully designed interior space that authentically represents the ${entityName.en} style
+- Include all signature furniture, materials, colors, and decorative elements of this specific style
+- Feature all the key characteristics and visual elements mentioned above
+- Use the appropriate color palette and materials for this style
+- Demonstrate the design philosophy and approach characteristic of ${entityName.en}
+- Feature excellent lighting and composition that enhances the style's aesthetic
+- Be photorealistic and professionally shot (architectural photography quality)
+- Show a complete, well-styled room highlighting all the style's defining characteristics
+- Capture the unique aesthetic, atmosphere, and authentic spirit of ${entityName.en}
+- Be suitable for an interior design portfolio, style guide, or architectural digest magazine
+- Maintain period accuracy and authenticity
 
-Style: Professional interior photography, high-end, architectural digest quality, natural lighting, showing full room with characteristic ${entityName.en} elements.`
+Style: Professional interior photography, high-end, architectural digest quality, design magazine editorial, natural lighting that complements the style, wide angle showing full room with all characteristic ${entityName.en} elements clearly visible.`
       break
 
     case 'approach':
@@ -370,12 +581,23 @@ export async function generateAndUploadImages(
           // Upload to GCP Storage
           // Note: Since this is seeding, we don't have an entity ID yet
           // We'll use 'seed' as the entityId to create a temp path
+
+          // Handle style-room type by converting to style + roomType option
+          const storageEntityType = options.entityType === 'style-room' ? 'style' : options.entityType
+          const uploadOptions: any = {}
+
+          // If this is a style-room image, pass the roomType to organize files
+          if (options.entityType === 'style-room' && options.roomContext) {
+            uploadOptions.roomType = options.roomContext.roomTypeName
+          }
+
           const gcpUrl = await uploadImageToGCP(
             buffer,
             mimeType,
-            options.entityType as any,
+            storageEntityType as any,
             'seed-generated', // temp ID for seed-generated images
-            filename
+            filename,
+            uploadOptions
           )
 
           console.log(`   ✅ Uploaded image ${i + 1}: ${gcpUrl}`)
@@ -453,6 +675,13 @@ export async function generateStyleImages(
     colorName: string
     colorHex: string
   },
+  visualContext?: {
+    characteristics?: string[]
+    visualElements?: string[]
+    materialGuidance?: string
+    colorGuidance?: string
+  },
+  referenceImages?: string[],
   onProgress?: (current: number, total: number, type: string) => void
 ): Promise<string[]> {
   const variations: Array<{ type: 'wide-angle' | 'detail-shot' | 'furniture-arrangement'; name: string }> = [
@@ -474,6 +703,8 @@ export async function generateStyleImages(
         entityName: styleName,
         numberOfImages: 1,
         styleContext,
+        visualContext,
+        referenceImages,
         variationType: variation.type,
       })
 
@@ -501,6 +732,13 @@ export async function generateStyleRoomImages(
   styleName: { he: string; en: string },
   roomTypeName: string,
   colorHex: string,
+  visualContext?: {
+    characteristics?: string[]
+    visualElements?: string[]
+    materialGuidance?: string
+    colorGuidance?: string
+  },
+  referenceImages?: string[],
   onProgress?: (current: number, total: number) => void
 ): Promise<string[]> {
   const imageUrls: string[] = []
@@ -518,6 +756,8 @@ export async function generateStyleRoomImages(
           styleName: styleName.en,
           colorHex,
         },
+        visualContext,
+        referenceImages,
       })
 
       imageUrls.push(...urls)

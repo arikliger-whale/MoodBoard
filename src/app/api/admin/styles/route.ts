@@ -19,6 +19,8 @@ export const dynamic = 'force-dynamic'
  */
 export const GET = withAdmin(async (req: NextRequest, auth) => {
   try {
+    console.log('[GET /api/admin/styles] Request received from:', auth.userId)
+
     // Parse query parameters
     const { searchParams } = new URL(req.url)
     const filters = styleFiltersSchema.parse({
@@ -31,10 +33,14 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
       limit: parseInt(searchParams.get('limit') || '20'),
     })
 
+    console.log('[GET /api/admin/styles] Filters:', filters)
+
     // Build where clause - only global styles (organizationId = null)
     const where: any = {
       organizationId: null,
     }
+
+    console.log('[GET /api/admin/styles] Where clause:', where)
 
     // Search filter disabled - MongoDB with Prisma doesn't support direct querying of composite types
     // Use filters instead: category, subcategory, approach, color
@@ -55,6 +61,7 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
 
     // Get total count
     const total = await prisma.style.count({ where })
+    console.log('[GET /api/admin/styles] Total styles count:', total)
 
     // Get styles
     const styles = await prisma.style.findMany({
@@ -97,6 +104,9 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
       skip: (filters.page - 1) * filters.limit,
       take: filters.limit,
     })
+
+    console.log('[GET /api/admin/styles] Styles found:', styles.length)
+    console.log('[GET /api/admin/styles] Returning response with pagination')
 
     return NextResponse.json({
       data: styles,
@@ -169,6 +179,37 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
       return NextResponse.json({ error: 'Color not found' }, { status: 404 })
     }
 
+    // Verify room profiles if provided
+    if (body.roomProfiles && body.roomProfiles.length > 0) {
+      for (const [index, profile] of body.roomProfiles.entries()) {
+        // Verify room type exists
+        const roomType = await prisma.roomType.findUnique({
+          where: { id: profile.roomTypeId },
+        })
+        if (!roomType) {
+          return NextResponse.json(
+            { error: `Room type not found for room profile ${index + 1}` },
+            { status: 404 }
+          )
+        }
+
+        // Verify all colors exist if provided
+        if (profile.colors && profile.colors.length > 0) {
+          for (const colorId of profile.colors) {
+            const roomColor = await prisma.color.findUnique({
+              where: { id: colorId },
+            })
+            if (!roomColor) {
+              return NextResponse.json(
+                { error: `Color not found in room profile ${index + 1}: ${colorId}` },
+                { status: 404 }
+              )
+            }
+          }
+        }
+      }
+    }
+
     // Generate slug if not provided
     const slug =
       body.slug ||
@@ -193,6 +234,7 @@ export const POST = withAdmin(async (req: NextRequest, auth) => {
       organizationId: null, // Global style
       slug,
       name: body.name,
+      description: body.description,
       categoryId: body.categoryId,
       subCategoryId: body.subCategoryId,
       approachId: body.approachId,

@@ -3,19 +3,25 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSession } from 'next-auth/react'
 import { CreateApproach, UpdateApproach } from '@/lib/validations/approach'
 
 const API_BASE = '/api/admin/approaches'
 
 // Fetch all approaches
 export function useApproaches() {
+  const { status } = useSession()
+
   return useQuery({
     queryKey: ['approaches'],
     queryFn: async () => {
       const res = await fetch(API_BASE)
       if (!res.ok) throw new Error('Failed to fetch approaches')
-      return res.json()
+      const data = await res.json()
+      // Wrap in data structure if it's an array (for compatibility with existing code)
+      return Array.isArray(data) ? { data, count: data.length } : data
     },
+    enabled: status === 'authenticated', // Only fetch when authenticated
   })
 }
 

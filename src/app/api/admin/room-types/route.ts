@@ -21,7 +21,10 @@ export const GET = withAdmin(async (request: NextRequest) => {
       orderBy: { order: 'asc' },
     })
 
-    return NextResponse.json(roomTypes)
+    return NextResponse.json({
+      data: roomTypes,
+      count: roomTypes.length,
+    })
   } catch (error) {
     console.error('[ROOM TYPES GET] Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

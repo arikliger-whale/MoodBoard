@@ -471,6 +471,26 @@ const ProjectStatus = () => {
 }
 ```
 
+#### Translation Management
+
+**System**: Database-backed (MongoDB), not JSON files. Manage at `/admin/translations`
+
+**Key Format (ENFORCED)**: `pagename.componentname.actualkey`
+- ✅ Lowercase, hyphens, dots only
+- ✅ `admin-categories.title`, `common.save`
+- ❌ `AdminCategories.Title`, `admin_categories.title`
+
+**Usage**:
+```typescript
+const { t } = useAreaTranslations('admin-categories')
+<Title>{t('title')}</Title>           // admin-categories.title
+<Button>{t('common.save')}</Button>   // common.save
+```
+
+**Add Translations**: Go to `/admin/translations` → Add Translation → Enter key, Hebrew, English → Save
+
+**Cache**: localStorage (1-hour). Clear: `translationClient.clearCache()`
+
 ### 5. Security Standards
 
 #### Authentication & Authorization

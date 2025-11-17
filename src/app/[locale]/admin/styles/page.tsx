@@ -21,6 +21,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { AIMetadataDisplay } from '@/components/features/style-system/AIMetadataDisplay'
 import { useAdminStyles, useDeleteAdminStyle } from '@/hooks/useStyles'
 import { useCategories, useSubCategories } from '@/hooks/useCategories'
 import { useApproaches } from '@/hooks/useApproaches'
@@ -57,6 +58,16 @@ export default function AdminStylesPage() {
     approachId: approachId || undefined,
     page,
     limit: 20,
+  })
+
+  // Debug logging
+  console.log('[ADMIN STYLES PAGE] Debug Info:', {
+    isLoading,
+    hasError: !!error,
+    error: error?.message,
+    hasData: !!data,
+    dataLength: data?.data?.length,
+    fullData: data,
   })
 
   // Delete mutation
@@ -196,6 +207,7 @@ export default function AdminStylesPage() {
                     <MoodBTableHeader>{t('table.name')}</MoodBTableHeader>
                     <MoodBTableHeader>{t('table.category')}</MoodBTableHeader>
                     <MoodBTableHeader>{t('table.approach')}</MoodBTableHeader>
+                    <MoodBTableHeader style={{ width: 80 }}>AI</MoodBTableHeader>
                     <MoodBTableHeader>{t('table.version')}</MoodBTableHeader>
                     <MoodBTableHeader>{t('table.usage')}</MoodBTableHeader>
                     <MoodBTableHeader>{t('table.createdAt')}</MoodBTableHeader>
@@ -233,6 +245,14 @@ export default function AdminStylesPage() {
                             {style.approach.name.he}
                           </MoodBBadge>
                         )}
+                      </MoodBTableCell>
+                      <MoodBTableCell>
+                        <AIMetadataDisplay
+                          aiGenerated={style.metadata.aiGenerated}
+                          aiSelection={style.metadata.aiSelection}
+                          variant="compact"
+                          locale={locale}
+                        />
                       </MoodBTableCell>
                       <MoodBTableCell>
                         <Text size="sm">{style.metadata.version}</Text>

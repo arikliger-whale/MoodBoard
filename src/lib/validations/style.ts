@@ -29,6 +29,7 @@ export const roomConstraintSchema = z.object({
 // Room Profile Schema (for client-side forms - allows blob URLs for preview)
 export const roomProfileSchema = z.object({
   roomTypeId: objectIdSchema,
+  description: localizedStringSchema.optional(),
   colors: z.array(objectIdSchema).optional().default([]),
   textures: z.array(textureReferenceSchema).optional().default([]),
   materials: z.array(objectIdSchema).optional().default([]),
@@ -40,12 +41,19 @@ export const roomProfileSchema = z.object({
 // Room Profile Schema for API (server-side - only HTTPS URLs)
 export const roomProfileApiSchema = z.object({
   roomTypeId: objectIdSchema,
+  description: localizedStringSchema.optional(),
   colors: z.array(objectIdSchema).optional().default([]),
   textures: z.array(textureReferenceSchema).optional().default([]),
   materials: z.array(objectIdSchema).optional().default([]),
   products: z.array(styleProductReferenceSchema).optional().default([]),
   images: serverImagesSchema.optional(),
   constraints: roomConstraintSchema.nullable().optional(),
+})
+
+// AI Selection Schema (for tracking AI-generated style decisions)
+export const aiSelectionSchema = z.object({
+  approachConfidence: z.number().min(0).max(1), // AI confidence score (0.0-1.0)
+  reasoning: localizedStringSchema, // Why this approach/color was chosen
 })
 
 // Style Metadata Schema
@@ -59,11 +67,16 @@ export const styleMetadataSchema = z.object({
   tags: z.array(z.string()).default([]),
   usage: z.number().int().default(0),
   rating: z.number().min(0).max(5).nullable().optional(),
+
+  // AI Generation tracking
+  aiGenerated: z.boolean().default(false).optional(),
+  aiSelection: aiSelectionSchema.nullable().optional(),
 })
 
 // Create Style Schema (API - only accepts HTTPS URLs)
 export const createStyleSchema = z.object({
   name: localizedStringSchema,
+  description: localizedStringSchema.optional(),
   categoryId: objectIdSchema,
   subCategoryId: objectIdSchema,
   approachId: objectIdSchema,
@@ -77,6 +90,7 @@ export const createStyleSchema = z.object({
 // Update Style Schema (API - only accepts HTTPS URLs)
 export const updateStyleSchema = z.object({
   name: localizedStringSchema.optional(),
+  description: localizedStringSchema.optional(),
   categoryId: objectIdSchema.optional(),
   subCategoryId: objectIdSchema.optional(),
   approachId: objectIdSchema.optional(),
@@ -90,6 +104,7 @@ export const updateStyleSchema = z.object({
 // Create Style Schema for client forms (allows blob URLs for preview)
 export const createStyleFormSchema = z.object({
   name: localizedStringSchema,
+  description: localizedStringSchema.optional(),
   categoryId: objectIdSchema,
   subCategoryId: objectIdSchema,
   approachId: objectIdSchema,
@@ -121,6 +136,7 @@ export const approveStyleSchema = z.object({
 })
 
 // Export types
+export type AISelection = z.infer<typeof aiSelectionSchema>
 export type TextureReference = z.infer<typeof textureReferenceSchema>
 export type StyleProductReference = z.infer<typeof styleProductReferenceSchema>
 export type RoomConstraint = z.infer<typeof roomConstraintSchema>

@@ -30,7 +30,8 @@ export function ApproachesTable() {
   const params = useParams()
   const locale = params.locale as string
 
-  const { data: approaches, isLoading, error } = useApproaches()
+  const { data: approachesData, isLoading, error } = useApproaches()
+  const approaches = approachesData?.data
   const deleteMutation = useDeleteApproach()
 
   const [search, setSearch] = useState('')

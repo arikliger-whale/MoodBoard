@@ -217,13 +217,25 @@ export function useAdminStyles(filters: StyleFilters = {}) {
   const router = useRouter()
   const isAdmin = session?.user?.role === 'admin'
 
+  // Debug logging
+  console.log('[useAdminStyles] Hook state:', {
+    hasSession: !!session,
+    userRole: session?.user?.role,
+    isAdmin,
+    enabled: !!session && isAdmin,
+    filters,
+  })
+
   return useQuery({
     queryKey: [ADMIN_STYLES_QUERY_KEY, filters],
     queryFn: async () => {
+      console.log('[useAdminStyles] Query function called')
       if (!isAdmin) {
         throw new Error('Admin access required')
       }
-      return fetchAdminStyles(filters)
+      const result = await fetchAdminStyles(filters)
+      console.log('[useAdminStyles] Query result:', result)
+      return result
     },
     enabled: !!session && isAdmin,
     // FIX: Removed refetchOnWindowFocus, refetchInterval, and staleTime overrides

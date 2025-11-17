@@ -21,7 +21,6 @@ import {
   ScrollArea,
   Pagination,
   ActionIcon,
-  Tooltip,
 } from '@mantine/core'
 import {
   IconChevronDown,
@@ -30,6 +29,9 @@ import {
   IconClock,
   IconCurrencyDollar,
   IconRefresh,
+  IconPlayerPlay,
+  IconCopy,
+  IconCheck,
 } from '@tabler/icons-react'
 import { formatCost, formatTimeEstimate } from '@/lib/seed/cost-calculator'
 
@@ -72,6 +74,7 @@ interface ExecutionSummary {
   duration: number | null
   status: 'running' | 'completed' | 'failed' | 'stopped'
   error: string | null
+  errors?: Array<{ entity: string; error: string }>
   generatedStyles: {
     styleId: string
     name: { he: string; en: string }
@@ -91,16 +94,19 @@ interface ExecutionSummary {
 interface ExecutionHistoryTableProps {
   autoRefresh?: boolean
   refreshInterval?: number
+  onContinue?: (executionId: string) => void
 }
 
 export function ExecutionHistoryTable({
   autoRefresh = false,
   refreshInterval = 10000,
+  onContinue,
 }: ExecutionHistoryTableProps) {
   const [executions, setExecutions] = useState<ExecutionSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+  const [copiedError, setCopiedError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const limit = 10
@@ -145,6 +151,27 @@ export function ExecutionHistoryTable({
       newExpanded.add(id)
     }
     setExpandedRows(newExpanded)
+  }
+
+  const canResume = (execution: ExecutionSummary) => {
+    // Can resume if: failed, stopped, or running (but stale)
+    // AND has a limit configured (not trying to generate all)
+    // AND hasn't completed all styles
+    const isIncomplete = execution.status === 'failed' || execution.status === 'stopped'
+    const hasLimit = execution.config.limit !== undefined
+    const hasRemainingStyles =
+      execution.summary.created < (execution.config.limit || 0)
+    return isIncomplete && hasLimit && hasRemainingStyles
+  }
+
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedError(id)
+      setTimeout(() => setCopiedError(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -209,11 +236,9 @@ export function ExecutionHistoryTable({
         <Text size="sm" c="dimmed">
           Showing {executions.length} of {totalCount} executions
         </Text>
-        <Tooltip label="Refresh">
-          <ActionIcon variant="light" onClick={fetchExecutions}>
-            <IconRefresh size={16} />
-          </ActionIcon>
-        </Tooltip>
+        <ActionIcon variant="light" onClick={fetchExecutions} aria-label="Refresh">
+          <IconRefresh size={16} />
+        </ActionIcon>
       </Group>
 
       <ScrollArea>
@@ -227,6 +252,7 @@ export function ExecutionHistoryTable({
               <Table.Th style={{ textAlign: 'center' }}>Duration</Table.Th>
               <Table.Th style={{ textAlign: 'center' }}>Cost</Table.Th>
               <Table.Th style={{ textAlign: 'center' }}>Config</Table.Th>
+              <Table.Th style={{ textAlign: 'center', width: 100 }}>Actions</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -306,12 +332,32 @@ export function ExecutionHistoryTable({
                         )}
                       </Group>
                     </Table.Td>
+                    <Table.Td
+                      style={{ textAlign: 'center' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {canResume(execution) && onContinue && (
+                        <Button
+                          size="xs"
+                          variant="light"
+                          color="blue"
+                          leftSection={<IconPlayerPlay size={14} />}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onContinue(execution.id)
+                          }}
+                          aria-label="Continue from where it stopped"
+                        >
+                          Continue
+                        </Button>
+                      )}
+                    </Table.Td>
                   </Table.Tr>
 
                   {/* Expanded Row - Generated Styles */}
                   {isExpanded && (
                     <Table.Tr>
-                      <Table.Td colSpan={7} style={{ backgroundColor: '#f8f9fa' }}>
+                      <Table.Td colSpan={8} style={{ backgroundColor: '#f8f9fa' }}>
                         <Collapse in={isExpanded}>
                           <Stack gap="md" p="md">
                             <Text fw={600}>Generated Styles ({execution.generatedStyles.length})</Text>
@@ -363,10 +409,83 @@ export function ExecutionHistoryTable({
                               </Text>
                             )}
 
+                            {/* Main Error Message */}
                             {execution.error && (
-                              <Alert color="red" title="Error">
-                                {execution.error}
-                              </Alert>
+                              <Stack gap="xs">
+                                <Group justify="space-between">
+                                  <Text fw={600} c="red">Error Message</Text>
+                                  <ActionIcon
+                                    variant="subtle"
+                                    color="red"
+                                    size="sm"
+                                    aria-label="Copy error"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      copyToClipboard(execution.error || '', `main-${execution.id}`)
+                                    }}
+                                  >
+                                    {copiedError === `main-${execution.id}` ? (
+                                      <IconCheck size={14} />
+                                    ) : (
+                                      <IconCopy size={14} />
+                                    )}
+                                  </ActionIcon>
+                                </Group>
+                                <Alert color="red">
+                                  <Text size="sm" style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                                    {execution.error}
+                                  </Text>
+                                </Alert>
+                              </Stack>
+                            )}
+
+                            {/* Detailed Errors List */}
+                            {execution.errors && execution.errors.length > 0 && (
+                              <Stack gap="xs">
+                                <Text fw={600} c="red">
+                                  Detailed Errors ({execution.errors.length})
+                                </Text>
+                                <ScrollArea h={300}>
+                                  <Stack gap="xs">
+                                    {execution.errors.map((err, idx) => (
+                                      <Stack key={idx} gap={4}>
+                                        <Group justify="space-between">
+                                          <Text size="sm" fw={500} c="red">
+                                            {err.entity}
+                                          </Text>
+                                          <ActionIcon
+                                            variant="subtle"
+                                            color="red"
+                                            size="sm"
+                                            aria-label="Copy error"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              copyToClipboard(
+                                                `Entity: ${err.entity}\nError: ${err.error}`,
+                                                `${execution.id}-${idx}`
+                                              )
+                                            }}
+                                          >
+                                            {copiedError === `${execution.id}-${idx}` ? (
+                                              <IconCheck size={14} />
+                                            ) : (
+                                              <IconCopy size={14} />
+                                            )}
+                                          </ActionIcon>
+                                        </Group>
+                                        <Alert color="red" variant="light">
+                                          <Text
+                                            size="sm"
+                                            style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}
+                                          >
+                                            {err.error}
+                                          </Text>
+                                        </Alert>
+                                      </Stack>
+                                    ))}
+                                  </Stack>
+                                </ScrollArea>
+                              </Stack>
                             )}
                           </Stack>
                         </Collapse>

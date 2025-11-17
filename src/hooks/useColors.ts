@@ -86,10 +86,13 @@ async function fetchColor(colorId: string): Promise<Color> {
  * Hook to fetch colors (admin only)
  */
 export function useColors(filters: ColorFilters = {}) {
+  const { data: session, status } = useSession()
+
   return useQuery({
     queryKey: [ADMIN_COLORS_QUERY_KEY, filters],
     queryFn: () => fetchColors(filters),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: status === 'authenticated', // Only fetch when authenticated
   })
 }
 

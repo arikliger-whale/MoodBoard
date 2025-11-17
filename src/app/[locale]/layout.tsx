@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { locales } from '@/i18n/request'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { QueryProvider } from '@/lib/providers/QueryProvider'
+import { ImageViewerProvider } from '@/contexts/ImageViewerContext'
 
 // Force dynamic rendering for faster builds (auth-required pages don't benefit from static generation)
 export const dynamic = 'force-dynamic'
@@ -34,13 +35,15 @@ export default async function LocaleLayout({
   return (
     <SessionProvider>
       <QueryProvider>
-        <div lang={locale} dir={direction}>
-          <NextIntlClientProvider messages={messages}>
-            <MantineProvider locale={locale}>
-              {children}
-            </MantineProvider>
-          </NextIntlClientProvider>
-        </div>
+        <ImageViewerProvider>
+          <div lang={locale} dir={direction}>
+            <NextIntlClientProvider messages={messages}>
+              <MantineProvider locale={locale}>
+                {children}
+              </MantineProvider>
+            </NextIntlClientProvider>
+          </div>
+        </ImageViewerProvider>
       </QueryProvider>
     </SessionProvider>
   );

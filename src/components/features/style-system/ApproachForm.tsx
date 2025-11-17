@@ -226,7 +226,7 @@ export function ApproachForm({ approach, onSuccess }: ApproachFormProps) {
           </Stack>
         </FormSection>
 
-        <FormSection title={t('form.description')}>
+        <FormSection title={t('form.descriptionSection')}>
           <Stack gap="md">
             <Controller
               name="description.he"
@@ -259,7 +259,7 @@ export function ApproachForm({ approach, onSuccess }: ApproachFormProps) {
         </FormSection>
 
         {/* Images Section */}
-        <FormSection title={t('form.images') || 'Images'}>
+        <FormSection title={t('form.images')}>
           <Controller
             name="images"
             control={control}

@@ -154,6 +154,32 @@ export async function deleteImageFromGCP(imageUrl: string): Promise<void> {
 }
 
 /**
+ * Copy/move image to a new location in GCP Storage
+ */
+export async function copyImageInGCP(
+  sourceUrl: string,
+  destinationKey: string,
+  deleteSource = false
+): Promise<string> {
+  // Extract source key from URL
+  const sourceKey = extractKeyFromUrl(sourceUrl)
+
+  const sourceFile = bucket.file(sourceKey)
+  const destinationFile = bucket.file(destinationKey)
+
+  // Copy file
+  await sourceFile.copy(destinationFile)
+
+  // Delete source if requested (move operation)
+  if (deleteSource) {
+    await sourceFile.delete()
+  }
+
+  // Return new public URL
+  return getGCPPublicUrl(destinationKey)
+}
+
+/**
  * Check if image exists in GCP Storage
  */
 export async function imageExistsInGCP(imageUrl: string): Promise<boolean> {
@@ -193,6 +219,72 @@ export function extractKeyFromUrl(url: string): string {
   } catch {
     // If URL parsing fails, assume it's already a key
     return url
+  }
+}
+
+/**
+ * List all files in a GCP Storage path (prefix)
+ */
+export async function listFilesInPath(prefix: string): Promise<string[]> {
+  try {
+    const [files] = await bucket.getFiles({ prefix })
+    return files.map((file) => getGCPPublicUrl(file.name))
+  } catch (error) {
+    console.error(`Error listing files in path ${prefix}:`, error)
+    return []
+  }
+}
+
+/**
+ * List files organized by style and room type
+ * Returns main style images and room-specific images sorted by timestamp
+ */
+export async function listStyleImages(styleId: string): Promise<{
+  mainImages: string[]
+  roomImages: Record<string, string[]>
+}> {
+  try {
+    const prefix = `styles/${styleId}/`
+    const [files] = await bucket.getFiles({ prefix })
+
+    const mainImages: string[] = []
+    const roomImages: Record<string, string[]> = {}
+
+    for (const file of files) {
+      const url = getGCPPublicUrl(file.name)
+
+      // Check if it's a room image (pattern: styles/{styleId}/rooms/{roomType}/)
+      const roomMatch = file.name.match(/styles\/[^/]+\/rooms\/([^/]+)\//)
+      if (roomMatch) {
+        const roomType = roomMatch[1]
+        if (!roomImages[roomType]) {
+          roomImages[roomType] = []
+        }
+        roomImages[roomType].push(url)
+      } else if (file.name.includes(`styles/${styleId}/`) && !file.name.includes('/rooms/')) {
+        // Main style image (not in a rooms subfolder)
+        mainImages.push(url)
+      }
+    }
+
+    // Sort by timestamp (extracted from filename: {timestamp}-{uuid}-{filename})
+    const sortByTimestamp = (urls: string[]) => {
+      return urls.sort((a, b) => {
+        const timestampA = parseInt(a.match(/\/(\d+)-/)?.[1] || '0')
+        const timestampB = parseInt(b.match(/\/(\d+)-/)?.[1] || '0')
+        return timestampA - timestampB
+      })
+    }
+
+    return {
+      mainImages: sortByTimestamp(mainImages),
+      roomImages: Object.fromEntries(
+        Object.entries(roomImages).map(([type, urls]) => [type, sortByTimestamp(urls)])
+      ),
+    }
+  } catch (error) {
+    console.error(`Error listing style images for ${styleId}:`, error)
+    return { mainImages: [], roomImages: {} }
   }
 }
 
