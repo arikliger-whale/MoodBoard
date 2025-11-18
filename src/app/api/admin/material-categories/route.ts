@@ -40,31 +40,19 @@ export const GET = withAdmin(async (req: NextRequest) => {
         types: {
           orderBy: { order: 'asc' },
         },
+        _count: {
+          select: {
+            materials: true,
+            types: true,
+          },
+        },
       },
       orderBy: { order: 'asc' },
     })
 
-    // Add counts for each category
-    const categoriesWithCounts = await Promise.all(
-      categories.map(async (category) => {
-        const materialsCount = await prisma.material.count({
-          where: {
-            categoryId: category.id,
-          },
-        })
-        return {
-          ...category,
-          _count: {
-            materials: materialsCount,
-            types: category.types.length,
-          },
-        }
-      })
-    )
-
     return NextResponse.json({
-      data: categoriesWithCounts,
-      count: categoriesWithCounts.length,
+      data: categories,
+      count: categories.length,
     })
   } catch (error: any) {
     console.error('Material Categories API Error:', error)

@@ -44,7 +44,10 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
     const material = await prisma.material.findFirst({
       where: {
         id: materialId,
-        organizationId: auth.organizationId,
+        OR: [
+          { organizationId: auth.organizationId }, // Organization-specific materials
+          { organizationId: null }, // Global materials
+        ],
       },
     })
 
@@ -85,12 +88,15 @@ export const PATCH = withAdmin(async (req: NextRequest, auth) => {
     const existingMaterial = await prisma.material.findFirst({
       where: {
         id: materialId,
-        organizationId: auth.organizationId,
+        organizationId: auth.organizationId, // Only allow editing org-specific materials
       },
     })
 
     if (!existingMaterial) {
-      return NextResponse.json({ error: 'Material not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Material not found or cannot be edited (global materials are read-only)' },
+        { status: 403 }
+      )
     }
 
     // Validate colorIds if provided
@@ -98,13 +104,16 @@ export const PATCH = withAdmin(async (req: NextRequest, auth) => {
       const colors = await prisma.color.findMany({
         where: {
           id: { in: body.properties.colorIds },
-          organizationId: auth.organizationId,
+          OR: [
+            { organizationId: auth.organizationId }, // Organization colors
+            { organizationId: null }, // Global colors
+          ],
         },
       })
 
       if (colors.length !== body.properties.colorIds.length) {
         return NextResponse.json(
-          { error: 'One or more color IDs are invalid or do not belong to your organization' },
+          { error: 'One or more color IDs are invalid' },
           { status: 400 }
         )
       }
@@ -173,12 +182,15 @@ export const DELETE = withAdmin(async (req: NextRequest, auth) => {
     const existingMaterial = await prisma.material.findFirst({
       where: {
         id: materialId,
-        organizationId: auth.organizationId,
+        organizationId: auth.organizationId, // Only allow deleting org-specific materials
       },
     })
 
     if (!existingMaterial) {
-      return NextResponse.json({ error: 'Material not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Material not found or cannot be deleted (global materials are read-only)' },
+        { status: 403 }
+      )
     }
 
     // TODO: Check if material is used in any styles before deletion

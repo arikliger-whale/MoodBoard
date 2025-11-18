@@ -144,11 +144,16 @@ async function deleteMaterialCategory(categoryId: string): Promise<void> {
   }
 }
 
+/**
+ * Hook to fetch material categories
+ * Optimized caching: Categories rarely change, cache aggressively
+ */
 export function useMaterialCategories(search?: string) {
   return useQuery({
     queryKey: [MATERIAL_CATEGORIES_QUERY_KEY, search],
     queryFn: () => fetchMaterialCategories(search),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes - keep in cache
   })
 }
 
@@ -160,7 +165,8 @@ export function useMaterialCategory(
     queryKey: [MATERIAL_CATEGORIES_QUERY_KEY, categoryId],
     queryFn: () => fetchMaterialCategory(categoryId),
     enabled: options?.enabled !== undefined ? options.enabled : !!categoryId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes - keep in cache
   })
 }
 
@@ -275,6 +281,10 @@ async function deleteMaterialType(typeId: string): Promise<void> {
   }
 }
 
+/**
+ * Hook to fetch material types
+ * Optimized caching: Types rarely change, cache aggressively
+ */
 export function useMaterialTypes(
   search?: string,
   categoryId?: string,
@@ -283,7 +293,8 @@ export function useMaterialTypes(
   return useQuery({
     queryKey: [MATERIAL_TYPES_QUERY_KEY, search, categoryId],
     queryFn: () => fetchMaterialTypes(search, categoryId),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes - keep in cache
     enabled: options?.enabled !== undefined ? options.enabled : true,
   })
 }
@@ -296,7 +307,8 @@ export function useMaterialType(
     queryKey: [MATERIAL_TYPES_QUERY_KEY, typeId],
     queryFn: () => fetchMaterialType(typeId),
     enabled: options?.enabled !== undefined ? options.enabled : !!typeId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes - keep in cache
   })
 }
 

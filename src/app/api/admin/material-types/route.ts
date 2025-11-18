@@ -50,38 +50,51 @@ export const GET = withAdmin(async (req: NextRequest) => {
       ],
     })
 
-    // Count materials for each type (Material has properties.typeId as string reference)
-    // Note: This is a workaround since Material doesn't have a direct relation to MaterialType
-    // Prisma doesn't support querying nested fields in embedded documents, so we use raw MongoDB query
-    const typesWithCounts = await Promise.all(
-      types.map(async (type) => {
-        try {
-          // Use raw MongoDB query to count materials with matching properties.typeId
-          const result = await prisma.$runCommandRaw({
-            count: 'materials',
-            query: {
-              'properties.typeId': type.id,
+    // Optimize: Get all material counts in a single aggregation query
+    let materialCountsByTypeId: Record<string, number> = {}
+
+    if (types.length > 0) {
+      try {
+        // Use MongoDB aggregation to count materials grouped by typeId
+        const typeIds = types.map(t => t.id)
+        const aggregationResult = await prisma.$runCommandRaw({
+          aggregate: 'materials',
+          pipeline: [
+            {
+              $match: {
+                'properties.typeId': { $in: typeIds },
+              },
             },
-          })
-          const materialCount = (result as any).n || 0
-          return {
-            ...type,
-            _count: {
-              materials: materialCount,
+            {
+              $group: {
+                _id: '$properties.typeId',
+                count: { $sum: 1 },
+              },
             },
-          }
-        } catch (error) {
-          // If raw query fails, return 0
-          console.error(`Error counting materials for type ${type.id}:`, error)
-          return {
-            ...type,
-            _count: {
-              materials: 0,
-            },
+          ],
+          cursor: {},
+        })
+
+        // Convert aggregation result to a map
+        const cursor = (aggregationResult as any).cursor
+        if (cursor && cursor.firstBatch) {
+          for (const item of cursor.firstBatch) {
+            materialCountsByTypeId[item._id] = item.count
           }
         }
-      })
-    )
+      } catch (error) {
+        console.error('Error aggregating material counts:', error)
+        // Continue with empty counts if aggregation fails
+      }
+    }
+
+    // Map counts to types
+    const typesWithCounts = types.map(type => ({
+      ...type,
+      _count: {
+        materials: materialCountsByTypeId[type.id] || 0,
+      },
+    }))
 
     return NextResponse.json({
       data: typesWithCounts,

@@ -41,8 +41,8 @@ export function ProgressDisplay({
           <Title order={3}>Progress</Title>
           <Group gap="sm">
             {executionId && (
-              <Badge size="sm" variant="light" c="gray">
-                ID: {executionId.slice(0, 8)}...
+              <Badge size="sm" variant="light" c="gray" style={{ fontFamily: 'monospace' }}>
+                ID: {executionId.slice(0, 8)}...{executionId.slice(-4)}
               </Badge>
             )}
             {isResuming && (

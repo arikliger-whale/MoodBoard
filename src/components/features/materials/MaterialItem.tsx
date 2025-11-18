@@ -16,6 +16,7 @@ import { MoodBBadge } from '@/components/ui/Badge'
 import { MoodBCard } from '@/components/ui/Card'
 import { useAuth } from '@/hooks/use-auth/useAuth'
 import { useColors } from '@/hooks/useColors'
+import { useMaterialCategory, useMaterialType } from '@/hooks/useMaterialCategories'
 import { useDeleteMaterial, useMaterial, type Material } from '@/hooks/useMaterials'
 import { Badge, Button, Divider, Group, SimpleGrid, Stack, Text } from '@mantine/core'
 import { IconArrowLeft, IconEdit, IconTrash } from '@tabler/icons-react'
@@ -50,6 +51,14 @@ export function MaterialItem({ materialId, showActions = true, onEdit, onDelete 
   const materialColors = useMemo(() => {
     return allColors.filter((color) => colorIds.includes(color.id))
   }, [allColors, colorIds])
+
+  // Fetch category and type
+  const { data: category } = useMaterialCategory(material?.categoryId || '', {
+    enabled: !!material?.categoryId,
+  })
+  const { data: materialType } = useMaterialType(material?.properties.typeId || '', {
+    enabled: !!material?.properties.typeId,
+  })
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -146,13 +155,17 @@ export function MaterialItem({ materialId, showActions = true, onEdit, onDelete 
               <Text size="sm" c="dimmed" mb={4}>
                 {t('detail.category')}
               </Text>
-              <Text fw={500}>{material.categoryId}</Text>
+              <Text fw={500}>
+                {category ? `${category.name.he} (${category.name.en})` : material.categoryId}
+              </Text>
             </div>
             <div>
               <Text size="sm" c="dimmed" mb={4}>
                 {t('detail.type')}
               </Text>
-              <MoodBBadge>{material.properties.typeId}</MoodBBadge>
+              <MoodBBadge>
+                {materialType ? `${materialType.name.he} (${materialType.name.en})` : material.properties.typeId}
+              </MoodBBadge>
             </div>
             <div>
               <Text size="sm" c="dimmed" mb={4}>

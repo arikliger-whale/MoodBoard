@@ -116,12 +116,14 @@ async function fetchMaterial(materialId: string): Promise<Material> {
 
 /**
  * Hook to fetch materials (admin only)
+ * Optimized caching: Data stays fresh for 5 minutes, cached for 15 minutes
  */
 export function useMaterials(filters: MaterialFilters = {}) {
   return useQuery({
     queryKey: [ADMIN_MATERIALS_QUERY_KEY, filters],
     queryFn: () => fetchMaterials(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - matches global config
+    gcTime: 15 * 60 * 1000, // 15 minutes - keep in cache longer
   })
 }
 
@@ -134,15 +136,17 @@ function isValidObjectId(id: string): boolean {
 
 /**
  * Hook to fetch single material
+ * Optimized caching: Material details are cached longer as they rarely change
  */
 export function useMaterial(materialId: string) {
   const isValidId = materialId && materialId !== 'new' && isValidObjectId(materialId)
-  
+
   return useQuery({
     queryKey: [ADMIN_MATERIALS_QUERY_KEY, materialId],
     queryFn: () => fetchMaterial(materialId),
     enabled: isValidId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes - keep in cache
   })
 }
 

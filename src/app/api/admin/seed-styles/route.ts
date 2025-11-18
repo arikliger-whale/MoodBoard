@@ -32,6 +32,13 @@ export async function POST(request: NextRequest) {
   try {
     const config: SeedConfig = await request.json()
 
+    // Debug: Log received config
+    console.log('📥 API received config:', {
+      resumeExecutionId: config.resumeExecutionId,
+      limit: config.limit,
+      isResume: !!config.resumeExecutionId,
+    })
+
     // Calculate estimated cost
     const costBreakdown = calculateEstimatedCost(config.limit || 60, {
       generateImages: config.generateImages ?? true,
@@ -55,6 +62,8 @@ export async function POST(request: NextRequest) {
         try {
           // Resume existing execution or create new one
           if (config.resumeExecutionId) {
+            console.log('🔍 Looking for execution to resume:', config.resumeExecutionId)
+
             // Fetch existing execution
             execution = await prisma.seedExecution.findUnique({
               where: { id: config.resumeExecutionId },
@@ -63,6 +72,12 @@ export async function POST(request: NextRequest) {
             if (!execution) {
               throw new Error(`Execution ${config.resumeExecutionId} not found`)
             }
+
+            console.log('✅ Found execution:', {
+              id: execution.id,
+              status: execution.status,
+              generatedStylesCount: execution.generatedStyles?.length || 0,
+            })
 
             // Update status to running
             execution = await prisma.seedExecution.update({
@@ -74,6 +89,7 @@ export async function POST(request: NextRequest) {
             })
 
             executionId = String(execution.id)
+            console.log('🔄 Resumed execution ID:', executionId)
           } else {
             // Create new SeedExecution record (status: 'running')
             execution = await prisma.seedExecution.create({

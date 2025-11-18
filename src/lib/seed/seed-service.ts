@@ -767,6 +767,48 @@ export async function seedStyles(
   }
 
   try {
+    // Step 0: Check if resuming and find incomplete style
+    let resumingStyleId: string | null = null
+    let resumingStyleRoomIndex = 0
+
+    if (executionId) {
+      onProgress?.('🔍 Checking for incomplete style to resume...')
+      console.log('🔍 Seed service checking execution:', executionId)
+
+      const execution = await prisma.seedExecution.findUnique({
+        where: { id: executionId },
+      })
+
+      console.log('📊 Execution data:', {
+        found: !!execution,
+        generatedStylesCount: execution?.generatedStyles?.length || 0,
+        status: execution?.status,
+      })
+
+      if (execution && execution.generatedStyles.length > 0) {
+        // Get the last style that was being worked on
+        const lastGeneratedStyleRef = execution.generatedStyles[execution.generatedStyles.length - 1]
+        const lastStyle = await prisma.style.findUnique({
+          where: { id: lastGeneratedStyleRef.styleId },
+        })
+
+        if (lastStyle) {
+          const currentRoomCount = (lastStyle.roomProfiles as any[])?.length || 0
+          const totalRoomsExpected = roomTypeFilter && roomTypeFilter.length > 0
+            ? roomTypeFilter.length
+            : (await prisma.roomType.count())
+
+          // If the last style has incomplete room profiles, resume from there
+          if (currentRoomCount < totalRoomsExpected) {
+            resumingStyleId = lastStyle.id
+            resumingStyleRoomIndex = currentRoomCount
+            onProgress?.(`✅ Found incomplete style: ${lastStyle.name.en} (${currentRoomCount}/${totalRoomsExpected} rooms)`)
+            onProgress?.(`   Will continue from room ${currentRoomCount + 1}`)
+          }
+        }
+      }
+    }
+
     // Step 1: Query all required data from database
     onProgress?.('📊 Querying database for sub-categories, approaches, colors, and room types...')
 
@@ -891,6 +933,44 @@ export async function seedStyles(
       )
 
       onProgress?.('✅ AI selections complete!')
+    }
+
+    // Step 2.5: Handle resuming incomplete style first
+    if (resumingStyleId) {
+      onProgress?.('🔄 Resuming incomplete style generation...')
+
+      const resumingStyle = await prisma.style.findUnique({
+        where: { id: resumingStyleId },
+        include: {
+          subCategory: {
+            include: { category: true }
+          },
+          approach: true,
+          color: true,
+        },
+      })
+
+      if (resumingStyle) {
+        try {
+          await resumeStyleRoomGeneration({
+            style: resumingStyle,
+            startRoomIndex: resumingStyleRoomIndex,
+            roomTypes,
+            onProgress,
+            subCatsToProcess,
+            dryRun,
+            result,
+            onStyleCompleted,
+            generateImages: options.generateImages,
+          })
+        } catch (error) {
+          onProgress?.(`❌ Error resuming style: ${error instanceof Error ? error.message : String(error)}`)
+          result.errors.push({
+            entity: `style:${resumingStyle.slug}`,
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
+      }
     }
 
     // Step 3: Generate styles one by one
@@ -1307,4 +1387,226 @@ export async function seedStyles(
   }
 
   return result
+}
+
+/**
+ * Helper function to resume room generation for an incomplete style
+ */
+async function resumeStyleRoomGeneration({
+  style,
+  startRoomIndex,
+  roomTypes,
+  onProgress,
+  subCatsToProcess,
+  dryRun,
+  result,
+  onStyleCompleted,
+  generateImages,
+}: {
+  style: any
+  startRoomIndex: number
+  roomTypes: any[]
+  onProgress?: (message: string, current?: number, total?: number) => void
+  subCatsToProcess: any[]
+  dryRun?: boolean
+  result: SeedResult
+  onStyleCompleted?: (styleId: string, styleName: { he: string; en: string }) => Promise<void>
+  generateImages?: boolean
+}) {
+  const styleName = style.name
+  const selectedColor = style.color
+  const selectedApproach = style.approach
+  const subCategory = style.subCategory
+  const detailedContent = style.detailedContent
+
+  onProgress?.(
+    `🔄 Resuming: ${styleName.en}`,
+    0,
+    subCatsToProcess.length
+  )
+
+  onProgress?.(
+    `   📍 Starting from room ${startRoomIndex + 1}/${roomTypes.length}`,
+    0,
+    subCatsToProcess.length
+  )
+
+  if (!generateImages) {
+    onProgress?.('⚠️  Image generation disabled, skipping room profile generation')
+    return
+  }
+
+  const { generateRoomProfileContent } = await import('../ai/gemini')
+
+  // Fetch available materials for AI to use
+  const availableMaterials = await prisma.material.findMany({
+    select: {
+      name: true,
+      sku: true,
+    },
+  })
+
+  onProgress?.(
+    `   📦 Loaded ${availableMaterials.length} available materials for AI selection`,
+    0,
+    subCatsToProcess.length
+  )
+
+  const styleContext = {
+    name: styleName,
+    description: {
+      he: detailedContent.he.description,
+      en: detailedContent.en.description,
+    },
+    characteristics: detailedContent.he.characteristics || [],
+    visualElements: detailedContent.he.visualElements || [],
+    materialGuidance: {
+      he: detailedContent.he.materialGuidance,
+      en: detailedContent.en.materialGuidance,
+    },
+    primaryColor: {
+      name: selectedColor.name,
+      hex: selectedColor.hex,
+    },
+  }
+
+  // Extract visual context from sub-category
+  const visualContext = subCategory.detailedContent?.en
+    ? {
+        characteristics: subCategory.detailedContent.en.characteristics || [],
+        visualElements: subCategory.detailedContent.en.visualElements || [],
+        materialGuidance: subCategory.detailedContent.en.materialGuidance,
+        colorGuidance: subCategory.detailedContent.en.colorGuidance,
+      }
+    : undefined
+
+  const { generateStyleRoomImages } = await import('../ai/image-generation')
+
+  // Continue generating rooms from where we left off
+  for (let j = startRoomIndex; j < roomTypes.length; j++) {
+    const roomType = roomTypes[j]
+
+    try {
+      onProgress?.(
+        `      Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Generating content...`,
+        0,
+        subCatsToProcess.length
+      )
+
+      // Generate room profile content
+      const roomProfile = await generateRoomProfileContent(roomType, styleContext, availableMaterials)
+
+      onProgress?.(
+        `      Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Generating 3 images...`,
+        0,
+        subCatsToProcess.length
+      )
+
+      // Generate room-specific images
+      let roomImages: string[] = []
+      try {
+        onProgress?.(
+          `      🎨 Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Starting image generation...`,
+          0,
+          subCatsToProcess.length
+        )
+
+        roomImages = await generateStyleRoomImages(
+          styleName,
+          roomType.name.en,
+          selectedColor.hex,
+          visualContext,
+          subCategory.images || []
+        )
+
+        onProgress?.(
+          `      ✅ Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Generated ${roomImages.length} images`,
+          0,
+          subCatsToProcess.length
+        )
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.error(`Room image generation failed for ${roomType.name.en}:`, error)
+        onProgress?.(
+          `      ⚠️  Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Image generation failed: ${errorMessage}`,
+          0,
+          subCatsToProcess.length
+        )
+      }
+
+      const completeRoomProfile = {
+        ...roomProfile,
+        images: roomImages,
+      }
+
+      // Convert AI-generated room profile to use Color and Material IDs
+      onProgress?.(
+        `      Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Converting to IDs...`,
+        0,
+        subCatsToProcess.length
+      )
+
+      const convertedRoomProfile = await convertRoomProfileToIds(completeRoomProfile)
+
+      if (dryRun) {
+        onProgress?.(
+          `      [DRY RUN] Would save room: ${roomType.name.en}`,
+          0,
+          subCatsToProcess.length
+        )
+      } else {
+        // Append new room profile to style
+        onProgress?.(
+          `      Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Saving to database...`,
+          0,
+          subCatsToProcess.length
+        )
+
+        await prisma.style.update({
+          where: { id: style.id },
+          data: {
+            roomProfiles: {
+              push: convertedRoomProfile,
+            },
+          },
+        })
+
+        onProgress?.(
+          `      ✅ Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Saved!`,
+          0,
+          subCatsToProcess.length
+        )
+      }
+
+      // Notify about progress if callback provided
+      if (onStyleCompleted && j === roomTypes.length - 1) {
+        // Last room completed, notify style is fully complete
+        await onStyleCompleted(style.id, styleName)
+      }
+
+      // Small delay to avoid rate limiting
+      if (j < roomTypes.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+
+    } catch (error) {
+      onProgress?.(
+        `      ❌ Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Error: ${error instanceof Error ? error.message : String(error)}`,
+        0,
+        subCatsToProcess.length
+      )
+      result.errors.push({
+        entity: `style:${style.slug}:room:${roomType.slug}`,
+        error: error instanceof Error ? error.message : String(error),
+      })
+      // Continue with next room even if this one failed
+    }
+  }
+
+  const finalRoomProfileCount = startRoomIndex + (roomTypes.length - startRoomIndex)
+  onProgress?.(
+    `   ✅ Resumed and completed ${finalRoomProfileCount - startRoomIndex} remaining room profiles`,
+    0,
+    subCatsToProcess.length
+  )
 }

@@ -28,28 +28,37 @@ export const GET = withAdmin(async (req: NextRequest, auth) => {
       limit: parseInt(searchParams.get('limit') || '20'),
     })
 
-    // Build where clause - always filter by user's organization
+    // Build where clause - include both organization materials AND global materials
     const where: any = {
-      organizationId: auth.organizationId,
+      AND: [
+        {
+          OR: [
+            { organizationId: auth.organizationId }, // Organization-specific materials
+            { organizationId: null }, // Global materials
+          ],
+        },
+      ],
     }
 
     // Add search filter (by name or SKU)
     if (filters.search && filters.search.trim()) {
-      where.OR = [
-        { 'name.he': { contains: filters.search } },
-        { 'name.en': { contains: filters.search } },
-        { sku: { contains: filters.search.toUpperCase() } },
-      ]
+      where.AND.push({
+        OR: [
+          { 'name.he': { contains: filters.search } },
+          { 'name.en': { contains: filters.search } },
+          { sku: { contains: filters.search.toUpperCase() } },
+        ],
+      })
     }
 
     // Add category filter
     if (filters.categoryId) {
-      where.categoryId = filters.categoryId
+      where.AND.push({ categoryId: filters.categoryId })
     }
 
     // Add type filter
     if (filters.typeId) {
-      where['properties.typeId'] = filters.typeId
+      where.AND.push({ 'properties.typeId': filters.typeId })
     }
 
     // Get total count

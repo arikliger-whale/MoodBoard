@@ -20,6 +20,7 @@ export default function SeedStylesPage() {
   const t = useTranslations('admin.seed-styles')
   const [activeTab, setActiveTab] = useState<string | null>('bulk')
   const [refreshHistory, setRefreshHistory] = useState(0)
+  const [resumeExecutionId, setResumeExecutionId] = useState<string | null>(null)
 
   return (
     <Container size="lg" py="xl">
@@ -47,7 +48,13 @@ export default function SeedStylesPage() {
           </Tabs.List>
 
           <Tabs.Panel value="bulk" pt="md">
-            <BulkGenerationTab onComplete={() => setRefreshHistory((prev) => prev + 1)} />
+            <BulkGenerationTab
+              onComplete={() => {
+                setRefreshHistory((prev) => prev + 1)
+                setResumeExecutionId(null) // Clear resume ID after completion
+              }}
+              resumeExecutionId={resumeExecutionId}
+            />
           </Tabs.Panel>
 
           <Tabs.Panel value="manual" pt="md">
@@ -73,8 +80,10 @@ export default function SeedStylesPage() {
               key={refreshHistory}
               onContinue={(executionId) => {
                 // Resume only works for bulk tab
+                console.log('📋 Page: Continue clicked for execution:', executionId)
                 setActiveTab('bulk')
-                // The bulk tab will handle the resume
+                setResumeExecutionId(executionId)
+                console.log('📋 Page: Set resumeExecutionId to:', executionId)
               }}
             />
           </Stack>

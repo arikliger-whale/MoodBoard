@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Stack, Paper, Title, NumberInput, Select, Switch, Group, Button, Radio, MultiSelect, Alert, Text, Badge, Collapse } from '@mantine/core'
 import { IconPlayerPlay, IconPlayerStop, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
 import { useTranslations } from 'next-intl'
@@ -73,23 +73,33 @@ export default function BulkGenerationTab({ onComplete, resumeExecutionId }: Bul
       setCompletedStyles([])
     }
 
+    // Debug: Log resume info
+    if (resumeId) {
+      console.log('🔄 RESUMING execution:', resumeId)
+      console.log('   Current executionId state:', executionId)
+    }
+
     const controller = new AbortController()
     abortControllerRef.current = controller
 
     try {
+      const requestBody = {
+        limit,
+        generateImages,
+        generateRoomProfiles,
+        dryRun,
+        categoryFilter: categoryFilter || undefined,
+        roomTypeFilter: roomSelection === 'specific' && selectedRooms.length > 0 ? selectedRooms : undefined,
+        resumeExecutionId: resumeId,
+        manualMode: false, // Use AI selection
+      }
+
+      console.log('📤 Sending request:', requestBody)
+
       const response = await fetch('/api/admin/seed-styles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          limit,
-          generateImages,
-          generateRoomProfiles,
-          dryRun,
-          categoryFilter: categoryFilter || undefined,
-          roomTypeFilter: roomSelection === 'specific' && selectedRooms.length > 0 ? selectedRooms : undefined,
-          resumeExecutionId: resumeId,
-          manualMode: false, // Use AI selection
-        }),
+        body: JSON.stringify(requestBody),
         signal: controller.signal,
       })
 
@@ -167,11 +177,18 @@ export default function BulkGenerationTab({ onComplete, resumeExecutionId }: Bul
   }
 
   // Auto-resume if resumeExecutionId is provided
-  useState(() => {
+  useEffect(() => {
+    console.log('🔄 BulkGenerationTab useEffect triggered:', {
+      resumeExecutionId,
+      hasResumeId: !!resumeExecutionId,
+    })
+
     if (resumeExecutionId) {
+      console.log('✅ Auto-starting resume for execution:', resumeExecutionId)
       startSeeding(resumeExecutionId)
     }
-  })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeExecutionId])
 
   return (
     <Stack gap="lg">
