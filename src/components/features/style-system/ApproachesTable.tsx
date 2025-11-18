@@ -14,13 +14,12 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { MoodBCard } from '@/components/ui/Card'
 import { MoodBTable, MoodBTableBody, MoodBTableCell, MoodBTableHead, MoodBTableHeader, MoodBTableRow } from '@/components/ui/Table'
-import { useApproaches, useDeleteApproach } from '@/hooks/useApproaches'
-import { ActionIcon, Badge, Button, Container, Drawer, Group, Menu, Modal, Stack, Text, TextInput, Checkbox } from '@mantine/core'
+import { useDeleteApproach, useApproaches } from '@/hooks/useApproaches'
+import { ActionIcon, Button, Container, Drawer, Group, Menu, Modal, Stack, Text, TextInput, Checkbox, Badge } from '@mantine/core'
 import { IconDots, IconEdit, IconEye, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react'
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { ApproachForm } from './ApproachForm'
 import { DetailedContentViewer } from './DetailedContentViewer'
 
 export function ApproachesTable() {
@@ -31,31 +30,23 @@ export function ApproachesTable() {
   const locale = params.locale as string
 
   const { data: approachesData, isLoading, error } = useApproaches()
-  const approaches = approachesData?.data
   const deleteMutation = useDeleteApproach()
 
   const [search, setSearch] = useState('')
-  const [selectedApproach, setSelectedApproach] = useState<any>(null)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [deleteApproachId, setDeleteApproachId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [viewDetailsApproach, setViewDetailsApproach] = useState<any>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
 
+  const approaches = approachesData?.data || []
+
   const handleCreate = () => {
-    setSelectedApproach(null)
-    setIsDrawerOpen(true)
+    router.push(`/${locale}/admin/style-system/approaches/create`)
   }
 
   const handleEdit = (approach: any) => {
-    setSelectedApproach(approach)
-    setIsDrawerOpen(true)
-  }
-
-  const handleFormSuccess = () => {
-    setIsDrawerOpen(false)
-    setSelectedApproach(null)
+    router.push(`/${locale}/admin/style-system/approaches/${approach.id}/edit`)
   }
 
   const handleDelete = async () => {
@@ -87,10 +78,10 @@ export function ApproachesTable() {
   }
 
   const handleSelectAll = () => {
-    if (selectedIds.length === filteredApproaches?.length) {
+    if (selectedIds.length === filteredApproaches.length) {
       setSelectedIds([])
     } else {
-      setSelectedIds(filteredApproaches?.map((a) => a.id) || [])
+      setSelectedIds(filteredApproaches.map((a) => a.id))
     }
   }
 
@@ -102,7 +93,7 @@ export function ApproachesTable() {
     }
   }
 
-  const filteredApproaches = approaches?.filter((approach) => {
+  const filteredApproaches = approaches.filter((approach) => {
     if (!search) return true
     const searchLower = search.toLowerCase()
     return (
@@ -158,7 +149,7 @@ export function ApproachesTable() {
           <LoadingState />
         ) : error ? (
           <ErrorState message={tCommon('error')} />
-        ) : !filteredApproaches || filteredApproaches.length === 0 ? (
+        ) : filteredApproaches.length === 0 ? (
           <EmptyState
             title={t('empty')}
             description={t('emptyDescription')}
@@ -174,16 +165,16 @@ export function ApproachesTable() {
                 <MoodBTableRow>
                   <MoodBTableHeader style={{ width: 40 }}>
                     <Checkbox
-                      checked={selectedIds.length === filteredApproaches?.length && filteredApproaches.length > 0}
-                      indeterminate={selectedIds.length > 0 && selectedIds.length < (filteredApproaches?.length || 0)}
+                      checked={selectedIds.length === filteredApproaches.length && filteredApproaches.length > 0}
+                      indeterminate={selectedIds.length > 0 && selectedIds.length < filteredApproaches.length}
                       onChange={handleSelectAll}
                     />
                   </MoodBTableHeader>
                   <MoodBTableHeader>{t('table.order')}</MoodBTableHeader>
                   <MoodBTableHeader>{t('table.name')}</MoodBTableHeader>
                   <MoodBTableHeader>{t('table.slug')}</MoodBTableHeader>
-                  <MoodBTableHeader>{t('table.description')}</MoodBTableHeader>
-                  <MoodBTableHeader>{t('table.styles')}</MoodBTableHeader>
+                  <MoodBTableHeader>{t('table.tags')}</MoodBTableHeader>
+                  <MoodBTableHeader>{t('table.usage')}</MoodBTableHeader>
                   <MoodBTableHeader style={{ width: 100 }}>{t('table.actions')}</MoodBTableHeader>
                 </MoodBTableRow>
               </MoodBTableHead>
@@ -210,13 +201,19 @@ export function ApproachesTable() {
                       </Text>
                     </MoodBTableCell>
                     <MoodBTableCell>
-                      {approach.description ? (
-                        <Stack gap={4}>
-                          <Text size="sm">{approach.description.he}</Text>
-                          <Text size="xs" c="dimmed">
-                            {approach.description.en}
-                          </Text>
-                        </Stack>
+                      {approach.metadata?.tags && approach.metadata.tags.length > 0 ? (
+                        <Group gap={4}>
+                          {approach.metadata.tags.slice(0, 2).map((tag: string, idx: number) => (
+                            <Badge key={idx} size="sm" variant="light">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {approach.metadata.tags.length > 2 && (
+                            <Badge size="sm" variant="light" color="gray">
+                              +{approach.metadata.tags.length - 2}
+                            </Badge>
+                          )}
+                        </Group>
                       ) : (
                         <Text size="sm" c="dimmed">
                           -
@@ -224,9 +221,9 @@ export function ApproachesTable() {
                       )}
                     </MoodBTableCell>
                     <MoodBTableCell>
-                      <Badge variant="light" color="brand">
-                        {approach._count?.styles || 0}
-                      </Badge>
+                      <Text size="sm" c="dimmed">
+                        {approach.metadata?.usage || 0}
+                      </Text>
                     </MoodBTableCell>
                     <MoodBTableCell>
                       <Menu shadow="md" width={200}>
@@ -255,7 +252,6 @@ export function ApproachesTable() {
                             leftSection={<IconTrash size={16} />}
                             color="red"
                             onClick={() => setDeleteApproachId(approach.id)}
-                            disabled={approach._count?.styles > 0}
                           >
                             {tCommon('delete')}
                           </Menu.Item>
@@ -268,17 +264,6 @@ export function ApproachesTable() {
             </MoodBTable>
           </MoodBCard>
         )}
-
-        {/* Form Drawer */}
-        <Drawer
-          opened={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
-          title={selectedApproach ? t('editTitle') : t('createTitle')}
-          position="right"
-          size="lg"
-        >
-          <ApproachForm approach={selectedApproach} onSuccess={handleFormSuccess} />
-        </Drawer>
 
         {/* Delete Confirmation */}
         <ConfirmDialog
@@ -312,7 +297,6 @@ export function ApproachesTable() {
               content={viewDetailsApproach.detailedContent}
               entityName={viewDetailsApproach.name}
               entityType="approach"
-              images={viewDetailsApproach.images || []}
             />
           )}
         </Modal>

@@ -126,6 +126,13 @@
         "createdAt": "Created At",
         "tags": "Tags",
         "images": "Images",
+        "approach": {
+          "title": "Design Approach",
+          "subtitle": "The global design approach for this style",
+          "viewGlobal": "View Global Approach",
+          "name": "Approach Name",
+          "notSet": "No design approach set"
+        },
         "approaches": {
           "title": "Design Approaches",
           "subtitle": "Manage all approaches for this style",
@@ -143,6 +150,7 @@
         },
         "rooms": {
           "title": "Room Profiles",
+          "subtitle": "Content specific to each room type",
           "noProfiles": "No room profiles defined",
           "materials": "Materials",
           "constraints": "Constraints",

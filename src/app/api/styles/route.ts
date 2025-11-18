@@ -34,75 +34,23 @@ export const GET = withAuth(async (req: NextRequest, auth) => {
       limit: parseInt(searchParams.get('limit') || '20'),
     })
 
-    // Build where clause based on scope
-    const whereConditions: any[] = []
-
-    if (filters.scope === 'all' || filters.scope === 'global') {
-      // Global styles (organizationId = null)
-      whereConditions.push({
-        organizationId: null,
-      })
-    }
-
-    if (filters.scope === 'all' || filters.scope === 'public') {
-      // Approved public styles from other organizations
-      whereConditions.push({
-        organizationId: { not: null, not: auth.organizationId },
-        'metadata.isPublic': true,
-        'metadata.approvalStatus': 'approved',
-      })
-    }
-
-    if (filters.scope === 'all' || filters.scope === 'personal') {
-      // Organization's personal/public styles
-      whereConditions.push({
-        organizationId: auth.organizationId,
-      })
-    }
-
-    const where: any = {
-      OR: whereConditions,
-    }
-
-    // Add search filter (by name)
-    if (filters.search) {
-      where.AND = [
-        {
-          OR: [
-            { 'name.he': { contains: filters.search, mode: 'insensitive' } },
-            { 'name.en': { contains: filters.search, mode: 'insensitive' } },
-          ],
-        },
-      ]
-    }
+    // Build base where clause (without scope filtering)
+    // Note: MongoDB + Prisma has issues with organizationId: null queries
+    // We'll fetch all styles matching other filters, then filter by scope in JavaScript
+    const where: any = {}
 
     // Add category filters
     if (filters.categoryId) {
-      if (!where.AND) where.AND = []
-      where.AND.push({ categoryId: filters.categoryId })
+      where.categoryId = filters.categoryId
     }
     if (filters.subCategoryId) {
-      if (!where.AND) where.AND = []
-      where.AND.push({ subCategoryId: filters.subCategoryId })
+      where.subCategoryId = filters.subCategoryId
     }
 
-    // Add tags filter
-    if (filters.tags && filters.tags.length > 0) {
-      if (!where.AND) where.AND = []
-      where.AND.push({
-        'metadata.tags': { hasSome: filters.tags },
-      })
-    }
-
-    // Get total count
-    const total = await prisma.style.count({ where })
-
-    // Get styles
-    const styles = await prisma.style.findMany({
+    // Get all matching styles (we'll filter by scope in JavaScript)
+    const allStyles = await prisma.style.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      skip: (filters.page - 1) * filters.limit,
-      take: filters.limit,
       include: {
         category: {
           select: {
@@ -125,7 +73,7 @@ export const GET = withAuth(async (req: NextRequest, auth) => {
             slug: true,
           },
         },
-        approaches: {
+        approach: {
           select: {
             id: true,
             slug: true,
@@ -133,10 +81,67 @@ export const GET = withAuth(async (req: NextRequest, auth) => {
             order: true,
             metadata: true,
           },
-          orderBy: { order: 'asc' },
+        },
+        color: {
+          select: {
+            id: true,
+            name: true,
+            hex: true,
+          },
         },
       },
     })
+
+    // Filter styles by scope in JavaScript (MongoDB null handling issue)
+    let filteredStyles = allStyles.filter((style) => {
+      // Global styles (organizationId is null or undefined)
+      const isGlobal = !style.organizationId
+
+      // Personal styles (belong to user's organization)
+      const isPersonal = style.organizationId === auth.organizationId
+
+      // Public styles (from other organizations, approved)
+      const isPublic =
+        style.organizationId &&
+        style.organizationId !== auth.organizationId &&
+        style.metadata?.isPublic === true &&
+        style.metadata?.approvalStatus === 'approved'
+
+      // Filter based on scope
+      if (filters.scope === 'global') {
+        return isGlobal
+      } else if (filters.scope === 'personal') {
+        return isPersonal
+      } else if (filters.scope === 'public') {
+        return isPublic
+      } else {
+        // scope === 'all'
+        return isGlobal || isPersonal || isPublic
+      }
+    })
+
+    // Apply search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
+      filteredStyles = filteredStyles.filter(
+        (style) =>
+          style.name.he.toLowerCase().includes(searchLower) ||
+          style.name.en.toLowerCase().includes(searchLower)
+      )
+    }
+
+    // Apply tags filter
+    if (filters.tags && filters.tags.length > 0) {
+      filteredStyles = filteredStyles.filter((style) =>
+        filters.tags!.some((tag) => style.metadata.tags?.includes(tag))
+      )
+    }
+
+    // Calculate pagination
+    const total = filteredStyles.length
+    const startIndex = (filters.page - 1) * filters.limit
+    const endIndex = startIndex + filters.limit
+    const styles = filteredStyles.slice(startIndex, endIndex)
 
     return NextResponse.json({
       data: styles,

@@ -18,10 +18,83 @@ import { LoadingState } from '@/components/ui/LoadingState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useAdminStyle } from '@/hooks/useStyles'
 import { useMaterial } from '@/hooks/useMaterials'
+import { useColor } from '@/hooks/useColors'
 import { AIMetadataDisplay } from '@/components/features/style-system/AIMetadataDisplay'
 import { DetailedContentViewer } from '@/components/features/style-system/DetailedContentViewer'
 import { useImageViewer } from '@/contexts/ImageViewerContext'
 import Link from 'next/link'
+
+// Color Display Component
+function ColorDisplay({ colorId, locale }: { colorId: string; locale: string }) {
+  const { data: color, isLoading } = useColor(colorId)
+
+  if (isLoading) {
+    return (
+      <Group gap="md">
+        <Skeleton height={80} width={80} />
+        <Stack gap="xs" style={{ flex: 1 }}>
+          <Skeleton height={24} width="40%" />
+          <Skeleton height={20} width="30%" />
+        </Stack>
+      </Group>
+    )
+  }
+
+  if (!color) {
+    return (
+      <Paper p="md" withBorder radius="md" style={{ backgroundColor: '#fafafa' }}>
+        <Text size="sm" c="dimmed">
+          Color not found (ID: {colorId})
+        </Text>
+      </Paper>
+    )
+  }
+
+  const colorName = locale === 'he' ? color.name.he : color.name.en
+  const colorDescription = locale === 'he' ? color.description?.he : color.description?.en
+
+  return (
+    <Group gap="md" align="flex-start">
+      {/* Color Swatch */}
+      <Box
+        style={{
+          width: 80,
+          height: 80,
+          backgroundColor: color.hex,
+          borderRadius: 8,
+          border: '2px solid #e0e0e0',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        }}
+      />
+
+      {/* Color Info */}
+      <Stack gap="xs" style={{ flex: 1 }}>
+        <div>
+          <Text fw={600} size="lg">{colorName}</Text>
+          {colorDescription && (
+            <Text size="sm" c="dimmed" mt={4}>{colorDescription}</Text>
+          )}
+        </div>
+
+        <Group gap="xs">
+          <Badge variant="light" color="gray" size="lg" style={{ fontFamily: 'monospace' }}>
+            {color.hex}
+          </Badge>
+          {color.pantone && (
+            <Badge variant="light" color="violet" size="sm">
+              Pantone: {color.pantone}
+            </Badge>
+          )}
+          {color.category && (
+            <Badge variant="light" color="brand" size="sm">
+              {color.category}
+            </Badge>
+          )}
+        </Group>
+      </Stack>
+    </Group>
+  )
+}
 
 // Material Card Component
 function MaterialCard({ materialId, usageArea, defaultFinish, locale, compact = false }: { materialId: string; usageArea?: string; defaultFinish?: string; locale: string; compact?: boolean }) {
@@ -143,21 +216,44 @@ function RoomProfileCard({ profile, locale, t, openImages }: { profile: any; loc
           <Badge variant="light" color="brand">{profile.roomType}</Badge>
         </Group>
 
-        {/* Room Colors */}
-        {profile.colors && profile.colors.length > 0 && (
+        {/* Room Color Palette */}
+        {profile.colorPalette && (
           <>
             <Divider />
             <div>
               <Text fw={500} size="sm" mb="xs" c="dimmed">
-                צבעים ({profile.colors.length})
+                פלטת צבעים
               </Text>
-              <Group gap="xs">
-                {profile.colors.map((colorId: string, colorIndex: number) => (
-                  <Badge key={colorIndex} variant="light" color="blue" size="sm">
-                    {colorId.substring(0, 8)}...
-                  </Badge>
-                ))}
-              </Group>
+              <Stack gap="xs">
+                {profile.colorPalette.primary && (
+                  <Group gap="xs">
+                    <Text size="xs" c="dimmed">עיקרי:</Text>
+                    <Badge variant="filled" style={{ backgroundColor: profile.colorPalette.primary }}>
+                      {profile.colorPalette.primary}
+                    </Badge>
+                  </Group>
+                )}
+                {profile.colorPalette.secondary && profile.colorPalette.secondary.length > 0 && (
+                  <Group gap="xs">
+                    <Text size="xs" c="dimmed">משני:</Text>
+                    {profile.colorPalette.secondary.map((color: string, idx: number) => (
+                      <Badge key={idx} variant="filled" style={{ backgroundColor: color }}>
+                        {color}
+                      </Badge>
+                    ))}
+                  </Group>
+                )}
+                {profile.colorPalette.accent && profile.colorPalette.accent.length > 0 && (
+                  <Group gap="xs">
+                    <Text size="xs" c="dimmed">הדגשה:</Text>
+                    {profile.colorPalette.accent.map((color: string, idx: number) => (
+                      <Badge key={idx} variant="filled" style={{ backgroundColor: color }}>
+                        {color}
+                      </Badge>
+                    ))}
+                  </Group>
+                )}
+              </Stack>
             </div>
           </>
         )}
@@ -197,9 +293,25 @@ function RoomProfileCard({ profile, locale, t, openImages }: { profile: any; loc
                 {t('detail.rooms.materials') || 'חומרים'} ({profile.materials.length})
               </Text>
               <Grid gutter="xs">
-                {profile.materials.map((materialId: string, matIndex: number) => (
+                {profile.materials.map((material: any, matIndex: number) => (
                   <Grid.Col key={matIndex} span={{ base: 12, sm: 6, md: 4 }}>
-                    <MaterialCard materialId={materialId} locale={locale} compact />
+                    <Card p="sm" withBorder radius="md" style={{ height: '100%' }}>
+                      <Stack gap="xs">
+                        <Text fw={600} size="sm">
+                          {locale === 'he' ? material.name?.he : material.name?.en}
+                        </Text>
+                        {material.application && (
+                          <Text size="xs" c="dimmed">
+                            {locale === 'he' ? material.application?.he : material.application?.en}
+                          </Text>
+                        )}
+                        {material.finish && (
+                          <Badge size="xs" variant="light">
+                            {material.finish}
+                          </Badge>
+                        )}
+                      </Stack>
+                    </Card>
                   </Grid.Col>
                 ))}
               </Grid>
@@ -485,6 +597,16 @@ export default function AdminStyleDetailPage() {
           </Stack>
         </MoodBCard>
 
+        {/* Color Display Section */}
+        {style.colorId && (
+          <MoodBCard>
+            <Stack gap="md">
+              <Title order={3}>צבע</Title>
+              <ColorDisplay colorId={style.colorId} locale={locale} />
+            </Stack>
+          </MoodBCard>
+        )}
+
         {/* AI Metadata Section */}
         <AIMetadataDisplay
           aiGenerated={style.metadata.aiGenerated}
@@ -505,177 +627,66 @@ export default function AdminStyleDetailPage() {
           </MoodBCard>
         )}
 
+        {/* Design Approach */}
         <MoodBCard>
-          <Stack gap="lg">
+          <Stack gap="md">
             <Group justify="space-between">
               <div>
-                <Title order={3}>{t('detail.approaches.title')}</Title>
+                <Title order={3}>{t('detail.approach.title') || 'גישת עיצוב'}</Title>
                 <Text size="sm" c="dimmed">
-                  {t('detail.approaches.subtitle')}
+                  {t('detail.approach.subtitle') || 'הגישה העיצובית הגלובלית לסגנון זה'}
                 </Text>
               </div>
-              <Button
-                component={Link}
-                href={`/${locale}/admin/styles/${styleId}/edit?tab=approaches`}
-                variant="light"
-                color="brand"
-              >
-                {t('detail.approaches.manage')}
-              </Button>
+              {style.approach && (
+                <Button
+                  component={Link}
+                  href={`/${locale}/admin/style-system/approaches/${style.approach.id}`}
+                  variant="light"
+                  color="brand"
+                  leftSection={<IconEdit size={14} />}
+                >
+                  {t('detail.approach.viewGlobal') || 'צפה בגישה הגלובלית'}
+                </Button>
+              )}
             </Group>
 
-            {style.approaches && style.approaches.length > 0 ? (
-              <Stack gap="lg">
-                {style.approaches.map((approach: any) => (
-                  <MoodBCard key={approach.id}>
-                    <Stack gap="md">
-                      <Group justify="space-between">
-                        <div>
-                          <Title order={4}>{approach.name?.he}</Title>
-                          <Text size="sm" c="dimmed">
-                            {approach.name?.en}
-                          </Text>
-                        </div>
-                        <Group gap="xs">
-                          {approach.metadata?.isDefault && (
-                            <Badge color="green" variant="light">
-                              {t('detail.approaches.default')}
-                            </Badge>
-                          )}
-                          <Badge variant="light">{t('detail.approaches.order', { order: approach.order })}</Badge>
-                          <Button
-                            variant="subtle"
-                            size="xs"
-                            leftSection={<IconEdit size={14} />}
-                            component={Link}
-                            href={`/${locale}/admin/styles/${styleId}/edit?tab=approaches&approachId=${approach.id}`}
-                          >
-                            {tCommon('edit')}
-                          </Button>
-                        </Group>
-                      </Group>
-
-                      {approach.images && approach.images.length > 0 && (
-                        <div>
-                          <Group gap="xs" mb="md">
-                            <IconPhoto size={16} />
-                            <Text fw={500} size="sm" c="dimmed">
-                              {t('detail.images')} ({approach.images.length})
-                            </Text>
-                          </Group>
-                          <SimpleGrid cols={{ base: 2, sm: 3, md: 4 }} spacing="md">
-                            {approach.images.map((imageUrl: string, index: number) => (
-                              <Paper
-                                key={index}
-                                p="xs"
-                                withBorder
-                                radius="md"
-                                style={{ overflow: 'hidden' }}
-                              >
-                                <Box
-                                  style={{
-                                    aspectRatio: '1',
-                                    overflow: 'hidden',
-                                    borderRadius: 'var(--mantine-radius-sm)',
-                                    cursor: 'pointer',
-                                    transition: 'transform 0.2s ease',
-                                  }}
-                                  onClick={() => openImages(
-                                    approach.images.map((url: string, idx: number) => ({
-                                      url,
-                                      title: `${approach.name?.he} - תמונה ${idx + 1}`,
-                                      description: approach.name?.en
-                                    })),
-                                    index
-                                  )}
-                                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                >
-                                  <Image
-                                    src={imageUrl}
-                                    alt={`${approach.name?.he} - Image ${index + 1}`}
-                                    fit="cover"
-                                    style={{ width: '100%', height: '100%' }}
-                                  />
-                                </Box>
-                              </Paper>
-                            ))}
-                          </SimpleGrid>
-                        </div>
-                      )}
-
-                      <Stack gap="sm">
-                        <Text fw={500}>{t('detail.materials.defaults')}</Text>
-                        {approach.materialSet?.defaults && approach.materialSet.defaults.length > 0 ? (
-                          <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
-                            {approach.materialSet.defaults.map((materialItem: any, index: number) => (
-                              <MaterialCard key={index} materialId={materialItem.materialId} locale={locale} compact />
-                            ))}
-                          </SimpleGrid>
-                        ) : (
-                          <Text size="sm" c="dimmed">
-                            {t('detail.materials.noDefaults')}
-                          </Text>
-                        )}
-                      </Stack>
-
-                      {approach.materialSet?.alternatives && approach.materialSet.alternatives.length > 0 && (
-                        <Stack gap="sm">
-                          <Text fw={500}>{t('detail.materials.alternatives')}</Text>
-                          <Stack gap="xs">
-                            {approach.materialSet.alternatives.map((altGroup: any, index: number) => (
-                              <Paper key={index} p="md" withBorder radius="md">
-                                <Stack gap="xs">
-                                  <Group justify="space-between">
-                                    <Text fw={500}>{altGroup.usageArea}</Text>
-                                    <Badge variant="light" color="brand">
-                                      {altGroup.alternatives.length} {t('detail.materials.options')}
-                                    </Badge>
-                                  </Group>
-                                  <Group gap="xs">
-                                    {altGroup.alternatives.map((altMaterialId: string, altIndex: number) => (
-                                      <MaterialCard key={altIndex} materialId={altMaterialId} locale={locale} compact />
-                                    ))}
-                                  </Group>
-                                </Stack>
-                              </Paper>
-                            ))}
-                          </Stack>
-                        </Stack>
-                      )}
-
-                      {approach.roomProfiles && approach.roomProfiles.length > 0 ? (
-                        <Stack gap="md">
-                          <Divider />
-                          <Text fw={500}>{t('detail.rooms.title')}</Text>
-                          <Stack gap="md">
-                            {approach.roomProfiles.map((profile: any, index: number) => (
-                              <RoomProfileCard key={index} profile={profile} locale={locale} t={t} openImages={openImages} />
-                            ))}
-                          </Stack>
-                        </Stack>
-                      ) : (
-                        <Text size="sm" c="dimmed">
-                          {t('detail.rooms.noProfiles')}
-                        </Text>
-                      )}
-                    </Stack>
-                  </MoodBCard>
-                ))}
-              </Stack>
+            {style.approach ? (
+              <Group gap="md">
+                <Text fw={500}>{t('detail.approach.name') || 'שם הגישה'}:</Text>
+                <div>
+                  <Text fw={600}>{style.approach.name.he}</Text>
+                  <Text size="sm" c="dimmed">{style.approach.name.en}</Text>
+                </div>
+              </Group>
             ) : (
               <Paper p="xl" radius="md" withBorder>
                 <Stack align="center" gap="xs">
-                  <IconDoor size={32} />
-                  <Text>{t('detail.approaches.empty')}</Text>
-                  <Text size="sm" c="dimmed">
-                    {t('detail.approaches.emptyHint')}
-                  </Text>
+                  <Text c="dimmed">{t('detail.approach.notSet') || 'לא הוגדרה גישת עיצוב'}</Text>
                 </Stack>
               </Paper>
             )}
           </Stack>
         </MoodBCard>
+
+        {/* Room Profiles */}
+        {style.roomProfiles && style.roomProfiles.length > 0 && (
+          <MoodBCard>
+            <Stack gap="lg">
+              <div>
+                <Title order={3}>{t('detail.rooms.title') || 'פרופילי חדרים'}</Title>
+                <Text size="sm" c="dimmed">
+                  {t('detail.rooms.subtitle') || 'תוכן ספציפי לכל סוג חדר'}
+                </Text>
+              </div>
+
+              <Stack gap="md">
+                {style.roomProfiles.map((profile: any, index: number) => (
+                  <RoomProfileCard key={index} profile={profile} locale={locale} t={t} openImages={openImages} />
+                ))}
+              </Stack>
+            </Stack>
+          </MoodBCard>
+        )}
       </Stack>
     </Container>
   )
