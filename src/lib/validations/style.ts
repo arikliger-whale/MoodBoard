@@ -5,49 +5,82 @@ import { localizedStringSchema } from './approach'
 // MongoDB ObjectID validation helper
 const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ObjectID format')
 
-// Texture Reference Schema
-export const textureReferenceSchema = z.object({
-  type: z.string().min(1, 'Type is required'), // "flooring", "marble", "wood", etc.
-  materialId: objectIdSchema.optional(),
-  name: z.string().optional(),
+// Room Color Palette Schema (matches Prisma RoomColorPalette)
+export const roomColorPaletteSchema = z.object({
+  primaryId: objectIdSchema,
+  secondaryIds: z.array(objectIdSchema).default([]),
+  accentIds: z.array(objectIdSchema).default([]),
+  description: localizedStringSchema.optional(),
 })
 
-// Style Product Reference Schema
-export const styleProductReferenceSchema = z.object({
-  category: z.string().min(1, 'Category is required'), // "lighting", "furniture", "sofas", etc.
-  productId: objectIdSchema.optional(),
-  name: z.string().optional(),
+// Room Material Schema (matches Prisma RoomMaterial)
+export const roomMaterialSchema = z.object({
+  materialId: objectIdSchema,
+  application: localizedStringSchema.optional(),
+  finish: z.string().optional(),
 })
 
-// Room Constraint Schema
-export const roomConstraintSchema = z.object({
-  waterResistance: z.boolean().optional(),
-  durability: z.number().int().min(1).max(10).optional(),
-  maintenance: z.number().int().min(1).max(10).optional(),
+// Room Furniture Schema (matches Prisma RoomFurniture)
+export const roomFurnitureSchema = z.object({
+  item: localizedStringSchema,
+  description: localizedStringSchema.optional(),
+  importance: z.enum(['essential', 'recommended', 'optional']),
+})
+
+// Room Lighting Schema (matches Prisma RoomLighting)
+export const roomLightingSchema = z.object({
+  naturalLight: localizedStringSchema.optional(),
+  artificialLight: localizedStringSchema.optional(),
+  fixtures: z.array(localizedStringSchema).optional(),
+})
+
+// Room Spatial Considerations Schema (matches Prisma RoomSpatialConsiderations)
+export const roomSpatialConsiderationsSchema = z.object({
+  minimumSize: z.string().optional(),
+  idealSize: z.string().optional(),
+  layoutTips: z.array(localizedStringSchema).optional(),
+})
+
+// Room Decorative Element Schema (matches Prisma RoomDecorativeElement)
+export const roomDecorativeElementSchema = z.object({
+  element: localizedStringSchema,
+  placement: localizedStringSchema.optional(),
+  purpose: localizedStringSchema.optional(),
+})
+
+// Room Design Tip Schema (matches Prisma RoomDesignTip)
+export const roomDesignTipSchema = z.object({
+  tip: localizedStringSchema,
+  category: z.enum(['layout', 'color', 'lighting', 'furniture', 'decoration', 'general']).optional(),
 })
 
 // Room Profile Schema (for client-side forms - allows blob URLs for preview)
+// Matches Prisma RoomProfile type
 export const roomProfileSchema = z.object({
   roomTypeId: objectIdSchema,
   description: localizedStringSchema.optional(),
-  colors: z.array(objectIdSchema).optional().default([]),
-  textures: z.array(textureReferenceSchema).optional().default([]),
-  materials: z.array(objectIdSchema).optional().default([]),
-  products: z.array(styleProductReferenceSchema).optional().default([]),
-  images: clientImagesSchema.optional(),
-  constraints: roomConstraintSchema.nullable().optional(),
+  colorPalette: roomColorPaletteSchema.optional(),
+  materials: z.array(roomMaterialSchema).optional().default([]),
+  furnitureAndFixtures: z.array(roomFurnitureSchema).optional().default([]),
+  lighting: roomLightingSchema.nullable().optional(),
+  spatialConsiderations: roomSpatialConsiderationsSchema.nullable().optional(),
+  decorativeElements: z.array(roomDecorativeElementSchema).optional().default([]),
+  designTips: z.array(roomDesignTipSchema).optional().default([]),
+  images: clientImagesSchema.optional().default([]),
 })
 
 // Room Profile Schema for API (server-side - only HTTPS URLs)
 export const roomProfileApiSchema = z.object({
   roomTypeId: objectIdSchema,
   description: localizedStringSchema.optional(),
-  colors: z.array(objectIdSchema).optional().default([]),
-  textures: z.array(textureReferenceSchema).optional().default([]),
-  materials: z.array(objectIdSchema).optional().default([]),
-  products: z.array(styleProductReferenceSchema).optional().default([]),
-  images: serverImagesSchema.optional(),
-  constraints: roomConstraintSchema.nullable().optional(),
+  colorPalette: roomColorPaletteSchema.optional(),
+  materials: z.array(roomMaterialSchema).optional().default([]),
+  furnitureAndFixtures: z.array(roomFurnitureSchema).optional().default([]),
+  lighting: roomLightingSchema.nullable().optional(),
+  spatialConsiderations: roomSpatialConsiderationsSchema.nullable().optional(),
+  decorativeElements: z.array(roomDecorativeElementSchema).optional().default([]),
+  designTips: z.array(roomDesignTipSchema).optional().default([]),
+  images: serverImagesSchema.optional().default([]),
 })
 
 // AI Selection Schema (for tracking AI-generated style decisions)
@@ -137,9 +170,13 @@ export const approveStyleSchema = z.object({
 
 // Export types
 export type AISelection = z.infer<typeof aiSelectionSchema>
-export type TextureReference = z.infer<typeof textureReferenceSchema>
-export type StyleProductReference = z.infer<typeof styleProductReferenceSchema>
-export type RoomConstraint = z.infer<typeof roomConstraintSchema>
+export type RoomColorPalette = z.infer<typeof roomColorPaletteSchema>
+export type RoomMaterial = z.infer<typeof roomMaterialSchema>
+export type RoomFurniture = z.infer<typeof roomFurnitureSchema>
+export type RoomLighting = z.infer<typeof roomLightingSchema>
+export type RoomSpatialConsiderations = z.infer<typeof roomSpatialConsiderationsSchema>
+export type RoomDecorativeElement = z.infer<typeof roomDecorativeElementSchema>
+export type RoomDesignTip = z.infer<typeof roomDesignTipSchema>
 export type RoomProfile = z.infer<typeof roomProfileSchema>
 export type CreateStyle = z.infer<typeof createStyleSchema>
 export type UpdateStyle = z.infer<typeof updateStyleSchema>

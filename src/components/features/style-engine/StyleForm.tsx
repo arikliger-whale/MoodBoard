@@ -15,6 +15,7 @@ import { useCategories, useSubCategories } from '@/hooks/useCategories'
 import { useColors } from '@/hooks/useColors'
 import { useApproaches } from '@/hooks/useApproaches'
 import { useRoomTypes } from '@/hooks/useRoomTypes'
+import { useMaterials } from '@/hooks/useMaterials'
 import { createStyleFormSchema, updateStyleSchema, type CreateStyle, type UpdateStyle } from '@/lib/validations/style'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ActionIcon, Alert, Badge, Button, Card, Group, MultiSelect, Paper, Select, SimpleGrid, Stack, Text, Textarea, TextInput, Title } from '@mantine/core'
@@ -87,6 +88,9 @@ export function StyleForm({
 
   const { data: roomTypesData } = useRoomTypes()
   const roomTypes = roomTypesData?.data || []
+
+  const { data: materialsData } = useMaterials({ page: 1, limit: 200 })
+  const materials = materialsData?.data || []
 
   const {
     register,
@@ -193,6 +197,15 @@ export function StyleForm({
     [roomTypes, locale]
   )
 
+  const materialOptions = useMemo(
+    () =>
+      materials.map((material) => ({
+        value: material.id,
+        label: `${locale === 'he' ? material.name.he : material.name.en} (${material.sku})`,
+      })),
+    [materials, locale]
+  )
+
   const roomProfiles = watch('roomProfiles') || []
 
   const addRoomProfile = () => {
@@ -202,12 +215,19 @@ export function StyleForm({
       {
         roomTypeId: '',
         description: { he: '', en: '' },
-        colors: [], // Array of color IDs
-        textures: [],
+        colorPalette: {
+          primaryId: '',
+          secondaryIds: [],
+          accentIds: [],
+          description: { he: '', en: '' },
+        },
         materials: [],
-        products: [],
+        furnitureAndFixtures: [],
+        lighting: null,
+        spatialConsiderations: null,
+        decorativeElements: [],
+        designTips: [],
         images: [],
-        constraints: null,
       },
     ])
   }
@@ -505,14 +525,36 @@ export function StyleForm({
                           />
                         </SimpleGrid>
 
+                        <Text fw={500} size="sm" mt="md">
+                          {locale === 'he' ? 'פלטת צבעים' : 'Color Palette'}
+                        </Text>
+
                         <Controller
-                          name={`roomProfiles.${index}.colors` as any}
+                          name={`roomProfiles.${index}.colorPalette.primaryId` as any}
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              {...field}
+                              label={locale === 'he' ? 'צבע עיקרי' : 'Primary Color'}
+                              placeholder={locale === 'he' ? 'בחר צבע עיקרי' : 'Select primary color'}
+                              data={colorOptions.map((option) => ({
+                                value: option.value,
+                                label: option.label,
+                              }))}
+                              searchable
+                              clearable
+                            />
+                          )}
+                        />
+
+                        <Controller
+                          name={`roomProfiles.${index}.colorPalette.secondaryIds` as any}
                           control={control}
                           render={({ field }) => (
                             <MultiSelect
                               {...field}
-                              label={locale === 'he' ? 'צבעים לחדר' : 'Room Colors'}
-                              placeholder={locale === 'he' ? 'בחר צבעים' : 'Select colors'}
+                              label={locale === 'he' ? 'צבעים משניים' : 'Secondary Colors'}
+                              placeholder={locale === 'he' ? 'בחר צבעים משניים' : 'Select secondary colors'}
                               data={colorOptions.map((option) => ({
                                 value: option.value,
                                 label: option.label,
@@ -521,6 +563,55 @@ export function StyleForm({
                               clearable
                               value={field.value || []}
                               onChange={(values) => field.onChange(values)}
+                            />
+                          )}
+                        />
+
+                        <Controller
+                          name={`roomProfiles.${index}.colorPalette.accentIds` as any}
+                          control={control}
+                          render={({ field }) => (
+                            <MultiSelect
+                              {...field}
+                              label={locale === 'he' ? 'צבעי הדגשה' : 'Accent Colors'}
+                              placeholder={locale === 'he' ? 'בחר צבעי הדגשה' : 'Select accent colors'}
+                              data={colorOptions.map((option) => ({
+                                value: option.value,
+                                label: option.label,
+                              }))}
+                              searchable
+                              clearable
+                              value={field.value || []}
+                              onChange={(values) => field.onChange(values)}
+                            />
+                          )}
+                        />
+
+                        <Text fw={500} size="sm" mt="md">
+                          {locale === 'he' ? 'חומרים' : 'Materials'}
+                        </Text>
+
+                        <Controller
+                          name={`roomProfiles.${index}.materials` as any}
+                          control={control}
+                          render={({ field }) => (
+                            <MultiSelect
+                              {...field}
+                              label={locale === 'he' ? 'בחר חומרים' : 'Select Materials'}
+                              placeholder={locale === 'he' ? 'בחר חומרים לחדר' : 'Select materials for room'}
+                              data={materialOptions}
+                              searchable
+                              clearable
+                              value={(field.value || []).map((m: any) => m.materialId || m)}
+                              onChange={(materialIds) => {
+                                // Convert materialIds to material objects
+                                const materialObjects = materialIds.map((id) => ({
+                                  materialId: id,
+                                  application: { he: '', en: '' },
+                                  finish: '',
+                                }))
+                                field.onChange(materialObjects)
+                              }}
                             />
                           )}
                         />
@@ -540,10 +631,10 @@ export function StyleForm({
                           )}
                         />
 
-                        <Text size="xs" c="dimmed">
+                        <Text size="xs" c="dimmed" mt="md">
                           {locale === 'he'
-                            ? 'ניתן להוסיף חומרים, צבעים ומוצרים ספציפיים לחדר זה לאחר יצירת הסגנון'
-                            : 'You can add specific materials, colors and products for this room after creating the style'}
+                            ? 'הוסף פלטת צבעים, חומרים ותמונות ספציפיות לסוג חדר זה. שדות נוספים כמו תאורה, ריהוט ועצות עיצוב ניתן להוסיף דרך ממשק ה-AI.'
+                            : 'Add color palette, materials and images specific to this room type. Additional fields like lighting, furniture and design tips can be added via the AI interface.'}
                         </Text>
                       </Stack>
                     </Card>

@@ -9,6 +9,7 @@ import { Container, Title, Stack, Group, Text, Badge, ActionIcon, Paper, Button,
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
 import { IconEdit, IconArrowLeft, IconDoor, IconPhoto } from '@tabler/icons-react'
+import { useQuery } from '@tanstack/react-query'
 // FIX: Replaced barrel import with direct imports to improve compilation speed
 // Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
 // Direct imports only compile what's needed
@@ -93,6 +94,107 @@ function ColorDisplay({ colorId, locale }: { colorId: string; locale: string }) 
         </Group>
       </Stack>
     </Group>
+  )
+}
+
+// Room Color Palette Display Component
+function RoomColorPaletteDisplay({ palette, locale }: { palette: any; locale: string }) {
+  // Fetch all colors used in the palette
+  const { data: primaryColor } = useColor(palette.primaryId)
+  const { data: secondaryColors } = useQuery({
+    queryKey: ['colors', 'multiple', palette.secondaryIds],
+    queryFn: async () => {
+      const colors = await Promise.all(
+        (palette.secondaryIds || []).map((id: string) =>
+          fetch(`/api/colors/${id}`).then(r => r.json())
+        )
+      )
+      return colors
+    },
+    enabled: !!(palette.secondaryIds && palette.secondaryIds.length > 0),
+  })
+
+  const { data: accentColors } = useQuery({
+    queryKey: ['colors', 'multiple', palette.accentIds],
+    queryFn: async () => {
+      const colors = await Promise.all(
+        (palette.accentIds || []).map((id: string) =>
+          fetch(`/api/colors/${id}`).then(r => r.json())
+        )
+      )
+      return colors
+    },
+    enabled: !!(palette.accentIds && palette.accentIds.length > 0),
+  })
+
+  return (
+    <Stack gap="xs">
+      {/* Primary Color */}
+      {primaryColor && (
+        <Group gap="xs">
+          <Text size="xs" c="dimmed" w={60}>עיקרי:</Text>
+          <Group gap="xs">
+            <Box
+              style={{
+                width: 24,
+                height: 24,
+                backgroundColor: primaryColor.hex,
+                borderRadius: 4,
+                border: '1px solid #e0e0e0',
+              }}
+            />
+            <Text size="sm" fw={500}>{locale === 'he' ? primaryColor.name.he : primaryColor.name.en}</Text>
+            <Badge size="xs" variant="light" color="gray">{primaryColor.hex}</Badge>
+          </Group>
+        </Group>
+      )}
+
+      {/* Secondary Colors */}
+      {secondaryColors && secondaryColors.length > 0 && (
+        <Group gap="xs" align="flex-start">
+          <Text size="xs" c="dimmed" w={60}>משני:</Text>
+          <Group gap="xs">
+            {secondaryColors.map((color: any) => (
+              <Group key={color.id} gap={4}>
+                <Box
+                  style={{
+                    width: 24,
+                    height: 24,
+                    backgroundColor: color.hex,
+                    borderRadius: 4,
+                    border: '1px solid #e0e0e0',
+                  }}
+                />
+                <Text size="sm">{locale === 'he' ? color.name.he : color.name.en}</Text>
+              </Group>
+            ))}
+          </Group>
+        </Group>
+      )}
+
+      {/* Accent Colors */}
+      {accentColors && accentColors.length > 0 && (
+        <Group gap="xs" align="flex-start">
+          <Text size="xs" c="dimmed" w={60}>הדגשה:</Text>
+          <Group gap="xs">
+            {accentColors.map((color: any) => (
+              <Group key={color.id} gap={4}>
+                <Box
+                  style={{
+                    width: 24,
+                    height: 24,
+                    backgroundColor: color.hex,
+                    borderRadius: 4,
+                    border: '1px solid #e0e0e0',
+                  }}
+                />
+                <Text size="sm">{locale === 'he' ? color.name.he : color.name.en}</Text>
+              </Group>
+            ))}
+          </Group>
+        </Group>
+      )}
+    </Stack>
   )
 }
 
@@ -224,36 +326,7 @@ function RoomProfileCard({ profile, locale, t, openImages }: { profile: any; loc
               <Text fw={500} size="sm" mb="xs" c="dimmed">
                 פלטת צבעים
               </Text>
-              <Stack gap="xs">
-                {profile.colorPalette.primary && (
-                  <Group gap="xs">
-                    <Text size="xs" c="dimmed">עיקרי:</Text>
-                    <Badge variant="filled" style={{ backgroundColor: profile.colorPalette.primary }}>
-                      {profile.colorPalette.primary}
-                    </Badge>
-                  </Group>
-                )}
-                {profile.colorPalette.secondary && profile.colorPalette.secondary.length > 0 && (
-                  <Group gap="xs">
-                    <Text size="xs" c="dimmed">משני:</Text>
-                    {profile.colorPalette.secondary.map((color: string, idx: number) => (
-                      <Badge key={idx} variant="filled" style={{ backgroundColor: color }}>
-                        {color}
-                      </Badge>
-                    ))}
-                  </Group>
-                )}
-                {profile.colorPalette.accent && profile.colorPalette.accent.length > 0 && (
-                  <Group gap="xs">
-                    <Text size="xs" c="dimmed">הדגשה:</Text>
-                    {profile.colorPalette.accent.map((color: string, idx: number) => (
-                      <Badge key={idx} variant="filled" style={{ backgroundColor: color }}>
-                        {color}
-                      </Badge>
-                    ))}
-                  </Group>
-                )}
-              </Stack>
+              <RoomColorPaletteDisplay palette={profile.colorPalette} locale={locale} />
             </div>
           </>
         )}
@@ -295,23 +368,13 @@ function RoomProfileCard({ profile, locale, t, openImages }: { profile: any; loc
               <Grid gutter="xs">
                 {profile.materials.map((material: any, matIndex: number) => (
                   <Grid.Col key={matIndex} span={{ base: 12, sm: 6, md: 4 }}>
-                    <Card p="sm" withBorder radius="md" style={{ height: '100%' }}>
-                      <Stack gap="xs">
-                        <Text fw={600} size="sm">
-                          {locale === 'he' ? material.name?.he : material.name?.en}
-                        </Text>
-                        {material.application && (
-                          <Text size="xs" c="dimmed">
-                            {locale === 'he' ? material.application?.he : material.application?.en}
-                          </Text>
-                        )}
-                        {material.finish && (
-                          <Badge size="xs" variant="light">
-                            {material.finish}
-                          </Badge>
-                        )}
-                      </Stack>
-                    </Card>
+                    <MaterialCard
+                      materialId={material.materialId}
+                      usageArea={locale === 'he' ? material.application?.he : material.application?.en}
+                      defaultFinish={material.finish}
+                      locale={locale}
+                      compact
+                    />
                   </Grid.Col>
                 ))}
               </Grid>

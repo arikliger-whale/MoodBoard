@@ -574,22 +574,14 @@ type RoomProfile {
 }
 
 type RoomColorPalette {
-  // New ID-based fields (migration in progress)
-  primaryId    String?  @db.ObjectId  // References Color.id
+  primaryId    String   @db.ObjectId  // References Color.id
   secondaryIds String[] @db.ObjectId  // References Color.id[]
   accentIds    String[] @db.ObjectId  // References Color.id[]
-  // Old hex-based fields (will be removed after migration)
-  primary      String?
-  secondary    String[]
-  accent       String[]
   description  LocalizedString?
 }
 
 type RoomMaterial {
-  // New ID-based field (migration in progress)
-  materialId  String?          @db.ObjectId  // References Material.id
-  // Old name-based field (will be removed after migration)
-  name        LocalizedString?
+  materialId  String           @db.ObjectId  // References Material.id
   application LocalizedString?
   finish      String?  // e.g. "natural", "matte", "textured", "glossy"
 }

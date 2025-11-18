@@ -16,6 +16,7 @@ import {
 } from '../ai/gemini'
 import { generateAndUploadImages } from '../ai/image-generation'
 import { parseAllBaseData, type ParsedData } from './parser'
+import { convertRoomProfileToIds } from './room-profile-converter'
 
 const prisma = new PrismaClient()
 
@@ -932,29 +933,8 @@ export async function seedStyles(
           subCatsToProcess.length
         )
 
-        // Check if exists
-        const existing = await prisma.style.findUnique({
-          where: { slug: styleSlug },
-        })
-
-        if (existing && skipExisting) {
-          result.stats.styles.skipped++
-          onProgress?.(
-            `⏭️  Skipping existing style: ${styleName.en}`,
-            i + 1,
-            subCatsToProcess.length
-          )
-          continue
-        }
-
-        if (existing && !skipExisting) {
-          // Manual mode override - will update existing style
-          onProgress?.(
-            `♻️  Regenerating existing style: ${styleName.en}`,
-            i + 1,
-            subCatsToProcess.length
-          )
-        }
+        // Note: No need to check if style exists - we already filtered to only
+        // process sub-categories that have NO styles (lines 808-810)
 
         // Step 3a: Generate hybrid content (poetic + factual)
         onProgress?.(
@@ -1061,14 +1041,14 @@ export async function seedStyles(
         // Step 3c: IMMEDIATELY save style to database (before room profiles)
         // This ensures we don't lose work if crash happens during room generation
         onProgress?.(
-          `   💾 Saving style to database (basic content + general images)...`,
+          `   💾 Saving new style to database (basic content + general images)...`,
           i + 1,
           subCatsToProcess.length
         )
 
-        let style = await prisma.style.upsert({
-          where: { slug: styleSlug },
-          create: {
+        // Create new style (we know it doesn't exist because sub-category was filtered)
+        let style = await prisma.style.create({
+          data: {
             organizationId: null, // Global style (not organization-specific)
             slug: styleSlug,
             name: styleName,
@@ -1094,17 +1074,6 @@ export async function seedStyles(
                 reasoning: selection.reasoning,
               },
             },
-          },
-          update: {
-            organizationId: null, // Ensure it stays global on updates
-            name: styleName,
-            categoryId: subCategory.categoryId,
-            subCategoryId: subCategory.id,
-            approachId: selectedApproach.id,
-            colorId: selectedColor.id,
-            images: generalImages.length > 0 ? generalImages : undefined,
-            detailedContent,
-            // Don't reset roomProfiles on update - we'll append to them
           },
         })
 
@@ -1199,7 +1168,17 @@ export async function seedStyles(
                 images: roomImages,
               }
 
-              // IMMEDIATELY save this room profile to database
+              // Convert AI-generated room profile to use Color and Material IDs
+              onProgress?.(
+                `      Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Converting to IDs...`,
+                i + 1,
+                subCatsToProcess.length
+              )
+
+              const convertedRoomProfile = await convertRoomProfileToIds(completeRoomProfile)
+
+              // Append new room profile to style
+              // (No duplicate check needed - we're processing a new style from an empty sub-category)
               onProgress?.(
                 `      Room ${j + 1}/${roomTypes.length}: ${roomType.name.en} - Saving to database...`,
                 i + 1,
@@ -1210,7 +1189,7 @@ export async function seedStyles(
                 where: { id: style.id },
                 data: {
                   roomProfiles: {
-                    push: completeRoomProfile,
+                    push: convertedRoomProfile,
                   },
                 },
               })
