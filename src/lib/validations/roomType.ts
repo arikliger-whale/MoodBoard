@@ -7,6 +7,9 @@ import { z } from 'zod'
 import { clientImagesSchema, serverImagesSchema } from './upload'
 import { detailedContentSchema, localizedDetailedContentSchema } from './approach'
 
+// MongoDB ObjectID validation helper
+const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ObjectID format')
+
 // Localized String Schema
 export const localizedStringSchema = z.object({
   he: z.string().min(1, 'Hebrew name is required'),
@@ -20,6 +23,8 @@ export const createRoomTypeSchema = z.object({
   description: localizedStringSchema.optional(),
   icon: z.string().optional(),
   order: z.number().int().min(0).default(0),
+  categoryId: objectIdSchema, // Required: Room category foreign key
+  active: z.boolean().default(true),
   detailedContent: localizedDetailedContentSchema.optional(),
 })
 
@@ -30,6 +35,8 @@ export const updateRoomTypeSchema = z.object({
   description: localizedStringSchema.optional(),
   icon: z.string().optional(),
   order: z.number().int().min(0).optional(),
+  categoryId: objectIdSchema.optional(), // Can update category
+  active: z.boolean().optional(),
   detailedContent: localizedDetailedContentSchema.optional(),
 })
 

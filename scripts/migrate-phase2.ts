@@ -1,85 +1,260 @@
-import { PrismaClient } from '@prisma/client'
+/**
+ * Phase 2 Migration Script
+ *
+ * Migrates existing styles to Phase 2 schema:
+ * 1. Sets default priceLevel for all styles
+ * 2. Converts gallery images to StyleImage entities
+ * 3. Categorizes images by heuristics
+ * 4. Maintains backward compatibility
+ *
+ * SAFE TO RUN MULTIPLE TIMES - Idempotent design
+ */
+
+import { PrismaClient, PriceLevel } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-async function main() {
-  console.log('🚀 Starting Phase 2 Migration...')
-  
-  // 1. Migrate Styles
-  const styles = await prisma.style.findMany()
-  for (const style of styles) {
-    // Check if already migrated (simple check: if gallery has items but images was empty, or logic specific to your DB state)
-    // Actually, since we renamed the field in schema, Prisma might not return 'images' in the type.
-    // You might need to use @ts-ignore or raw query if the column name changed in Mongo (it usually stays as is).
-    // In Mongo, if you rename in schema, the data is still there under the old key until overwritten.
-    
-    // Strategy: We assume 'images' data needs to move to 'gallery'.
-    // Since we can't access 'images' via typed client easily if removed from schema, 
-    // we treat the existing string array as a source for the new gallery.
-    
-    const oldImages = (style as any).images || []
-    
-    if (oldImages.length > 0 && style.gallery.length === 0) {
-      const galleryItems = oldImages.map((url: string) => ({
-        id: crypto.randomUUID(),
-        url,
-        type: 'scene',
-        sceneName: 'legacy',
-        createdAt: new Date()
-      }))
-      
-      await prisma.style.update({
-        where: { id: style.id },
-        data: {
-          gallery: galleryItems,
-          priceTier: 'AFFORDABLE' // Default
-        }
-      })
-      console.log(`✅ Migrated Style: ${style.slug}`)
-    }
+interface MigrationStats {
+  stylesProcessed: number
+  stylesUpdated: number
+  stylesSkipped: number
+  imagesCreated: number
+  errors: Array<{ styleId: string; error: string }>
+}
+
+/**
+ * Categorize images by position heuristics
+ */
+function categorizeImageByIndex(
+  index: number,
+  total: number
+): 'ROOM_OVERVIEW' | 'ROOM_DETAIL' {
+  // First 3 images are overview shots
+  if (index < 3) {
+    return 'ROOM_OVERVIEW'
   }
-  
-  // 2. Migrate Room Profiles
-  // Similar logic: Iterate styles, iterate roomProfiles, convert images -> views
-  for (const style of styles) {
-    if (style.roomProfiles && style.roomProfiles.length > 0) {
-      const updatedRoomProfiles = style.roomProfiles.map((profile: any) => {
-        const oldImages = profile.images || []
-        const currentViews = profile.views || []
-        
-        if (oldImages.length > 0 && currentViews.length === 0) {
-          const newViews = oldImages.map((url: string, index: number) => ({
-            id: crypto.randomUUID(),
-            url,
-            orientation: index === 0 ? 'main' : 'other',
-            status: 'COMPLETED',
-            createdAt: new Date()
-          }))
-          return { ...profile, views: newViews }
+
+  // Rest are detail shots
+  return 'ROOM_DETAIL'
+}
+
+/**
+ * Migrate a single style to Phase 2
+ */
+async function migrateStyle(styleId: string, stats: MigrationStats) {
+  try {
+    // Get current style with images
+    const style = await prisma.style.findUnique({
+      where: { id: styleId },
+      include: {
+        images: true, // Get existing StyleImage records
+      },
+    })
+
+    if (!style) {
+      console.log(`   ⚠️  Style ${styleId} not found, skipping`)
+      stats.stylesSkipped++
+      return
+    }
+
+    console.log(`\n   📝 Processing: ${style.name.en}`)
+
+    // Check if already migrated (has StyleImage records)
+    if (style.images && style.images.length > 0) {
+      console.log(`      ✓ Already has ${style.images.length} StyleImage records`)
+
+      // Still update priceLevel if missing
+      if (!style.priceLevel) {
+        await prisma.style.update({
+          where: { id: styleId },
+          data: { priceLevel: PriceLevel.REGULAR },
+        })
+        console.log(`      ✓ Set priceLevel to REGULAR`)
+        stats.stylesUpdated++
+      } else {
+        stats.stylesSkipped++
+      }
+      return
+    }
+
+    // Prepare updates
+    const updates: any = {}
+    let imageCount = 0
+
+    // Set default price level if not set
+    if (!style.priceLevel) {
+      updates.priceLevel = PriceLevel.REGULAR
+      console.log(`      ✓ Setting priceLevel to REGULAR`)
+    }
+
+    // Migrate gallery images to StyleImage entities
+    if (style.gallery && style.gallery.length > 0) {
+      console.log(`      📸 Migrating ${style.gallery.length} gallery images...`)
+
+      // Gallery items can be strings or objects with { url: string }
+      const styleImages = style.gallery.map((item: any, index: number) => {
+        // Extract URL from object or use string directly
+        const url = typeof item === 'string' ? item : item.url
+
+        return {
+          styleId: style.id,
+          url: url,
+          imageCategory: categorizeImageByIndex(index, style.gallery!.length),
+          displayOrder: index,
+          tags: ['migrated', 'legacy'],
+          description: `Migrated from gallery - Image ${index + 1}`,
         }
-        return profile
       })
 
-      // Check if any changes were made
-      const hasChanges = updatedRoomProfiles.some((p, i) => {
-         const old = style.roomProfiles[i] as any;
-         return (p.views?.length || 0) !== (old.views?.length || 0);
-      });
+      // Create StyleImage records (MongoDB doesn't support skipDuplicates)
+      await prisma.styleImage.createMany({
+        data: styleImages,
+      })
 
-      if (hasChanges) {
-          await prisma.style.update({
-              where: { id: style.id },
-              data: {
-                  roomProfiles: updatedRoomProfiles
-              }
-          })
-          console.log(`✅ Migrated Room Profiles for Style: ${style.slug}`)
-      }
+      imageCount = styleImages.length
+      stats.imagesCreated += imageCount
+      console.log(`      ✓ Created ${imageCount} StyleImage records`)
     }
+
+    // Apply updates
+    if (Object.keys(updates).length > 0) {
+      await prisma.style.update({
+        where: { id: styleId },
+        data: updates,
+      })
+    }
+
+    stats.stylesProcessed++
+    stats.stylesUpdated++
+    console.log(`      ✅ Migration complete`)
+
+  } catch (error) {
+    console.error(`      ❌ Error migrating style ${styleId}:`, error)
+    stats.errors.push({
+      styleId,
+      error: error instanceof Error ? error.message : String(error),
+    })
   }
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect())
+/**
+ * Main migration function
+ */
+async function migratePhase2(options: {
+  dryRun?: boolean
+  limit?: number
+  styleIds?: string[]
+} = {}) {
+  const { dryRun = false, limit, styleIds } = options
 
+  console.log('\n🔄 Phase 2: Migration Script')
+  console.log('='.repeat(60))
+
+  if (dryRun) {
+    console.log('⚠️  DRY RUN MODE - No changes will be made\n')
+  }
+
+  const stats: MigrationStats = {
+    stylesProcessed: 0,
+    stylesUpdated: 0,
+    stylesSkipped: 0,
+    imagesCreated: 0,
+    errors: [],
+  }
+
+  try {
+    // Get styles to migrate
+    let styles
+
+    if (styleIds && styleIds.length > 0) {
+      // Migrate specific styles
+      console.log(`📋 Migrating ${styleIds.length} specific styles...\n`)
+      styles = await prisma.style.findMany({
+        where: { id: { in: styleIds } },
+        select: { id: true, name: true },
+      })
+    } else {
+      // Find all styles that need migration
+      const where = limit ? {} : {}
+
+      styles = await prisma.style.findMany({
+        where,
+        select: { id: true, name: true },
+        take: limit,
+      })
+
+      console.log(`📋 Found ${styles.length} styles to process\n`)
+    }
+
+    if (styles.length === 0) {
+      console.log('✅ No styles found to migrate')
+      return stats
+    }
+
+    // Process each style
+    for (let i = 0; i < styles.length; i++) {
+      const style = styles[i]
+      console.log(`[${i + 1}/${styles.length}]`)
+
+      if (dryRun) {
+        console.log(`   🔍 Would migrate: ${style.name.en}`)
+        stats.stylesProcessed++
+      } else {
+        await migrateStyle(style.id, stats)
+      }
+    }
+
+    // Print summary
+    console.log('\n' + '='.repeat(60))
+    console.log('📊 MIGRATION SUMMARY')
+    console.log('='.repeat(60))
+    console.log(`\nStyles Processed: ${stats.stylesProcessed}`)
+    console.log(`Styles Updated: ${stats.stylesUpdated}`)
+    console.log(`Styles Skipped: ${stats.stylesSkipped}`)
+    console.log(`StyleImages Created: ${stats.imagesCreated}`)
+
+    if (stats.errors.length > 0) {
+      console.log(`\n⚠️  Errors: ${stats.errors.length}`)
+      stats.errors.forEach((err, idx) => {
+        console.log(`   ${idx + 1}. Style ${err.styleId}: ${err.error}`)
+      })
+    }
+
+    if (dryRun) {
+      console.log('\n⚠️  This was a DRY RUN - no changes were made')
+      console.log('💡 Run without --dry-run to apply changes\n')
+    } else {
+      console.log('\n✅ Migration complete!\n')
+    }
+
+    return stats
+
+  } catch (error) {
+    console.error('\n❌ Migration failed:', error)
+    throw error
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+// Parse command line arguments
+const args = process.argv.slice(2)
+const dryRun = args.includes('--dry-run')
+const limitIndex = args.indexOf('--limit')
+const limit = limitIndex >= 0 ? parseInt(args[limitIndex + 1]) : undefined
+const styleIdsIndex = args.indexOf('--styles')
+const styleIds = styleIdsIndex >= 0 ? args[styleIdsIndex + 1].split(',') : undefined
+
+// Run migration
+migratePhase2({ dryRun, limit, styleIds })
+  .then((stats) => {
+    if (stats.errors.length > 0) {
+      process.exit(1)
+    } else {
+      process.exit(0)
+    }
+  })
+  .catch((error) => {
+    console.error('Fatal error:', error)
+    process.exit(1)
+  })

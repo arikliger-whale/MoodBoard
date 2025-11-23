@@ -13,12 +13,26 @@ export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/admin/room-types
- * List all room types
+ * List all room types with optional filters
  */
 export const GET = withAdmin(async (request: NextRequest) => {
   try {
+    const url = new URL(request.url)
+    const categoryId = url.searchParams.get('categoryId')
+    const includeInactive = url.searchParams.get('includeInactive') === 'true'
+
     const roomTypes = await prisma.roomType.findMany({
-      orderBy: { order: 'asc' },
+      where: {
+        ...(categoryId && { categoryId }),
+        ...(includeInactive ? {} : { active: true }),
+      },
+      include: {
+        category: true, // Include category info
+      },
+      orderBy: [
+        { categoryId: 'asc' },
+        { order: 'asc' },
+      ],
     })
 
     return NextResponse.json({
@@ -33,20 +47,48 @@ export const GET = withAdmin(async (request: NextRequest) => {
 
 /**
  * POST /api/admin/room-types
- * Create a new room type
+ * Create a new room type with duplicate checking per category
  */
 export const POST = withAdmin(async (request: NextRequest) => {
   try {
     const body = await request.json()
     const validated = createRoomTypeSchema.parse(body)
 
-    // Check if slug already exists
-    const existing = await prisma.roomType.findUnique({
-      where: { slug: validated.slug },
+    // Check if slug already exists in this category
+    const existingSlug = await prisma.roomType.findFirst({
+      where: {
+        slug: validated.slug,
+        categoryId: validated.categoryId,
+      },
     })
 
-    if (existing) {
-      return NextResponse.json({ error: 'Room type with this slug already exists' }, { status: 400 })
+    if (existingSlug) {
+      return NextResponse.json(
+        { error: 'Room type with this slug already exists in this category' },
+        { status: 400 }
+      )
+    }
+
+    // Check if name already exists in this category (prevent duplicates per category)
+    const existingName = await prisma.roomType.findFirst({
+      where: {
+        categoryId: validated.categoryId,
+        active: true,
+        OR: [
+          { 'name.he': validated.name.he },
+          { 'name.en': validated.name.en },
+        ],
+      },
+    })
+
+    if (existingName) {
+      return NextResponse.json(
+        {
+          error: 'Room type with this name already exists in this category',
+          existingRoomType: existingName,
+        },
+        { status: 409 }
+      )
     }
 
     const roomType = await prisma.roomType.create({
@@ -56,7 +98,12 @@ export const POST = withAdmin(async (request: NextRequest) => {
         description: validated.description,
         icon: validated.icon,
         order: validated.order,
+        categoryId: validated.categoryId,
+        active: validated.active,
         detailedContent: validated.detailedContent,
+      },
+      include: {
+        category: true,
       },
     })
 

@@ -8,13 +8,17 @@
 import { useState } from 'react'
 import { Container, Title, Stack, Tabs, Text } from '@mantine/core'
 import { useTranslations } from 'next-intl'
-import { IconBox, IconCategory } from '@tabler/icons-react'
+import { IconBox, IconCategory, IconTexture } from '@tabler/icons-react'
 import { MaterialCategoriesTab } from '@/components/features/materials/MaterialCategoriesTab'
 import { MaterialTypesTab } from '@/components/features/materials/MaterialTypesTab'
+import { TextureList } from '@/components/features/textures/TextureList'
+import { useParams } from 'next/navigation'
 
 export default function AdminMaterialSettingsPage() {
   const t = useTranslations('admin.materials.settings')
   const tCommon = useTranslations('common')
+  const params = useParams()
+  const locale = params.locale as string
 
   return (
     <Container size="xl" py="xl">
@@ -38,6 +42,9 @@ export default function AdminMaterialSettingsPage() {
             <Tabs.Tab value="types" leftSection={<IconBox size={16} />}>
               {t('typesTab')}
             </Tabs.Tab>
+            <Tabs.Tab value="textures" leftSection={<IconTexture size={16} />}>
+              {locale === 'he' ? 'טקסטורות' : 'Textures'}
+            </Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value="categories" pt="lg">
@@ -46,6 +53,10 @@ export default function AdminMaterialSettingsPage() {
 
           <Tabs.Panel value="types" pt="lg">
             <MaterialTypesTab />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="textures" pt="lg">
+            <TextureList />
           </Tabs.Panel>
         </Tabs>
       </Stack>

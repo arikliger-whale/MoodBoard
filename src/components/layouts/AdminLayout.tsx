@@ -79,6 +79,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       href: `/${locale}/admin/style-system/approaches`,
     },
     {
+      label: t('navigation.roomCategories'),
+      icon: IconBuilding,
+      href: `/${locale}/admin/style-system/room-categories`,
+    },
+    {
       label: t('navigation.roomTypes'),
       icon: IconDoor,
       href: `/${locale}/admin/style-system/room-types`,

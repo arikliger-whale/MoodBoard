@@ -1,56 +1,38 @@
 /**
- * Room Type Form Component
- * Form for creating and editing room types
+ * Room Category Form Component
+ * Form for creating and editing room categories
  */
 
 'use client'
 
-// FIX: Replaced barrel import with direct imports to improve compilation speed
-// Barrel imports force compilation of ALL components (including heavy RichTextEditor, ImageUpload)
-// Direct imports only compile what's needed
 import { FormSection } from '@/components/ui/Form/FormSection'
-import { useCreateRoomType, useUpdateRoomType } from '@/hooks/useRoomTypes'
-import { useRoomCategories } from '@/hooks/useRoomCategories'
-import { createRoomTypeFormSchema } from '@/lib/validations/roomType'
+import { useCreateRoomCategory, useUpdateRoomCategory } from '@/hooks/useRoomCategories'
+import { createRoomCategoryFormSchema } from '@/lib/validations/roomCategory'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, NumberInput, Select, Stack, TextInput, Textarea } from '@mantine/core'
+import { Button, NumberInput, Stack, TextInput, Textarea } from '@mantine/core'
 import { useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { DetailedContentEditor } from './DetailedContentEditor'
 
-type RoomTypeFormValues = z.infer<typeof createRoomTypeFormSchema>
+type RoomCategoryFormValues = z.infer<typeof createRoomCategoryFormSchema>
 
-interface RoomTypeFormProps {
-  roomType?: any
+interface RoomCategoryFormProps {
+  category?: any
   onSuccess?: () => void
+  onCancel?: () => void
 }
 
-export function RoomTypeForm({ roomType, onSuccess }: RoomTypeFormProps) {
-  const t = useTranslations('admin.styleSystem.roomTypes')
+export function RoomCategoryForm({ category, onSuccess, onCancel }: RoomCategoryFormProps) {
+  const t = useTranslations('admin.styleSystem.roomCategories')
   const tCommon = useTranslations('common')
   const params = useParams()
   const locale = params.locale as string
 
-  const isEditMode = !!roomType
-  const createMutation = useCreateRoomType()
-  const updateMutation = useUpdateRoomType()
-
-  // Fetch room categories
-  const { data: categoriesData } = useRoomCategories()
-  const categories = categoriesData?.data || []
-
-  // Create category options for dropdown
-  const categoryOptions = useMemo(
-    () =>
-      categories.map((cat) => ({
-        value: cat.id,
-        label: locale === 'he' ? cat.name.he : cat.name.en,
-      })),
-    [categories, locale]
-  )
+  const isEditMode = !!category
+  const createMutation = useCreateRoomCategory()
+  const updateMutation = useUpdateRoomCategory()
 
   const {
     control,
@@ -58,89 +40,43 @@ export function RoomTypeForm({ roomType, onSuccess }: RoomTypeFormProps) {
     reset,
     setValue,
     getValues,
-    watch,
     formState: { errors, isSubmitting },
-  } = useForm<RoomTypeFormValues>({
-    resolver: zodResolver(createRoomTypeFormSchema),
+  } = useForm<RoomCategoryFormValues>({
+    resolver: zodResolver(createRoomCategoryFormSchema),
     defaultValues: {
       name: { he: '', en: '' },
       slug: '',
       description: { he: '', en: '' },
       icon: '',
       order: 0,
-      categoryId: '',
       active: true,
-      detailedContent: {
-        he: {
-          introduction: '',
-          description: '',
-          period: '',
-          characteristics: [],
-          visualElements: [],
-          colorGuidance: '',
-          materialGuidance: '',
-          applications: [],
-        },
-        en: {
-          introduction: '',
-          description: '',
-          period: '',
-          characteristics: [],
-          visualElements: [],
-          colorGuidance: '',
-          materialGuidance: '',
-          applications: [],
-        },
-      },
     },
   })
 
   useEffect(() => {
-    if (roomType) {
+    if (category) {
       reset({
-        name: roomType.name,
-        slug: roomType.slug,
-        description: roomType.description || { he: '', en: '' },
-        icon: roomType.icon || '',
-        order: roomType.order,
-        categoryId: roomType.categoryId || '',
-        active: roomType.active !== undefined ? roomType.active : true,
-        detailedContent: roomType.detailedContent || {
-          he: {
-            introduction: '',
-            description: '',
-            period: '',
-            characteristics: [],
-            visualElements: [],
-            colorGuidance: '',
-            materialGuidance: '',
-            applications: [],
-          },
-          en: {
-            introduction: '',
-            description: '',
-            period: '',
-            characteristics: [],
-            visualElements: [],
-            colorGuidance: '',
-            materialGuidance: '',
-            applications: [],
-          },
-        },
+        name: category.name,
+        slug: category.slug,
+        description: category.description || { he: '', en: '' },
+        icon: category.icon || '',
+        order: category.order,
+        active: category.active,
       })
     }
-  }, [roomType, reset])
+  }, [category, reset])
 
-  const onSubmit = async (data: RoomTypeFormValues) => {
+  const onSubmit = async (data: RoomCategoryFormValues) => {
     try {
       if (isEditMode) {
-        await updateMutation.mutateAsync({ id: roomType.id, data })
+        await updateMutation.mutateAsync({ id: category.id, data })
       } else {
         await createMutation.mutateAsync(data)
       }
       onSuccess?.()
     } catch (error: any) {
       console.error('Submit error:', error)
+      alert(error.message || 'Failed to save category')
     }
   }
 
@@ -241,23 +177,6 @@ export function RoomTypeForm({ roomType, onSuccess }: RoomTypeFormProps) {
                 />
               )}
             />
-
-            <Controller
-              name="categoryId"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  label={locale === 'he' ? 'קטגוריה' : 'Category'}
-                  placeholder={locale === 'he' ? 'בחר קטגוריה' : 'Select category'}
-                  data={categoryOptions}
-                  searchable
-                  required
-                  error={errors.categoryId?.message}
-                  description={locale === 'he' ? 'קטגוריה לארגון סוג החדר' : 'Category for organizing this room type'}
-                />
-              )}
-            />
           </Stack>
         </FormSection>
 
@@ -293,17 +212,16 @@ export function RoomTypeForm({ roomType, onSuccess }: RoomTypeFormProps) {
           </Stack>
         </FormSection>
 
-        <DetailedContentEditor
-          control={control}
-          errors={errors}
-          watch={watch}
-          setValue={setValue}
-          entityType="roomType"
-        />
-
-        <Button type="submit" color="brand" fullWidth loading={isSubmitting}>
-          {isEditMode ? tCommon('save') : tCommon('create')}
-        </Button>
+        <Stack gap="sm">
+          <Button type="submit" color="brand" fullWidth loading={isSubmitting}>
+            {isEditMode ? tCommon('save') : tCommon('create')}
+          </Button>
+          {onCancel && (
+            <Button variant="subtle" fullWidth onClick={onCancel} disabled={isSubmitting}>
+              {tCommon('cancel')}
+            </Button>
+          )}
+        </Stack>
       </Stack>
     </form>
   )

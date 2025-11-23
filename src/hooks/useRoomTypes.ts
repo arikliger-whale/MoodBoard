@@ -13,14 +13,23 @@ interface RoomTypesResponse {
   count: number
 }
 
-// Fetch all room types
-export function useRoomTypes() {
+interface RoomTypeFilters {
+  categoryId?: string
+  includeInactive?: boolean
+}
+
+// Fetch all room types with optional filters
+export function useRoomTypes(filters: RoomTypeFilters = {}) {
   const { status } = useSession()
 
   return useQuery<RoomTypesResponse>({
-    queryKey: ['roomTypes'],
+    queryKey: ['roomTypes', filters],
     queryFn: async () => {
-      const res = await fetch(API_BASE)
+      const params = new URLSearchParams()
+      if (filters.categoryId) params.append('categoryId', filters.categoryId)
+      if (filters.includeInactive) params.append('includeInactive', 'true')
+
+      const res = await fetch(`${API_BASE}?${params}`)
       if (!res.ok) throw new Error('Failed to fetch room types')
       return res.json()
     },

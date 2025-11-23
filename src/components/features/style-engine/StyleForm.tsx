@@ -112,6 +112,8 @@ export function StyleForm({
       approachId: '',
       slug: '',
       colorId: '',
+      roomCategory: '',
+      priceLevel: 'REGULAR',
       images: [],
       roomProfiles: [],
       metadata: {},
@@ -136,6 +138,8 @@ export function StyleForm({
           approachId: initialData.approachId || '',
           slug: initialData.slug || '',
           colorId: initialData.colorId || '',
+          roomCategory: initialData.roomCategory || '',
+          priceLevel: initialData.priceLevel || 'REGULAR',
           images: sanitizeImages(initialData.images),
           roomProfiles: initialData.roomProfiles || [],
           metadata: cleanMetadata(initialData.metadata),
@@ -401,6 +405,44 @@ export function StyleForm({
                 {...register('slug')}
                 error={errors.slug?.message}
                 description={t('slugInvalid')}
+              />
+
+              <Controller
+                name="roomCategory"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    label={locale === 'he' ? 'קטגוריית חדרים' : 'Room Category'}
+                    placeholder={locale === 'he' ? 'בחר קטגוריית חדרים' : 'Select room category'}
+                    data={[
+                      { value: 'Private', label: locale === 'he' ? 'פרטי' : 'Private' },
+                      { value: 'Public', label: locale === 'he' ? 'ציבורי' : 'Public' },
+                      { value: 'Commercial', label: locale === 'he' ? 'מסחרי' : 'Commercial' },
+                    ]}
+                    error={errors.roomCategory?.message}
+                    description={locale === 'he' ? 'קטגוריה זו תקבע אילו סוגי חדרים יוקצו לסגנון זה' : 'This category determines which room types will be assigned to this style'}
+                    clearable
+                  />
+                )}
+              />
+
+              <Controller
+                name="priceLevel"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    label={locale === 'he' ? 'רמת מחיר' : 'Price Level'}
+                    placeholder={locale === 'he' ? 'בחר רמת מחיר' : 'Select price level'}
+                    data={[
+                      { value: 'REGULAR', label: locale === 'he' ? 'רגיל' : 'Regular' },
+                      { value: 'LUXURY', label: locale === 'he' ? 'יוקרתי' : 'Luxury' },
+                    ]}
+                    error={errors.priceLevel?.message}
+                    description={locale === 'he' ? 'רמת המחיר משפיעה על החומרים והמרקמים שיומלצו' : 'Price level affects recommended materials and textures'}
+                  />
+                )}
               />
             </FormSection>
           </Stack>

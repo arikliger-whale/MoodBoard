@@ -14,12 +14,13 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { MoodBCard } from '@/components/ui/Card'
 import { MoodBTable, MoodBTableBody, MoodBTableCell, MoodBTableHead, MoodBTableHeader, MoodBTableRow } from '@/components/ui/Table'
-import { useDeleteRoomType, useRoomTypes } from '@/hooks/useRoomTypes'
-import { ActionIcon, Button, Container, Drawer, Group, Menu, Modal, Stack, Text, TextInput, Checkbox } from '@mantine/core'
-import { IconDots, IconEdit, IconEye, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react'
+import { useDeleteRoomType, useRoomTypes, useUpdateRoomType } from '@/hooks/useRoomTypes'
+import { useRoomCategories } from '@/hooks/useRoomCategories'
+import { Accordion, ActionIcon, Badge, Button, Container, Drawer, Group, Menu, Modal, Stack, Switch, Text, TextInput, Checkbox } from '@mantine/core'
+import { IconDots, IconEdit, IconEye, IconPlus, IconSearch, IconTrash, IconCheck, IconX } from '@tabler/icons-react'
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { RoomTypeForm } from './RoomTypeForm'
 import { DetailedContentViewer } from './DetailedContentViewer'
 
@@ -30,8 +31,11 @@ export function RoomTypesTable() {
   const params = useParams()
   const locale = params.locale as string
 
-  const { data: roomTypesData, isLoading, error } = useRoomTypes()
+  const [includeInactive, setIncludeInactive] = useState(false)
+  const { data: roomTypesData, isLoading, error } = useRoomTypes({ includeInactive })
+  const { data: categoriesData } = useRoomCategories()
   const deleteMutation = useDeleteRoomType()
+  const updateMutation = useUpdateRoomType()
 
   const [search, setSearch] = useState('')
   const [selectedRoomType, setSelectedRoomType] = useState<any>(null)
@@ -43,6 +47,7 @@ export function RoomTypesTable() {
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
 
   const roomTypes = roomTypesData?.data || []
+  const categories = categoriesData?.data || []
 
   const handleCreate = () => {
     setSelectedRoomType(null)
@@ -87,6 +92,18 @@ export function RoomTypesTable() {
     }
   }
 
+  const handleToggleActive = async (roomTypeId: string, currentActive: boolean) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: roomTypeId,
+        data: { active: !currentActive },
+      })
+    } catch (error: any) {
+      console.error('Toggle active error:', error)
+      alert(error.message || 'Failed to update room type status')
+    }
+  }
+
   const handleSelectAll = () => {
     if (selectedIds.length === filteredRoomTypes.length) {
       setSelectedIds([])
@@ -103,15 +120,26 @@ export function RoomTypesTable() {
     }
   }
 
-  const filteredRoomTypes = roomTypes.filter((roomType) => {
-    if (!search) return true
-    const searchLower = search.toLowerCase()
-    return (
-      roomType.name.he.toLowerCase().includes(searchLower) ||
-      roomType.name.en.toLowerCase().includes(searchLower) ||
-      roomType.slug.toLowerCase().includes(searchLower)
-    )
-  })
+  // Filter room types by search
+  const filteredRoomTypes = useMemo(() => {
+    return roomTypes.filter((roomType) => {
+      if (!search) return true
+      const searchLower = search.toLowerCase()
+      return (
+        roomType.name.he.toLowerCase().includes(searchLower) ||
+        roomType.name.en.toLowerCase().includes(searchLower) ||
+        roomType.slug.toLowerCase().includes(searchLower)
+      )
+    })
+  }, [roomTypes, search])
+
+  // Group room types by category
+  const groupedByCategory = useMemo(() => {
+    return categories.map((category) => ({
+      category,
+      roomTypes: filteredRoomTypes.filter((rt) => rt.categoryId === category.id),
+    })).filter((group) => group.roomTypes.length > 0) // Only show categories with room types
+  }, [categories, filteredRoomTypes])
 
   return (
     <Container size="xl" py="xl">
@@ -144,14 +172,22 @@ export function RoomTypesTable() {
           </Group>
         </Group>
 
-        {/* Search */}
+        {/* Search & Filters */}
         <MoodBCard>
-          <TextInput
-            placeholder={t('searchPlaceholder')}
-            leftSection={<IconSearch size={16} />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <Group justify="space-between">
+            <TextInput
+              placeholder={t('searchPlaceholder')}
+              leftSection={<IconSearch size={16} />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ flex: 1, maxWidth: 400 }}
+            />
+            <Switch
+              label={locale === 'he' ? 'הצג לא פעילים' : 'Show inactive'}
+              checked={includeInactive}
+              onChange={(e) => setIncludeInactive(e.currentTarget.checked)}
+            />
+          </Group>
         </MoodBCard>
 
         {/* Table */}
@@ -170,100 +206,149 @@ export function RoomTypesTable() {
           />
         ) : (
           <MoodBCard>
-            <MoodBTable>
-              <MoodBTableHead>
-                <MoodBTableRow>
-                  <MoodBTableHeader style={{ width: 40 }}>
-                    <Checkbox
-                      checked={selectedIds.length === filteredRoomTypes.length && filteredRoomTypes.length > 0}
-                      indeterminate={selectedIds.length > 0 && selectedIds.length < filteredRoomTypes.length}
-                      onChange={handleSelectAll}
-                    />
-                  </MoodBTableHeader>
-                  <MoodBTableHeader>{t('table.order')}</MoodBTableHeader>
-                  <MoodBTableHeader>{t('table.icon')}</MoodBTableHeader>
-                  <MoodBTableHeader>{t('table.name')}</MoodBTableHeader>
-                  <MoodBTableHeader>{t('table.slug')}</MoodBTableHeader>
-                  <MoodBTableHeader>{t('table.description')}</MoodBTableHeader>
-                  <MoodBTableHeader style={{ width: 100 }}>{t('table.actions')}</MoodBTableHeader>
-                </MoodBTableRow>
-              </MoodBTableHead>
-              <MoodBTableBody>
-                {filteredRoomTypes.map((roomType) => (
-                  <MoodBTableRow key={roomType.id}>
-                    <MoodBTableCell>
-                      <Checkbox checked={selectedIds.includes(roomType.id)} onChange={() => handleSelectOne(roomType.id)} />
-                    </MoodBTableCell>
-                    <MoodBTableCell>
-                      <Text size="sm">{roomType.order}</Text>
-                    </MoodBTableCell>
-                    <MoodBTableCell>
-                      {roomType.icon ? <Text size="xl">{roomType.icon}</Text> : <Text c="dimmed">-</Text>}
-                    </MoodBTableCell>
-                    <MoodBTableCell>
-                      <Stack gap={4}>
-                        <Text fw={500}>{roomType.name.he}</Text>
-                        <Text size="xs" c="dimmed">
-                          {roomType.name.en}
+            <Accordion variant="separated" multiple defaultValue={groupedByCategory.map((g) => g.category.id)}>
+              {groupedByCategory.map(({ category, roomTypes }) => (
+                <Accordion.Item key={category.id} value={category.id}>
+                  <Accordion.Control>
+                    <Group justify="space-between" style={{ width: '100%' }}>
+                      <Group>
+                        {category.icon && <Text size="xl">{category.icon}</Text>}
+                        <Text fw={600} size="lg">
+                          {locale === 'he' ? category.name.he : category.name.en}
                         </Text>
-                      </Stack>
-                    </MoodBTableCell>
-                    <MoodBTableCell>
-                      <Text size="sm" c="dimmed">
-                        {roomType.slug}
-                      </Text>
-                    </MoodBTableCell>
-                    <MoodBTableCell>
-                      {roomType.description ? (
-                        <Stack gap={4}>
-                          <Text size="sm">{roomType.description.he}</Text>
-                          <Text size="xs" c="dimmed">
-                            {roomType.description.en}
-                          </Text>
-                        </Stack>
-                      ) : (
-                        <Text size="sm" c="dimmed">
-                          -
-                        </Text>
-                      )}
-                    </MoodBTableCell>
-                    <MoodBTableCell>
-                      <Menu shadow="md" width={200}>
-                        <Menu.Target>
-                          <ActionIcon variant="subtle" color="brand">
-                            <IconDots size={16} />
-                          </ActionIcon>
-                        </Menu.Target>
-                        <Menu.Dropdown>
-                          {roomType.detailedContent && (
-                            <>
-                              <Menu.Item
-                                leftSection={<IconEye size={16} />}
-                                onClick={() => setViewDetailsRoomType(roomType)}
-                              >
-                                {locale === 'he' ? 'הצג פרטים מלאים' : 'View Full Details'}
-                              </Menu.Item>
-                              <Menu.Divider />
-                            </>
-                          )}
-                          <Menu.Item leftSection={<IconEdit size={16} />} onClick={() => handleEdit(roomType)}>
-                            {tCommon('edit')}
-                          </Menu.Item>
-                          <Menu.Divider />
-                          <Menu.Item
-                            leftSection={<IconTrash size={16} />}
-                            color="red"
-                            onClick={() => setDeleteRoomTypeId(roomType.id)}
-                          >
-                            {tCommon('delete')}
-                          </Menu.Item>
-                        </Menu.Dropdown>
-                      </Menu>
-                    </MoodBTableCell>
-                  </MoodBTableRow>
-                ))}
-              </MoodBTableBody>
-            </MoodBTable>
+                      </Group>
+                      <Badge size="lg" variant="light" color="brand">
+                        {roomTypes.length} {locale === 'he' ? 'חדרים' : 'rooms'}
+                      </Badge>
+                    </Group>
+                  </Accordion.Control>
+                  <Accordion.Panel>
+                    <MoodBTable>
+                      <MoodBTableHead>
+                        <MoodBTableRow>
+                          <MoodBTableHeader style={{ width: 40 }}>
+                            <Checkbox
+                              checked={
+                                roomTypes.every((rt) => selectedIds.includes(rt.id)) && roomTypes.length > 0
+                              }
+                              indeterminate={
+                                roomTypes.some((rt) => selectedIds.includes(rt.id)) &&
+                                !roomTypes.every((rt) => selectedIds.includes(rt.id))
+                              }
+                              onChange={() => {
+                                const allSelected = roomTypes.every((rt) => selectedIds.includes(rt.id))
+                                if (allSelected) {
+                                  setSelectedIds(selectedIds.filter((id) => !roomTypes.find((rt) => rt.id === id)))
+                                } else {
+                                  const newIds = roomTypes.map((rt) => rt.id).filter((id) => !selectedIds.includes(id))
+                                  setSelectedIds([...selectedIds, ...newIds])
+                                }
+                              }}
+                            />
+                          </MoodBTableHeader>
+                          <MoodBTableHeader>{t('table.order')}</MoodBTableHeader>
+                          <MoodBTableHeader>{t('table.icon')}</MoodBTableHeader>
+                          <MoodBTableHeader>{t('table.name')}</MoodBTableHeader>
+                          <MoodBTableHeader>{t('table.slug')}</MoodBTableHeader>
+                          <MoodBTableHeader>{t('table.description')}</MoodBTableHeader>
+                          <MoodBTableHeader>{locale === 'he' ? 'סטטוס' : 'Status'}</MoodBTableHeader>
+                          <MoodBTableHeader style={{ width: 100 }}>{t('table.actions')}</MoodBTableHeader>
+                        </MoodBTableRow>
+                      </MoodBTableHead>
+                      <MoodBTableBody>
+                        {roomTypes.map((roomType) => (
+                          <MoodBTableRow key={roomType.id}>
+                            <MoodBTableCell>
+                              <Checkbox checked={selectedIds.includes(roomType.id)} onChange={() => handleSelectOne(roomType.id)} />
+                            </MoodBTableCell>
+                            <MoodBTableCell>
+                              <Text size="sm">{roomType.order}</Text>
+                            </MoodBTableCell>
+                            <MoodBTableCell>
+                              {roomType.icon ? <Text size="xl">{roomType.icon}</Text> : <Text c="dimmed">-</Text>}
+                            </MoodBTableCell>
+                            <MoodBTableCell>
+                              <Stack gap={4}>
+                                <Text fw={500}>{roomType.name.he}</Text>
+                                <Text size="xs" c="dimmed">
+                                  {roomType.name.en}
+                                </Text>
+                              </Stack>
+                            </MoodBTableCell>
+                            <MoodBTableCell>
+                              <Text size="sm" c="dimmed">
+                                {roomType.slug}
+                              </Text>
+                            </MoodBTableCell>
+                            <MoodBTableCell>
+                              {roomType.description ? (
+                                <Stack gap={4}>
+                                  <Text size="sm">{roomType.description.he}</Text>
+                                  <Text size="xs" c="dimmed">
+                                    {roomType.description.en}
+                                  </Text>
+                                </Stack>
+                              ) : (
+                                <Text size="sm" c="dimmed">
+                                  -
+                                </Text>
+                              )}
+                            </MoodBTableCell>
+                            <MoodBTableCell>
+                              <Badge color={roomType.active ? 'green' : 'gray'} variant="light">
+                                {roomType.active ? (locale === 'he' ? 'פעיל' : 'Active') : (locale === 'he' ? 'לא פעיל' : 'Inactive')}
+                              </Badge>
+                            </MoodBTableCell>
+                            <MoodBTableCell>
+                              <Menu shadow="md" width={200}>
+                                <Menu.Target>
+                                  <ActionIcon variant="subtle" color="brand">
+                                    <IconDots size={16} />
+                                  </ActionIcon>
+                                </Menu.Target>
+                                <Menu.Dropdown>
+                                  {roomType.detailedContent && (
+                                    <>
+                                      <Menu.Item
+                                        leftSection={<IconEye size={16} />}
+                                        onClick={() => setViewDetailsRoomType(roomType)}
+                                      >
+                                        {locale === 'he' ? 'הצג פרטים מלאים' : 'View Full Details'}
+                                      </Menu.Item>
+                                      <Menu.Divider />
+                                    </>
+                                  )}
+                                  <Menu.Item leftSection={<IconEdit size={16} />} onClick={() => handleEdit(roomType)}>
+                                    {tCommon('edit')}
+                                  </Menu.Item>
+                                  <Menu.Item
+                                    leftSection={roomType.active ? <IconX size={16} /> : <IconCheck size={16} />}
+                                    onClick={() => handleToggleActive(roomType.id, roomType.active)}
+                                  >
+                                    {roomType.active
+                                      ? (locale === 'he' ? 'השבת' : 'Deactivate')
+                                      : (locale === 'he' ? 'הפעל' : 'Activate')
+                                    }
+                                  </Menu.Item>
+                                  <Menu.Divider />
+                                  <Menu.Item
+                                    leftSection={<IconTrash size={16} />}
+                                    color="red"
+                                    onClick={() => setDeleteRoomTypeId(roomType.id)}
+                                  >
+                                    {tCommon('delete')}
+                                  </Menu.Item>
+                                </Menu.Dropdown>
+                              </Menu>
+                            </MoodBTableCell>
+                          </MoodBTableRow>
+                        ))}
+                      </MoodBTableBody>
+                    </MoodBTable>
+                  </Accordion.Panel>
+                </Accordion.Item>
+              ))}
+            </Accordion>
           </MoodBCard>
         )}
 

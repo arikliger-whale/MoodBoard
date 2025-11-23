@@ -5,11 +5,18 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY environment variable is required')
-}
+// Lazy initialization to avoid build-time errors
+let genAI: GoogleGenerativeAI | null = null
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+function getGenAI(): GoogleGenerativeAI {
+  if (!genAI) {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY environment variable is required')
+    }
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  }
+  return genAI
+}
 
 // Gemini Image Generation Model
 const IMAGE_MODEL = 'gemini-2.5-flash-image'
@@ -653,7 +660,7 @@ export async function generateImages(options: ImageGenerationOptions): Promise<s
   const imageDataUrls: string[] = []
 
   try {
-    const model = genAI.getGenerativeModel({ model: IMAGE_MODEL })
+    const model = getGenAI().getGenerativeModel({ model: IMAGE_MODEL })
 
     // Phase 2: Fetch reference images if provided (for multi-image context)
     const referenceImageParts: any[] = []
