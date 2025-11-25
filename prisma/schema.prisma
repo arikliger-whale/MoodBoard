@@ -561,6 +561,7 @@ model Style {
   // Phase 2: Relations
   images        StyleImage[]    // New: Categorized images
   textureLinks  StyleTexture[]  // New: Many-to-many with textures (join model)
+  materialLinks StyleMaterial[] // New: Many-to-many with materials (join model)
 
   metadata StyleMetadata
 
@@ -894,12 +895,20 @@ model Material {
   availability Availability
   assets       MaterialAssets
 
+  // Texture link (optional) - Material can reference a Texture
+  textureId    String?   @db.ObjectId
+  texture      Texture?  @relation(fields: [textureId], references: [id])
+
+  // Style links (many-to-many via join table)
+  styleLinks   StyleMaterial[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
   @@index([organizationId])
   @@index([organizationId, categoryId])
   @@index([categoryId])
+  @@index([textureId])
   @@map("materials")
 }
 
@@ -939,6 +948,7 @@ model Texture {
   materialCategories TextureMaterialCategory[]  // Many-to-many with material categories
   styleLinks         StyleTexture[]            // Many-to-many with styles
   styleImages        StyleImage[]              // Images using this texture
+  materials          Material[]                // Materials that use this texture
 
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @default(now())
@@ -980,6 +990,22 @@ model StyleTexture {
   @@index([styleId])
   @@index([textureId])
   @@map("style_textures")
+}
+
+// Join model for Style-Material many-to-many relationship
+model StyleMaterial {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  styleId    String   @db.ObjectId
+  style      Style    @relation(fields: [styleId], references: [id], onDelete: Cascade)
+  materialId String   @db.ObjectId
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  @@unique([styleId, materialId])
+  @@index([styleId])
+  @@index([materialId])
+  @@map("style_materials")
 }
 
 type MaterialProperties {

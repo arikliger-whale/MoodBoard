@@ -10,6 +10,7 @@
 
 import { PrismaClient } from '@prisma/client'
 import { generateAndUploadImages } from '@/lib/ai/image-generation'
+import { getMaterialNameHebrew } from './material-generator'
 
 const prisma = new PrismaClient()
 
@@ -153,6 +154,7 @@ export function parseMaterialGuidance(
 
 /**
  * Find or create a texture entity
+ * Deduplication: By NAME only (localized - checks both he and en)
  */
 export async function findOrCreateTexture(
   material: ParsedMaterial,
@@ -163,31 +165,33 @@ export async function findOrCreateTexture(
   } = {}
 ): Promise<string> {
   try {
-    // Find texture category
-    const category = await prisma.textureCategory.findUnique({
+    // Find material category (textures use MaterialCategory via join table)
+    const materialCategory = await prisma.materialCategory.findFirst({
       where: { slug: material.categorySlug }
     })
 
-    if (!category) {
-      console.error(`❌ Texture category not found: ${material.categorySlug}`)
-      throw new Error(`Texture category not found: ${material.categorySlug}`)
+    // Get default category if specific one not found
+    const defaultCategory = materialCategory || await prisma.materialCategory.findFirst()
+
+    if (!defaultCategory) {
+      console.error(`❌ No material categories exist in database`)
+      throw new Error(`No material categories exist in database`)
     }
 
-    // Try to find existing texture
+    // Try to find existing texture by NAME ONLY (deduplication by localized name)
     const existing = await prisma.texture.findFirst({
       where: {
-        name: {
-          path: ['en'],
-          equals: material.name
-        },
-        categoryId: category.id,
-        finish: material.finish,
-        organizationId: options.organizationId || null,
+        OR: [
+          { name: { is: { en: material.name } } },
+          { name: { is: { he: material.name } } },
+          // Also check case-insensitive contains for partial matches
+          { name: { is: { en: { contains: material.name, mode: 'insensitive' } } } },
+        ]
       }
     })
 
     if (existing) {
-      console.log(`   ♻️  Reusing existing texture: ${material.name} (${material.finish})`)
+      console.log(`   ♻️  Reusing existing texture: ${material.name} (ID: ${existing.id})`)
       return existing.id
     }
 
@@ -221,24 +225,34 @@ export async function findOrCreateTexture(
       }
     }
 
-    // Create texture entity
+    // Create texture entity (AI-generated = isAbstract: true)
+    const nameHe = getMaterialNameHebrew(material.name)
     const texture = await prisma.texture.create({
       data: {
         organizationId: options.organizationId || null,
         name: {
-          he: material.name, // TODO: Add proper Hebrew translation
+          he: nameHe,
           en: material.name
         },
-        categoryId: category.id,
         finish: material.finish,
-        isAbstract: false,
+        isAbstract: true, // Mark as AI-generated
+        generationStatus: 'COMPLETED',
+        aiDescription: `AI-generated texture for ${material.name}`,
         imageUrl,
         tags: material.keywords,
         usage: 0,
       }
     })
 
-    console.log(`   ✅ Created texture: ${texture.id}`)
+    // Link texture to MaterialCategory via join table
+    await prisma.textureMaterialCategory.create({
+      data: {
+        textureId: texture.id,
+        materialCategoryId: defaultCategory.id,
+      }
+    })
+
+    console.log(`   ✅ Created texture: ${texture.id} (linked to category: ${defaultCategory.slug || defaultCategory.id})`)
     return texture.id
 
   } catch (error) {
@@ -332,7 +346,11 @@ export async function getStyleTextures(styleId: string) {
     include: {
       texture: {
         include: {
-          category: true,
+          materialCategories: {
+            include: {
+              materialCategory: true,
+            }
+          }
         }
       }
     }

@@ -62,8 +62,20 @@ function findClosestColor(hexString: string, colors: any[]): string | null {
 
 /**
  * Find material by name using fuzzy matching
+ * @param name - Material name to search for
+ * @param materials - Array of materials to search in
+ * @param options - Optional settings
+ * @param options.createIfMissing - If true, create a new material if no match found
+ * @param options.priceLevel - Price level for created materials
  */
-function findMaterialByName(name: string, materials: any[]): string | null {
+async function findMaterialByName(
+  name: string,
+  materials: any[],
+  options: {
+    createIfMissing?: boolean
+    priceLevel?: 'REGULAR' | 'LUXURY'
+  } = {}
+): Promise<string | null> {
   if (!name || typeof name !== 'string') return null
 
   const searchName = name.toLowerCase().trim()
@@ -98,6 +110,22 @@ function findMaterialByName(name: string, materials: any[]): string | null {
 
   if (bestMatch && bestScore > 0.8) {
     return bestMatch.id
+  }
+
+  // Create if missing (opt-in)
+  if (options.createIfMissing) {
+    console.log(`   ✨ Creating missing material: ${name}`)
+    try {
+      const { findOrCreateMaterial } = await import('./material-generator')
+      const materialId = await findOrCreateMaterial(
+        { name, priceLevel: options.priceLevel || 'REGULAR' },
+        { generateImage: false } // Don't generate image here
+      )
+      return materialId
+    } catch (error) {
+      console.warn(`   ⚠️  Failed to create material: ${name}`, error)
+      return null
+    }
   }
 
   console.warn(`⚠️  No match for material: ${name}`)
@@ -139,13 +167,21 @@ function levenshteinDistance(s1: string, s2: string): number {
   return costs[s1.length]
 }
 
+export interface ConvertOptions {
+  /** If true, create materials that don't exist in the database */
+  createMissingMaterials?: boolean
+  /** Price level for created materials */
+  priceLevel?: 'REGULAR' | 'LUXURY'
+}
+
 /**
  * Convert AI-generated room profile to database format
  */
 export async function convertRoomProfileToIds(
   aiRoomProfile: any,
   colors?: any[],
-  materials?: any[]
+  materials?: any[],
+  options: ConvertOptions = {}
 ): Promise<any> {
   // Fetch colors and materials if not provided
   if (!colors) {
@@ -211,8 +247,11 @@ export async function convertRoomProfileToIds(
     for (const oldMaterial of aiRoomProfile.materials) {
       if (!oldMaterial.name) continue
 
-      const materialName = oldMaterial.name.he || oldMaterial.name.en
-      const materialId = findMaterialByName(materialName, materials)
+      const materialName = oldMaterial.name.he || oldMaterial.name.en || oldMaterial.name
+      const materialId = await findMaterialByName(materialName, materials, {
+        createIfMissing: options.createMissingMaterials,
+        priceLevel: options.priceLevel,
+      })
 
       if (materialId) {
         newMaterials.push({
@@ -233,7 +272,8 @@ export async function convertRoomProfileToIds(
  * Batch convert multiple room profiles
  */
 export async function convertRoomProfilesToIds(
-  aiRoomProfiles: any[]
+  aiRoomProfiles: any[],
+  options: ConvertOptions = {}
 ): Promise<any[]> {
   // Fetch colors and materials once for all profiles
   const colors = await prisma.color.findMany({
@@ -246,7 +286,7 @@ export async function convertRoomProfilesToIds(
 
   const converted = []
   for (const profile of aiRoomProfiles) {
-    const convertedProfile = await convertRoomProfileToIds(profile, colors, materials)
+    const convertedProfile = await convertRoomProfileToIds(profile, colors, materials, options)
     converted.push(convertedProfile)
   }
 

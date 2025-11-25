@@ -24,7 +24,7 @@ const storage = new Storage({
 
 const bucket = storage.bucket(GCP_BUCKET_NAME)
 
-export type EntityType = 'category' | 'subcategory' | 'style' | 'approach' | 'room' | 'material'
+export type EntityType = 'category' | 'subcategory' | 'style' | 'approach' | 'room' | 'material' | 'texture'
 
 /**
  * Generate GCP Storage key path based on entity type and ID
@@ -88,10 +88,22 @@ export function generateStorageKey(
       }
       return `projects/${projectId}/rooms/${roomId}/${uniqueFilename}`
     case 'material':
-      if (!organizationId) {
-        throw new Error('Organization ID is required for material images')
+      // For abstract/admin materials, use shared path; for org materials, use org path
+      if (organizationId) {
+        return `materials/${organizationId}/${entityId}/${uniqueFilename}`
       }
-      return `materials/${organizationId}/${entityId}/${uniqueFilename}`
+      // Abstract/admin materials go to shared path
+      if (!entityId || entityId === '') {
+        const tempId = `temp-${timestamp}-${uuidv4().substring(0, 8)}`
+        return `materials/shared/${tempId}/${uniqueFilename}`
+      }
+      return `materials/shared/${entityId}/${uniqueFilename}`
+    case 'texture':
+      if (!entityId || entityId === '') {
+        const tempId = `temp-${timestamp}-${uuidv4().substring(0, 8)}`
+        return `textures/${tempId}/${uniqueFilename}`
+      }
+      return `textures/${entityId}/${uniqueFilename}`
     default:
       throw new Error(`Unknown entity type: ${entityType}`)
   }

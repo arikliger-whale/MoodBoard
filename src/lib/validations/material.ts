@@ -113,7 +113,7 @@ export const materialFiltersSchema = z.object({
   categoryId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
   typeId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
   page: z.number().int().min(1).default(1),
-  limit: z.number().int().min(1).max(100).default(20),
+  limit: z.number().int().min(1).max(200).default(20),
 })
 
 // Export types

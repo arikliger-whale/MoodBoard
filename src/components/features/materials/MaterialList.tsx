@@ -195,21 +195,25 @@ export function MaterialList({ onMaterialClick, showActions = true, filters: ext
                   </Text>
                 </MoodBTableCell>
                 <MoodBTableCell>
-                  <MoodBBadge color={getTypeColor(material.properties.type)}>
-                    {tTypes(material.properties.type)}
-                  </MoodBBadge>
+                  {material.properties?.type ? (
+                    <MoodBBadge color={getTypeColor(material.properties.type)}>
+                      {tTypes(material.properties.type)}
+                    </MoodBBadge>
+                  ) : (
+                    <MoodBBadge color="gray">-</MoodBBadge>
+                  )}
                 </MoodBTableCell>
                 <MoodBTableCell>
-                  <Text size="sm">{material.category}</Text>
+                  <Text size="sm">{material.category || '-'}</Text>
                 </MoodBTableCell>
                 <MoodBTableCell>
                   <Text size="sm">
-                    {material.pricing.cost} {material.pricing.currency}/{material.pricing.unit}
+                    {material.pricing?.cost ?? '-'} {material.pricing?.currency || ''}/{material.pricing?.unit || ''}
                   </Text>
                 </MoodBTableCell>
                 <MoodBTableCell>
-                  <MoodBBadge color={material.availability.inStock ? 'green' : 'red'}>
-                    {material.availability.inStock ? t('inStock') : t('outOfStock')}
+                  <MoodBBadge color={material.availability?.inStock ? 'green' : 'gray'}>
+                    {material.availability?.inStock ? t('inStock') : material.availability ? t('outOfStock') : '-'}
                   </MoodBBadge>
                 </MoodBTableCell>
                 {showActions && (

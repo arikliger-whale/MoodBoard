@@ -38,56 +38,54 @@ function slugify(text: string): string {
     .replace(/-+$/, '')             // Trim - from end of text
 }
 
+/**
+ * Pre-create material entities (deduplication by name)
+ * Note: This is called BEFORE style creation, so no StyleMaterial links are created here.
+ * StyleMaterial links are created later in the "Material Entity Creation" step.
+ */
 async function ensureAssetsExist(
   materialNames: string[],
   colorNames: string[],
-  styleContext: string
+  styleContext: string,
+  priceLevel: 'REGULAR' | 'LUXURY' = 'REGULAR'
 ): Promise<{ materialIds: string[], colorIds: string[] }> {
-  
+  // Import the new material generator
+  const { findOrCreateMaterial } = await import('./material-generator')
+
   const materialIds: string[] = []
-  const colorIds: string[] = [] // We are not implementing color creation logic yet, just placeholder
+  const colorIds: string[] = []
+
+  console.log(`\n🧱 Pre-creating material entities for: ${styleContext}`)
 
   for (const name of materialNames) {
-    // Fuzzy search
-    const existing = await prisma.material.findFirst({
-      where: { 
-        name: { is: { en: { contains: name, mode: 'insensitive' } } } 
-      }
-    })
-    
-    if (existing) {
-      materialIds.push(existing.id)
-    } else {
-      // Create Abstract
-      try {
-        const newMat = await prisma.material.create({
-          data: {
-            name: { en: name, he: name }, // Using English for Hebrew temporarily or need translation
-            sku: `ABSTRACT-${crypto.randomUUID()}`, // Generate unique SKU for abstract materials
-            categoryId: (await prisma.materialCategory.findFirst())?.id || '000000000000000000000000', // Fallback ID or logic
-            isAbstract: true,
-            generationStatus: 'PENDING',
-            aiDescription: `Material for ${styleContext}: ${name}`,
-            pricing: { cost: 0, retail: 0, unit: 'm2', currency: 'USD', bulkDiscounts: [] },
-            availability: { inStock: false, leadTime: 0, minOrder: 0 },
-            assets: { thumbnail: '', images: [] },
-            properties: {
-               typeId: '000000000000000000000000', // Placeholder
-               subType: 'Generic',
-               finish: [],
-               texture: 'Generic',
-               colorIds: [],
-               technical: { durability: 5, maintenance: 5, sustainability: 5 }
-            }
-          }
-        })
-        materialIds.push(newMat.id)
-      } catch (e) {
-        console.warn(`Failed to create abstract material ${name}:`, e)
-      }
+    try {
+      // Use the new findOrCreateMaterial function (without styleId - no linking yet)
+      const materialId = await findOrCreateMaterial(
+        { name, priceLevel },
+        { generateImage: false } // Don't generate images here, will be done later
+      )
+      materialIds.push(materialId)
+    } catch (e) {
+      console.warn(`Failed to create/find material ${name}:`, e)
     }
   }
-  // ... same for colors if needed, but colors usually exist globally
+
+  // Colors - just find existing, don't create
+  for (const colorName of colorNames) {
+    const existingColor = await prisma.color.findFirst({
+      where: {
+        OR: [
+          { name: { is: { en: { contains: colorName, mode: 'insensitive' } } } },
+          { name: { is: { he: { contains: colorName, mode: 'insensitive' } } } },
+        ]
+      }
+    })
+    if (existingColor) {
+      colorIds.push(existingColor.id)
+    }
+  }
+
+  console.log(`   ✅ Pre-created ${materialIds.length} materials, found ${colorIds.length} colors`)
   return { materialIds, colorIds }
 }
 
@@ -1134,7 +1132,7 @@ export async function seedStyles(
         )
         const matNames = (detailedContent.he as any).requiredMaterials || []
         const colNames = (detailedContent.he as any).requiredColors || []
-        await ensureAssetsExist(matNames, colNames, styleName.en)
+        await ensureAssetsExist(matNames, colNames, styleName.en, stylePriceLevel)
 
         // Clean up AI-generated content to match Prisma schema
         // Remove any extra fields that Gemini might have added (like imagePrompt, quote, paragraph5 in poeticIntro)
@@ -1322,7 +1320,35 @@ export async function seedStyles(
             }
           }
 
-          // Act 3.6: Material Close-Up Images
+          // Act 3.55: Material Entity Creation & Style Links
+          if (detailedContent.en.requiredMaterials && detailedContent.en.requiredMaterials.length > 0) {
+            onProgress?.(
+              `   🧱 Act 3.55: Material Entities - Creating materials & linking to style...`,
+              i + 1,
+              subCatsToProcess.length
+            )
+
+            try {
+              const { findOrCreateMaterialsForStyle } = await import('./material-generator')
+              await findOrCreateMaterialsForStyle(
+                style.id,
+                detailedContent.en.requiredMaterials,
+                {
+                  priceLevel: stylePriceLevel,
+                  generateImages: true, // Generate material images
+                  maxMaterials: 10,
+                }
+              )
+            } catch (error) {
+              onProgress?.(
+                `   ⚠️  Warning: Material entity creation failed`,
+                i + 1,
+                subCatsToProcess.length
+              )
+            }
+          }
+
+          // Act 3.6: Material Close-Up Images (StyleImage records)
           if (detailedContent.en.requiredMaterials && detailedContent.en.requiredMaterials.length > 0) {
             onProgress?.(
               `   🔬 Act 3.6: Material Images - Generating close-up material photos...`,

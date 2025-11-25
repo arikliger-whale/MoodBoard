@@ -128,6 +128,39 @@ export function useMaterials(filters: MaterialFilters = {}) {
 }
 
 /**
+ * Fetch all materials by paginating through all pages
+ */
+async function fetchAllMaterials(baseFilters: Omit<MaterialFilters, 'page' | 'limit'>): Promise<Material[]> {
+  const allMaterials: Material[] = []
+  let page = 1
+  const limit = 100 // Max per page
+  let hasMore = true
+
+  while (hasMore) {
+    const response = await fetchMaterials({ ...baseFilters, page, limit })
+    allMaterials.push(...response.data)
+
+    hasMore = page < response.pagination.totalPages
+    page++
+  }
+
+  return allMaterials
+}
+
+/**
+ * Hook to fetch ALL materials (paginated automatically)
+ * Use this when you need all materials for dropdowns/selects
+ */
+export function useAllMaterials(filters: Omit<MaterialFilters, 'page' | 'limit'> = {}) {
+  return useQuery({
+    queryKey: [ADMIN_MATERIALS_QUERY_KEY, 'all', filters],
+    queryFn: () => fetchAllMaterials(filters),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
+  })
+}
+
+/**
  * Helper function to validate ObjectID format
  */
 function isValidObjectId(id: string): boolean {

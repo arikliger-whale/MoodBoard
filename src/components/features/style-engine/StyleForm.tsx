@@ -12,14 +12,15 @@ import { FormSection } from '@/components/ui/Form/FormSection'
 import { ImageUpload } from '@/components/ui/ImageUpload'
 import { MoodBCard } from '@/components/ui/Card'
 import { useCategories, useSubCategories } from '@/hooks/useCategories'
-import { useColors } from '@/hooks/useColors'
+import { useAllColors } from '@/hooks/useColors'
 import { useApproaches } from '@/hooks/useApproaches'
 import { useRoomTypes } from '@/hooks/useRoomTypes'
-import { useMaterials } from '@/hooks/useMaterials'
+import { useRoomCategories } from '@/hooks/useRoomCategories'
+import { useAllMaterials } from '@/hooks/useMaterials'
 import { createStyleFormSchema, updateStyleSchema, type CreateStyle, type UpdateStyle } from '@/lib/validations/style'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ActionIcon, Alert, Badge, Button, Card, Group, MultiSelect, Paper, Select, SimpleGrid, Stack, Text, Textarea, TextInput, Title } from '@mantine/core'
-import { IconAlertCircle, IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react'
+import { IconAlertCircle, IconArrowLeft, IconPhoto, IconPlus, IconSparkles, IconTrash } from '@tabler/icons-react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -80,8 +81,7 @@ export function StyleForm({
   const { data: categoriesData } = useCategories()
   const categories = categoriesData?.data || []
 
-  const { data: colorsData } = useColors({ page: 1, limit: 200 })
-  const colors = colorsData?.data || []
+  const { data: colors = [] } = useAllColors()
 
   const { data: approachesData } = useApproaches()
   const approaches = approachesData?.data || []
@@ -89,8 +89,10 @@ export function StyleForm({
   const { data: roomTypesData } = useRoomTypes()
   const roomTypes = roomTypesData?.data || []
 
-  const { data: materialsData } = useMaterials({ page: 1, limit: 200 })
-  const materials = materialsData?.data || []
+  const { data: roomCategoriesData } = useRoomCategories()
+  const roomCategories = roomCategoriesData?.data || []
+
+  const { data: materials = [] } = useAllMaterials()
 
   const {
     register,
@@ -199,6 +201,15 @@ export function StyleForm({
         label: locale === 'he' ? roomType.name.he : roomType.name.en,
       })),
     [roomTypes, locale]
+  )
+
+  const roomCategoryOptions = useMemo(
+    () =>
+      roomCategories.map((cat) => ({
+        value: cat.slug,
+        label: `${cat.icon || ''} ${locale === 'he' ? cat.name.he : cat.name.en}`,
+      })),
+    [roomCategories, locale]
   )
 
   const materialOptions = useMemo(
@@ -415,14 +426,11 @@ export function StyleForm({
                     {...field}
                     label={locale === 'he' ? 'קטגוריית חדרים' : 'Room Category'}
                     placeholder={locale === 'he' ? 'בחר קטגוריית חדרים' : 'Select room category'}
-                    data={[
-                      { value: 'Private', label: locale === 'he' ? 'פרטי' : 'Private' },
-                      { value: 'Public', label: locale === 'he' ? 'ציבורי' : 'Public' },
-                      { value: 'Commercial', label: locale === 'he' ? 'מסחרי' : 'Commercial' },
-                    ]}
+                    data={roomCategoryOptions}
                     error={errors.roomCategory?.message}
                     description={locale === 'he' ? 'קטגוריה זו תקבע אילו סוגי חדרים יוקצו לסגנון זה' : 'This category determines which room types will be assigned to this style'}
                     clearable
+                    searchable
                   />
                 )}
               />
@@ -447,6 +455,116 @@ export function StyleForm({
             </FormSection>
           </Stack>
         </MoodBCard>
+
+        {/* AI Generation Summary */}
+        <Paper p="lg" withBorder style={{ backgroundColor: '#fef4f5', borderColor: '#df2538' }}>
+          <Stack gap="md">
+            <Group gap="xs">
+              <IconSparkles size={20} color="#df2538" />
+              <Text fw={600} size="lg" c="brand">
+                {locale === 'he' ? 'סיכום יצירת תמונות AI' : 'AI Image Generation Summary'}
+              </Text>
+            </Group>
+            <Text size="sm" c="dimmed">
+              {locale === 'he'
+                ? 'כאשר תשתמש ב-AI לייצר סגנון זה, המערכת תייצר את התמונות הבאות:'
+                : 'When using AI to generate this style, the system will create the following images:'}
+            </Text>
+            <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="md">
+              <Paper p="md" withBorder radius="md" style={{ backgroundColor: 'white' }}>
+                <Stack gap="xs" align="center">
+                  <Badge size="xl" variant="light" color="blue">
+                    ~60
+                  </Badge>
+                  <Text size="sm" fw={500} ta="center">
+                    {locale === 'he' ? 'תמונות סקירת חדרים' : 'Room Overview Images'}
+                  </Text>
+                  <Text size="xs" c="dimmed" ta="center">
+                    {locale === 'he' ? '15 סוגי חדרים × 4 זוויות' : '15 room types × 4 views'}
+                  </Text>
+                </Stack>
+              </Paper>
+
+              <Paper p="md" withBorder radius="md" style={{ backgroundColor: 'white' }}>
+                <Stack gap="xs" align="center">
+                  <Badge size="xl" variant="light" color="green">
+                    ~25
+                  </Badge>
+                  <Text size="sm" fw={500} ta="center">
+                    {locale === 'he' ? 'תמונות חומרים' : 'Material Images'}
+                  </Text>
+                  <Text size="xs" c="dimmed" ta="center">
+                    {locale === 'he' ? 'תמונות תקריב של חומרים' : 'Close-up material shots'}
+                  </Text>
+                </Stack>
+              </Paper>
+
+              <Paper p="md" withBorder radius="md" style={{ backgroundColor: 'white' }}>
+                <Stack gap="xs" align="center">
+                  <Badge size="xl" variant="light" color="orange">
+                    ~15
+                  </Badge>
+                  <Text size="sm" fw={500} ta="center">
+                    {locale === 'he' ? 'תמונות טקסטורות' : 'Texture Images'}
+                  </Text>
+                  <Text size="xs" c="dimmed" ta="center">
+                    {locale === 'he' ? 'מרקמים בהקשר מציאותי' : 'Textures in realistic context'}
+                  </Text>
+                </Stack>
+              </Paper>
+
+              <Paper p="md" withBorder radius="md" style={{ backgroundColor: 'white' }}>
+                <Stack gap="xs" align="center">
+                  <Badge size="xl" variant="light" color="violet">
+                    1
+                  </Badge>
+                  <Text size="sm" fw={500} ta="center">
+                    {locale === 'he' ? 'מוד בורד מרוכב' : 'Composite Mood Board'}
+                  </Text>
+                  <Text size="xs" c="dimmed" ta="center">
+                    {locale === 'he' ? 'קולאז\' בסגנון Pinterest' : 'Pinterest-style collage'}
+                  </Text>
+                </Stack>
+              </Paper>
+
+              <Paper p="md" withBorder radius="md" style={{ backgroundColor: 'white' }}>
+                <Stack gap="xs" align="center">
+                  <Badge size="xl" variant="light" color="pink">
+                    1
+                  </Badge>
+                  <Text size="sm" fw={500} ta="center">
+                    {locale === 'he' ? 'תמונת עוגן' : 'Anchor Image'}
+                  </Text>
+                  <Text size="xs" c="dimmed" ta="center">
+                    {locale === 'he' ? 'תמונת גיבור מרכזית' : 'Hero shot for the style'}
+                  </Text>
+                </Stack>
+              </Paper>
+
+              <Paper p="md" withBorder radius="md" style={{ backgroundColor: '#f7f7ed' }}>
+                <Stack gap="xs" align="center">
+                  <Badge size="xl" variant="filled" color="brand">
+                    ~102
+                  </Badge>
+                  <Text size="sm" fw={600} ta="center">
+                    {locale === 'he' ? 'סה"כ תמונות' : 'Total Images'}
+                  </Text>
+                  <Text size="xs" c="dimmed" ta="center">
+                    {locale === 'he' ? 'משוער, תלוי בבחירות' : 'Approximate, depends on selections'}
+                  </Text>
+                </Stack>
+              </Paper>
+            </SimpleGrid>
+
+            <Alert color="blue" variant="light" radius="md">
+              <Text size="sm">
+                {locale === 'he'
+                  ? '💡 רמת המחיר (רגיל/יוקרתי) משפיעה על איכות ובחירת החומרים והטקסטורות'
+                  : '💡 Price level (Regular/Luxury) affects quality and selection of materials and textures'}
+              </Text>
+            </Alert>
+          </Stack>
+        </Paper>
 
         <MoodBCard>
           <Stack gap="md">

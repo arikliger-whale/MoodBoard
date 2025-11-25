@@ -7,7 +7,7 @@ import { FormSection } from '@/components/ui/Form/FormSection'
 import { ImageUpload } from '@/components/ui/ImageUpload'
 import { MoodBCard } from '@/components/ui/Card'
 import { useImageUpload } from '@/hooks/useImageUpload'
-import { useMaterials } from '@/hooks/useMaterials'
+import { useAllMaterials } from '@/hooks/useMaterials'
 import { ROOM_TYPES } from '@/lib/validations/room'
 import {
   createApproachFormSchema,
@@ -90,8 +90,7 @@ export function ApproachForm({
   const approachSyncedRef = useRef<string | null>(null)
 
   const { uploadImage } = useImageUpload()
-  const { data: materialsData } = useMaterials({ page: 1, limit: 200 })
-  const materials = materialsData?.data || []
+  const { data: materials = [] } = useAllMaterials()
 
   const {
     register,

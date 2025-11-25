@@ -97,6 +97,41 @@ export function useColors(filters: ColorFilters = {}) {
 }
 
 /**
+ * Fetch all colors by paginating through all pages
+ */
+async function fetchAllColors(baseFilters: Omit<ColorFilters, 'page' | 'limit'>): Promise<Color[]> {
+  const allColors: Color[] = []
+  let page = 1
+  const limit = 100 // Max per page
+  let hasMore = true
+
+  while (hasMore) {
+    const response = await fetchColors({ ...baseFilters, page, limit })
+    allColors.push(...response.data)
+
+    hasMore = page < response.pagination.totalPages
+    page++
+  }
+
+  return allColors
+}
+
+/**
+ * Hook to fetch ALL colors (paginated automatically)
+ * Use this when you need all colors for dropdowns/selects
+ */
+export function useAllColors(filters: Omit<ColorFilters, 'page' | 'limit'> = {}) {
+  const { status } = useSession()
+
+  return useQuery({
+    queryKey: [ADMIN_COLORS_QUERY_KEY, 'all', filters],
+    queryFn: () => fetchAllColors(filters),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: status === 'authenticated',
+  })
+}
+
+/**
  * Hook to fetch single color
  */
 export function useColor(colorId: string) {
