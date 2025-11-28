@@ -140,6 +140,31 @@ export {
 } from './material-matcher'
 
 // =============================================================================
+// Texture Matching (AI Sub-Agent)
+// =============================================================================
+export {
+  // Core functions
+  matchTexture,
+  matchTexturesBatch,
+  smartMatchTexture,
+  smartMatchTexturesBatch,
+  heuristicTextureMatch,
+  // Configuration
+  TEXTURE_MATCH_CONFIG,
+  // Schemas
+  TextureMatchSchema,
+  NewTextureSchema,
+  TextureMatchBatchResponseSchema,
+  // Types
+  type TextureMatch,
+  type NewTexture,
+  type TextureMatchBatchResponse,
+  type TextureMatchContext,
+  type AvailableTextureForMatch,
+  type AvailableCategoryForTexture,
+} from './texture-matcher'
+
+// =============================================================================
 // Legacy type exports (backward compatibility)
 // These types are used throughout the codebase
 // =============================================================================

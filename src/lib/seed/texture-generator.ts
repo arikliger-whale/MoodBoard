@@ -3,16 +3,128 @@
  *
  * Generates and manages texture entities during style generation:
  * 1. Parse material guidance from AI content
- * 2. Find or create texture entities
+ * 2. Find or create texture entities with AI-powered matching
  * 3. Generate texture images
  * 4. Link textures to styles
+ *
+ * Enhanced with AI Sub-Agent:
+ * - Semantic texture name matching (e.g., "Brushed Oak" → "Oak")
+ * - Cross-language support (Hebrew ↔ English)
+ * - Automatic category inference
  */
 
 import { PrismaClient } from '@prisma/client'
-import { generateAndUploadImages } from '@/lib/ai'
+import {
+  generateAndUploadImages,
+  smartMatchTexture,
+  heuristicTextureMatch,
+  TEXTURE_MATCH_CONFIG,
+  type AvailableTextureForMatch,
+  type AvailableCategoryForTexture,
+  type TextureMatchContext,
+} from '@/lib/ai'
 import { getMaterialNameHebrew } from './material-generator'
 
 const prisma = new PrismaClient()
+
+// =============================================================================
+// Context Cache for AI Matching
+// =============================================================================
+
+interface TextureMatchContextCache {
+  textures: AvailableTextureForMatch[]
+  categories: AvailableCategoryForTexture[]
+  timestamp: number
+}
+
+let textureMatchContextCache: TextureMatchContextCache | null = null
+const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+
+/**
+ * Get texture match context (cached for performance)
+ */
+async function getTextureMatchContext(): Promise<Omit<TextureMatchContext, 'texturesToMatch' | 'styleContext' | 'priceLevel'>> {
+  const now = Date.now()
+
+  // Check if cache is valid
+  if (textureMatchContextCache && (now - textureMatchContextCache.timestamp) < CACHE_TTL_MS) {
+    return {
+      availableTextures: textureMatchContextCache.textures,
+      availableCategories: textureMatchContextCache.categories,
+    }
+  }
+
+  console.log('   [Texture Context] Loading fresh context from database...')
+
+  // Fetch all textures with their category info
+  const textures = await prisma.texture.findMany({
+    select: {
+      id: true,
+      name: true,
+      finish: true,
+      sheen: true,
+      materialCategories: {
+        include: {
+          materialCategory: {
+            select: {
+              slug: true,
+              name: true,
+            }
+          }
+        }
+      }
+    },
+    take: 200, // Limit for performance
+  })
+
+  // Fetch all material categories
+  const categories = await prisma.materialCategory.findMany({
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+    }
+  })
+
+  // Format for AI context
+  const formattedTextures: AvailableTextureForMatch[] = textures.map(t => ({
+    id: t.id,
+    name: t.name as { he: string; en: string },
+    finish: t.finish || undefined,
+    sheen: t.sheen || undefined,
+    categorySlug: t.materialCategories[0]?.materialCategory?.slug,
+    categoryName: t.materialCategories[0]?.materialCategory?.name as { he: string; en: string } | undefined,
+  }))
+
+  const formattedCategories: AvailableCategoryForTexture[] = categories.map(c => ({
+    id: c.id,
+    name: c.name as { he: string; en: string },
+    slug: c.slug,
+  }))
+
+  // Update cache
+  textureMatchContextCache = {
+    textures: formattedTextures,
+    categories: formattedCategories,
+    timestamp: now,
+  }
+
+  console.log(`   [Texture Context] Loaded ${formattedTextures.length} textures, ${formattedCategories.length} categories`)
+
+  return {
+    availableTextures: formattedTextures,
+    availableCategories: formattedCategories,
+  }
+}
+
+/**
+ * Clear texture match context cache
+ * Call this when textures or categories are modified
+ */
+export function clearTextureMatchContextCache(): void {
+  textureMatchContextCache = null
+  console.log('   [Texture Context] Cache cleared')
+}
 
 /**
  * Material keyword to texture category mapping
@@ -154,7 +266,11 @@ export function parseMaterialGuidance(
 
 /**
  * Find or create a texture entity
- * Deduplication: By NAME only (localized - checks both he and en)
+ * Enhanced with AI-powered semantic matching:
+ * 1. Exact match by name (free)
+ * 2. Heuristic pre-filter (free) - catches obvious matches
+ * 3. AI semantic match - handles variants and cross-language
+ * 4. Create new texture with AI-inferred properties + image
  */
 export async function findOrCreateTexture(
   material: ParsedMaterial,
@@ -162,57 +278,79 @@ export async function findOrCreateTexture(
   options: {
     organizationId?: string
     generateImage?: boolean
+    styleContext?: string
   } = {}
 ): Promise<string> {
   try {
-    // Find material category (textures use MaterialCategory via join table)
-    const materialCategory = await prisma.materialCategory.findFirst({
-      where: { slug: material.categorySlug }
-    })
-
-    // Get default category if specific one not found
-    const defaultCategory = materialCategory || await prisma.materialCategory.findFirst()
-
-    if (!defaultCategory) {
-      console.error(`❌ No material categories exist in database`)
-      throw new Error(`No material categories exist in database`)
-    }
-
-    // Try to find existing texture by NAME ONLY (deduplication by localized name)
+    // =========================================================================
+    // Step 1: Exact match by name (FREE)
+    // =========================================================================
     const existing = await prisma.texture.findFirst({
       where: {
         OR: [
           { name: { is: { en: material.name } } },
           { name: { is: { he: material.name } } },
-          // Also check case-insensitive contains for partial matches
-          { name: { is: { en: { contains: material.name, mode: 'insensitive' } } } },
         ]
       }
     })
 
     if (existing) {
-      console.log(`   ♻️  Reusing existing texture: ${material.name} (ID: ${existing.id})`)
+      console.log(`   ♻️  Exact match found: ${material.name} (ID: ${existing.id})`)
       return existing.id
     }
 
-    // Create new texture
-    console.log(`   ✨ Creating new texture: ${material.name} (${material.finish})`)
+    // =========================================================================
+    // Step 2: Heuristic Pre-filter (FREE - no AI call)
+    // =========================================================================
+    const context = await getTextureMatchContext()
+    const heuristic = heuristicTextureMatch(material.name, context.availableTextures)
 
+    if (heuristic.matched && heuristic.confidence >= TEXTURE_MATCH_CONFIG.CONFIDENCE_THRESHOLD_HEURISTIC) {
+      console.log(`   ♻️  Heuristic match: "${material.name}" → ${heuristic.textureId} (${(heuristic.confidence * 100).toFixed(0)}% confidence)`)
+      return heuristic.textureId!
+    }
+
+    // =========================================================================
+    // Step 3: AI Semantic Match (GEMINI_FLASH_LITE)
+    // =========================================================================
+    console.log(`   🤖 Using AI to match texture: "${material.name}"`)
+    const match = await smartMatchTexture(material.name, {
+      availableTextures: context.availableTextures,
+      availableCategories: context.availableCategories,
+      styleContext: options.styleContext,
+      priceLevel,
+    })
+
+    // If AI found a match, use it
+    if (match.action === 'link' && match.matchedTextureId) {
+      console.log(`   ♻️  AI linked: "${material.name}" → ${match.matchedTextureId} (${(match.confidence * 100).toFixed(0)}% confidence)`)
+      console.log(`      Reason: ${match.reasoning}`)
+      return match.matchedTextureId
+    }
+
+    // =========================================================================
+    // Step 4: Create new texture with AI-inferred properties
+    // =========================================================================
+    if (match.action !== 'create' || !match.newTexture) {
+      // Fallback: create with parsed material properties
+      console.log(`   ⚠️  AI match unclear, using fallback creation for: ${material.name}`)
+      return await createTextureWithFallback(material, priceLevel, options)
+    }
+
+    console.log(`   ✨ AI creating new texture: ${match.newTexture.name.en} (${match.newTexture.finish || material.finish})`)
+    console.log(`      Reason: ${match.reasoning}`)
+
+    // Generate image if requested (BEFORE creating entity)
     let imageUrl: string | undefined
-
-    // Generate image if requested
     if (options.generateImage) {
       try {
         console.log(`   🎨 Generating texture image...`)
         const images = await generateAndUploadImages({
           entityType: 'texture',
-          entityName: {
-            he: material.name, // TODO: Add Hebrew translation
-            en: material.name
-          },
+          entityName: match.newTexture.name,
           priceLevel,
           numberOfImages: 1,
-          finish: material.finish,
+          finish: match.newTexture.finish || material.finish,
         } as any)
 
         if (images.length > 0) {
@@ -225,19 +363,17 @@ export async function findOrCreateTexture(
       }
     }
 
-    // Create texture entity (AI-generated = isAbstract: true)
-    const nameHe = getMaterialNameHebrew(material.name)
+    // Create texture entity with AI-inferred properties
     const texture = await prisma.texture.create({
       data: {
         organizationId: options.organizationId || null,
-        name: {
-          he: nameHe,
-          en: material.name
-        },
-        finish: material.finish,
-        isAbstract: true, // Mark as AI-generated
+        name: match.newTexture.name,  // Bilingual from AI
+        finish: match.newTexture.finish || material.finish,
+        sheen: match.newTexture.sheen || undefined,
+        baseColor: match.newTexture.baseColor || undefined,
+        isAbstract: true,  // Mark as AI-generated
         generationStatus: 'COMPLETED',
-        aiDescription: `AI-generated texture for ${material.name}`,
+        aiDescription: `AI-generated texture for ${match.newTexture.name.en}`,
         imageUrl,
         tags: material.keywords,
         usage: 0,
@@ -245,20 +381,111 @@ export async function findOrCreateTexture(
     })
 
     // Link texture to MaterialCategory via join table
-    await prisma.textureMaterialCategory.create({
-      data: {
-        textureId: texture.id,
-        materialCategoryId: defaultCategory.id,
-      }
-    })
+    if (match.newTexture.categoryId) {
+      await prisma.textureMaterialCategory.create({
+        data: {
+          textureId: texture.id,
+          materialCategoryId: match.newTexture.categoryId,
+        }
+      })
+      console.log(`   🔗 Linked texture to category: ${match.newTexture.categoryId}`)
+    }
 
-    console.log(`   ✅ Created texture: ${texture.id} (linked to category: ${defaultCategory.slug || defaultCategory.id})`)
+    // Clear cache since we added a new texture
+    clearTextureMatchContextCache()
+
+    console.log(`   ✅ Created texture: ${texture.id}`)
     return texture.id
 
   } catch (error) {
-    console.error(`❌ Error creating texture:`, error)
+    console.error(`❌ Error in findOrCreateTexture:`, error)
     throw error
   }
+}
+
+/**
+ * Fallback creation when AI match is unclear
+ * Uses keyword-based inference (original logic)
+ */
+async function createTextureWithFallback(
+  material: ParsedMaterial,
+  priceLevel: 'REGULAR' | 'LUXURY',
+  options: {
+    organizationId?: string
+    generateImage?: boolean
+  } = {}
+): Promise<string> {
+  // Find material category by slug
+  const materialCategory = await prisma.materialCategory.findFirst({
+    where: { slug: material.categorySlug }
+  })
+
+  // Get default category if specific one not found
+  const defaultCategory = materialCategory || await prisma.materialCategory.findFirst()
+
+  if (!defaultCategory) {
+    console.error(`❌ No material categories exist in database`)
+    throw new Error(`No material categories exist in database`)
+  }
+
+  let imageUrl: string | undefined
+
+  // Generate image if requested
+  if (options.generateImage) {
+    try {
+      console.log(`   🎨 Generating texture image (fallback)...`)
+      const images = await generateAndUploadImages({
+        entityType: 'texture',
+        entityName: {
+          he: getMaterialNameHebrew(material.name),
+          en: material.name
+        },
+        priceLevel,
+        numberOfImages: 1,
+        finish: material.finish,
+      } as any)
+
+      if (images.length > 0) {
+        imageUrl = images[0]
+        console.log(`   ✅ Texture image generated: ${imageUrl}`)
+      }
+    } catch (error) {
+      console.error(`   ⚠️  Failed to generate texture image:`, error)
+    }
+  }
+
+  // Create texture entity
+  const nameHe = getMaterialNameHebrew(material.name)
+  const texture = await prisma.texture.create({
+    data: {
+      organizationId: options.organizationId || null,
+      name: {
+        he: nameHe,
+        en: material.name
+      },
+      finish: material.finish,
+      isAbstract: true,
+      generationStatus: 'COMPLETED',
+      aiDescription: `AI-generated texture for ${material.name}`,
+      imageUrl,
+      tags: material.keywords,
+      usage: 0,
+    }
+  })
+
+  // Link texture to MaterialCategory via join table
+  await prisma.textureMaterialCategory.create({
+    data: {
+      textureId: texture.id,
+      materialCategoryId: defaultCategory.id,
+    }
+  })
+
+  // Clear cache since we added a new texture
+  clearTextureMatchContextCache()
+
+  console.log(`   ✅ Created texture (fallback): ${texture.id} (linked to category: ${defaultCategory.slug || defaultCategory.id})`)
+  return texture.id
 }
 
 /**
